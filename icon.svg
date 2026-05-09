@@ -2,88 +2,54 @@
   <!-- Background -->
   <rect width="512" height="512" fill="#0A0A0A"/>
 
-  <!-- Angular skull silhouette in profile (facing right) -->
-  <!-- Built from sharp polygons — screenprint/zine aesthetic -->
+  <!-- Halftone dot field (matches index page) -->
+  <defs>
+    <pattern id="dots" x="0" y="0" width="16" height="16" patternUnits="userSpaceOnUse">
+      <circle cx="8" cy="8" r="1.5" fill="#0d3d06"/>
+    </pattern>
+  </defs>
+  <rect width="512" height="512" fill="url(#dots)"/>
 
-  <!-- Main head mass -->
+  <!-- Chromatic aberration: pink channel offset up-left -->
   <polygon points="
-    180,110
-    260,95
-    320,105
-    355,130
-    370,175
-    365,230
-    350,270
-    310,295
-    270,300
-    240,295
-    210,275
-    195,240
-    185,200
-    178,160
-  " fill="#FFE600"/>
-
-  <!-- Jaw angular cutout to define chin -->
-  <polygon points="
-    210,275
-    240,295
-    270,300
-    260,330
-    230,335
-    205,310
-  " fill="#FFE600"/>
-
-  <!-- Neck -->
-  <polygon points="
-    230,335
-    260,330
-    270,300
-    240,295
-    210,275
-    205,310
-  " fill="#FFE600"/>
-
-  <!-- Neck column -->
-  <polygon points="
-    220,330
-    265,328
-    268,370
-    218,372
-  " fill="#FFE600"/>
-
-  <!-- Eye socket — negative space via pink accent -->
-  <polygon points="
-    280,155
-    320,150
-    330,175
-    315,195
-    285,192
-    272,172
+    326,16
+    126,236
+    236,236
+    156,466
+    356,256
+    246,256
   " fill="#FF2D78"/>
 
-  <!-- Inner eye (black) to create depth -->
+  <!-- Chromatic aberration: green channel offset down-right -->
   <polygon points="
-    288,162
-    315,158
-    322,178
-    308,190
-    288,187
-    278,173
-  " fill="#0A0A0A"/>
+    354,44
+    154,264
+    264,264
+    184,494
+    384,284
+    274,284
+  " fill="#39FF14"/>
 
-  <!-- Cheekbone accent line -->
+  <!-- Main yellow bolt -->
   <polygon points="
-    340,210
-    365,230
-    358,245
-    335,225
-  " fill="#FF2D78"/>
+    340,30
+    140,250
+    250,250
+    170,480
+    370,270
+    260,270
+  " fill="#FFE600"/>
 
-  <!-- Temple/brow ridge accent -->
+  <!-- Inner highlight strip for dimension -->
   <polygon points="
-    260,95
-    320,105
-    325,118
-    265,110
-  " fill="#FF2D78"/>
+    320,80
+    200,232
+    240,232
+  " fill="#FFF59E" opacity="0.65"/>
+
+  <!-- Spark accents -->
+  <polygon points="78,86 92,72 106,86 92,100" fill="#39FF14"/>
+  <polygon points="420,108 432,96 444,108 432,120" fill="#FF2D78"/>
+  <polygon points="68,408 80,396 92,408 80,420" fill="#FFE600"/>
+  <polygon points="430,402 444,388 458,402 444,416" fill="#39FF14"/>
 </svg>
