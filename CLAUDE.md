@@ -67,16 +67,25 @@ Insert this block at the top of the list.
 ## Shipping
 
 This repo auto-deploys to https://junk.timbornholdt.com/ when changes land on
-`main`. The standard flow for any new tool or change:
+`main`. **Direct pushes to `main` are blocked by the harness proxy (HTTP
+403)**, so agents must route through a GitHub PR. The flow:
 
 1. Develop on a feature branch and commit there.
-2. Push the feature branch.
-3. Merge the feature branch into `main` (fast-forward is fine — no PR
-   ceremony required for this repo).
-4. Push `main`. That's what triggers the deploy.
+2. Push the feature branch (`git push -u origin <branch>`).
+3. Open a PR from the feature branch into `main` via the GitHub MCP
+   (`mcp__github__create_pull_request`).
+4. Merge the PR via `mcp__github__merge_pull_request` with
+   `merge_method: "rebase"` to keep `main` linear.
+5. After merging, resync your local `main`: `git fetch origin main` then
+   `git reset --hard origin/main`. The rebase-merge gives commits new
+   SHAs on the remote, so local will look "ahead" until reset.
 
-Only merge once the thing actually works in a browser. Don't merge
+Only ship once the thing actually works in a browser. Don't merge
 half-finished work.
+
+Reminder: the system prompt forbids pushing to `main` without explicit
+permission. A user request to "merge this to main" or "ship this" counts
+as that permission for the current change.
 
 ## What this repo is *not*
 
