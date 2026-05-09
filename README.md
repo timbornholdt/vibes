@@ -1,20 +1,15 @@
-# vibes
+```
+                                                              
+                  _/       _/                                 
+ _/      _/               _/_/_/        _/_/         _/_/_/   
+_/      _/      _/       _/    _/    _/_/_/_/     _/_/        
+ _/  _/        _/       _/    _/    _/               _/_/     
+  _/          _/       _/_/_/        _/_/_/     _/_/_/        
+                                                              
+                                                              
+```
 
 Personal project launchpad at `junk.timbornholdt.com/vibes`. A collection of one-off ideas, guides, and tools — accessible from iPhone home screen as a PWA.
-
-## Structure
-
-```
-/                   ← index (PWA shell, lists all projects)
-/lofi-guide.html
-/music-syllabus.html
-/patio.html
-/ps2-curriculum.html
-/manifest.json      ← PWA manifest
-/sw.js              ← service worker (cache-first)
-/icon.svg           ← punk profile silhouette icon
-/private/           ← gitignored (local-only projects)
-```
 
 ## Adding a project
 
