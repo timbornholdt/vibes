@@ -64,6 +64,20 @@ Format:
 
 Insert this block at the top of the list.
 
+## Shipping
+
+This repo auto-deploys to https://junk.timbornholdt.com/ when changes land on
+`main`. The standard flow for any new tool or change:
+
+1. Develop on a feature branch and commit there.
+2. Push the feature branch.
+3. Merge the feature branch into `main` (fast-forward is fine — no PR
+   ceremony required for this repo).
+4. Push `main`. That's what triggers the deploy.
+
+Only merge once the thing actually works in a browser. Don't merge
+half-finished work.
+
 ## What this repo is *not*
 
 - Not production code. No tests required.
