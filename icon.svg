@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#0A0A0A"/>
+
+  <!-- Angular skull silhouette in profile (facing right) -->
+  <!-- Built from sharp polygons — screenprint/zine aesthetic -->
+
+  <!-- Main head mass -->
+  <polygon points="
+    180,110
+    260,95
+    320,105
+    355,130
+    370,175
+    365,230
+    350,270
+    310,295
+    270,300
+    240,295
+    210,275
+    195,240
+    185,200
+    178,160
+  " fill="#FFE600"/>
+
+  <!-- Jaw angular cutout to define chin -->
+  <polygon points="
+    210,275
+    240,295
+    270,300
+    260,330
+    230,335
+    205,310
+  " fill="#FFE600"/>
+
+  <!-- Neck -->
+  <polygon points="
+    230,335
+    260,330
+    270,300
+    240,295
+    210,275
+    205,310
+  " fill="#FFE600"/>
+
+  <!-- Neck column -->
+  <polygon points="
+    220,330
+    265,328
+    268,370
+    218,372
+  " fill="#FFE600"/>
+
+  <!-- Eye socket — negative space via pink accent -->
+  <polygon points="
+    280,155
+    320,150
+    330,175
+    315,195
+    285,192
+    272,172
+  " fill="#FF2D78"/>
+
+  <!-- Inner eye (black) to create depth -->
+  <polygon points="
+    288,162
+    315,158
+    322,178
+    308,190
+    288,187
+    278,173
+  " fill="#0A0A0A"/>
+
+  <!-- Cheekbone accent line -->
+  <polygon points="
+    340,210
+    365,230
+    358,245
+    335,225
+  " fill="#FF2D78"/>
+
+  <!-- Temple/brow ridge accent -->
+  <polygon points="
+    260,95
+    320,105
+    325,118
+    265,110
+  " fill="#FF2D78"/>
+</svg>

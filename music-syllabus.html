@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Syllabus — A Guided Listening Curriculum</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;600&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f0e8;
+    --bg-card: #fffdf7;
+    --text: #1a1a1a;
+    --text-muted: #5a5650;
+    --accent-punk: #d63031;
+    --accent-indie: #2d6a4f;
+    --accent-emo: #6c5ce7;
+    --accent-folk: #b8860b;
+    --accent-lofi: #00838f;
+    --accent-grunge: #2d3436;
+    --border: #d4cfc5;
+    --highlight: #fff3cd;
+    --link: #1a5276;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Source Sans 3', sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; font-size: 17px; }
+  .hero { padding: 4rem 2rem 3rem; max-width: 900px; margin: 0 auto; }
+  .hero::after { content: ''; display: block; width: 100%; height: 2px; background: repeating-linear-gradient(90deg, var(--text) 0, var(--text) 8px, transparent 8px, transparent 16px); margin-top: 2rem; }
+  .hero h1 { font-family: 'DM Serif Display', serif; font-size: clamp(2.4rem, 5vw, 3.8rem); line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+  .hero h1 span { font-style: italic; color: var(--accent-punk); }
+  .hero .subtitle { font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 1rem; }
+  .hero .intro { font-size: 1.05rem; color: var(--text-muted); max-width: 650px; line-height: 1.7; }
+  .unit-nav { max-width: 900px; margin: 0 auto; padding: 1.5rem 2rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .unit-nav a { font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; text-decoration: none; padding: 0.35rem 0.75rem; border: 1.5px solid var(--border); border-radius: 2px; color: var(--text); transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.06em; }
+  .unit-nav a:hover { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .unit-nav a[data-g="punk"] { border-left: 3px solid var(--accent-punk); }
+  .unit-nav a[data-g="indie"] { border-left: 3px solid var(--accent-indie); }
+  .unit-nav a[data-g="emo"] { border-left: 3px solid var(--accent-emo); }
+  .unit-nav a[data-g="folk"] { border-left: 3px solid var(--accent-folk); }
+  .unit-nav a[data-g="lofi"] { border-left: 3px solid var(--accent-lofi); }
+  .unit-nav a[data-g="grunge"] { border-left: 3px solid var(--accent-grunge); }
+  .unit { max-width: 900px; margin: 0 auto 3rem; padding: 0 2rem; }
+  .unit-header { display: flex; align-items: baseline; gap: 1rem; margin-bottom: 0.3rem; flex-wrap: wrap; }
+  .un { font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; padding: 0.2rem 0.5rem; border-radius: 2px; color: white; }
+  .unit[data-g="punk"] .un { background: var(--accent-punk); }
+  .unit[data-g="indie"] .un { background: var(--accent-indie); }
+  .unit[data-g="emo"] .un { background: var(--accent-emo); }
+  .unit[data-g="folk"] .un { background: var(--accent-folk); }
+  .unit[data-g="lofi"] .un { background: var(--accent-lofi); }
+  .unit[data-g="grunge"] .un { background: var(--accent-grunge); }
+  .ut { font-family: 'DM Serif Display', serif; font-size: 1.8rem; }
+  .ue { margin: 1rem 0 1.5rem; color: var(--text-muted); font-size: 0.95rem; max-width: 700px; line-height: 1.75; }
+  .ue strong { color: var(--text); font-weight: 600; }
+  .ac { background: var(--bg-card); border: 1px solid var(--border); border-radius: 3px; padding: 1.5rem 1.75rem; margin-bottom: 1rem; position: relative; transition: box-shadow 0.2s; }
+  .ac:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .am { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem; }
+  .ac h3 { font-family: 'DM Serif Display', serif; font-size: 1.3rem; margin-bottom: 0.15rem; }
+  .aa { font-weight: 600; font-size: 0.95rem; color: var(--text-muted); margin-bottom: 0.75rem; }
+  .aw { font-size: 0.95rem; line-height: 1.7; margin-bottom: 0.75rem; }
+  .lb { font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; display: block; margin-bottom: 0.25rem; color: var(--text); }
+  .nb { background: var(--highlight); border-left: 3px solid var(--accent-folk); padding: 0.75rem 1rem; font-size: 0.88rem; line-height: 1.65; margin-top: 0.75rem; border-radius: 0 2px 2px 0; }
+  .rs { background: #f0ede5; border-left: 3px solid var(--link); padding: 0.75rem 1rem; font-size: 0.88rem; line-height: 1.75; margin-top: 0.5rem; border-radius: 0 2px 2px 0; }
+  .rs ul { list-style: none; padding: 0; margin: 0; }
+  .rs li { margin-bottom: 0.4rem; padding-left: 1.1rem; position: relative; }
+  .rs li::before { content: '→'; position: absolute; left: 0; color: var(--link); font-weight: 600; }
+  .rs a { color: var(--link); text-decoration: none; border-bottom: 1px solid rgba(26,82,118,0.3); transition: border-color 0.15s; }
+  .rs a:hover { border-bottom-color: var(--link); }
+  .rt { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.06em; background: var(--bg-card); padding: 0.1rem 0.35rem; border-radius: 2px; border: 1px solid var(--border); margin-right: 0.3rem; color: var(--text-muted); vertical-align: 1px; }
+  [data-c="true"] { display: none; }
+  .tb { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; background: none; border: 1.5px solid var(--border); padding: 0.3rem 0.65rem; cursor: pointer; border-radius: 2px; color: var(--text-muted); transition: all 0.15s; margin-top: 0.5rem; margin-right: 0.4rem; }
+  .tb:hover { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .ct { font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.75rem; }
+  .ct span { background: var(--bg); padding: 0.15rem 0.4rem; border-radius: 2px; margin-left: 0.25rem; border: 1px solid var(--border); }
+  .ck { position: absolute; top: 1.5rem; right: 1.5rem; appearance: none; width: 22px; height: 22px; border: 2px solid var(--border); border-radius: 2px; cursor: pointer; transition: all 0.15s; }
+  .ck:checked { background: var(--accent-indie); border-color: var(--accent-indie); }
+  .ck:checked::after { content: '✓'; color: white; font-size: 14px; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+  .ac:has(.ck:checked) { opacity: 0.55; }
+  .ac:has(.ck:checked):hover { opacity: 0.8; }
+  .lc { font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; color: var(--text-muted); padding: 0.5rem 0; }
+  .sep { max-width: 900px; margin: 0 auto; padding: 0 2rem; }
+  .sep hr { border: none; height: 1px; background: repeating-linear-gradient(90deg, var(--border) 0, var(--border) 4px, transparent 4px, transparent 10px); margin-bottom: 2rem; }
+  .pb { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent-punk); z-index: 100; transition: width 0.1s; }
+  .ft { max-width: 900px; margin: 0 auto; padding: 2rem 2rem 4rem; border-top: 2px solid var(--border); }
+  .ft p { font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; color: var(--text-muted); line-height: 1.7; }
+  @media (max-width: 600px) {
+    .hero { padding: 2.5rem 1.25rem 2rem; }
+    .unit, .unit-nav, .ft, .sep { padding-left: 1.25rem; padding-right: 1.25rem; }
+    .ac { padding: 1.25rem; }
+    .ut { font-size: 1.4rem; }
+  }
+</style>
+</head>
+<body>
+<div class="pb" id="pb"></div>
+<header class="hero">
+  <div class="subtitle">A Guided Listening Curriculum — 14 Albums</div>
+  <h1>The <span>Syllabus</span></h1>
+  <p class="intro">Built from your current rotation — Rezillos, Beths, Pynch, Blink, SOAD, Bonny Light Horseman, Emapea, and more. Each unit traces a genre thread with albums to listen to, nerd context on production and lineage, and links to reviews, videos, articles, and books to read before and after you listen. Check albums off as you go.</p>
+</header>
+<nav class="unit-nav">
+  <a href="#u1" data-g="punk">Punk & New Wave</a>
+  <a href="#u2" data-g="indie">Jangly Indie Rock</a>
+  <a href="#u3" data-g="emo">Emo & Post-Hardcore</a>
+  <a href="#u4" data-g="folk">Folk & Americana</a>
+  <a href="#u5" data-g="lofi">Lo-Fi & Instrumental</a>
+  <a href="#u6" data-g="grunge">Grunge & Alt-Metal</a>
+</nav>
+<div class="lc" style="max-width:900px;margin:0 auto;padding:0 2rem;"><span id="ctr">0</span> / 14 albums listened</div>
+
+<!-- UNIT 1 -->
+<section class="unit" id="u1" data-g="punk">
+  <div class="unit-header"><span class="un">Unit 1</span><h2 class="ut">Punk & New Wave</h2></div>
+  <p class="ue">You already know the Rezillos sat at the intersection of punk energy and pop melody — they called themselves <strong>"a new wave beat group."</strong> Their guitarist Jo Callis left the band and co-wrote "Don't You Want Me" for the Human League. The B-52s were doing the same thing in Athens, Georgia. What connects these bands isn't a sound; it's an <em>attitude</em>: punk's DIY irreverence crossed with a refusal to be miserable about it.</p>
+
+  <div class="ac"><input type="checkbox" class="ck" data-album="1">
+    <div class="am">1978 · Sire Records · Punk / New Wave</div>
+    <h3><em>Q: Are We Not Men? A: We Are Devo!</em></h3>
+    <div class="aa">Devo</div>
+    <div class="aw"><span class="lb">Why this album</span>If the Rezillos were the UK's answer to new wave as party, Devo were the American answer as conceptual art prank. Same year, same Sire Records label, completely different planet. Their cover of "Satisfaction" sounds like a factory malfunction. Fun fact: the B-52s, Devo, and the Rezillos are touring together in the UK in 2026.</div>
+    <button class="tb" onclick="tog(this)">Nerd notes ▾</button>
+    <div class="nb" data-c="true"><span class="lb">Production & Lineage</span>Produced by Brian Eno, fresh off Bowie's Berlin trilogy. Devo emerged from Akron, Ohio — their "de-evolution" concept was satirical philosophy committed to fully: matching jumpsuits, jerky choreography, self-made films. Gerald Casale witnessed the Kent State shootings, shaping the band's worldview. "Jocko Homo" is one of the only rock anthems written in 7/8 time. The album's mechanical rhythms bridged punk directly to the synth-pop explosion.</div>
+    <button class="tb" onclick="tog(this)">Read & Watch ▾</button>
+    <div class="rs" data-c="true"><span class="lb">Before you listen</span>
+      <ul>
+        <li><span class="rt">YouTube</span> <a href="https://www.youtube.com/@TrashTheory" target="_blank">Trash Theory</a> — search for his post-punk and new wave documentaries; best genre primers on YouTube</li>
+        <li><span class="rt">YouTube</span> <a href="https://www.youtube.com/@MicTheSnare" target="_blank">Mic the Snare: Deep Discog Dive — Talking Heads</a> — covers the CBGB/Sire Records scene Devo emerged from</li>
+        <li><span class="rt">Film</span> <a href="https://www.imdb.com/title/tt18312022/" target="_blank">Devolution: A Devo Theory (2021)</a> — feature documentary on the band's philosophy</li>
+      </ul>
+      <span class="lb">After you listen</span>
+      <ul>
+        <li><span class="rt">Review</span> <a href="https://www.rollingstone.com/music/music-album-reviews/q-are-we-not-men-a-we-are-devo-245406/" target="_blank">Rolling Stone — original review</a> — they called it "icecold absurdism"; history proved them wrong</li>
+        <li><span class="rt">Review</span> <a href="https://www.treblezine.com/devo-are-we-not-men-we-are-devo-review/" target="_blank">Treble — retrospective</a> — detailed track-by-track breakdown</li>
+        <li><span class="rt">Essay</span> <a href="https://altrockchick.com/2019/04/13/devo-q-are-we-not-men-a-we-are-devo-classic-music-review-2/" target="_blank">Alt Rock Chick — deep analysis</a> — one of the best reads on the album's emotional impact</li>
+      </ul>
+    </div>
+    <div class="ct">Connects to → <span>Rezillos</span> <span>B-52s</span> <span>Linda Lindas</span></div>
+  </div>
+
+  <div class="ac"><input type="checkbox" class="ck" data-album="2">
+    <div class="am">1979 · Island Records · Post-Punk / Dub</div>
+    <h3><em>Cut</em></h3>
+    <div class="aa">The Slits</div>
+    <div class="aw"><span class="lb">Why this album</span>You love the Linda Lindas and young women making excellent punk. The Slits were doing it in 1977 London — Ari Up was 14 when the band formed. <em>Cut</em> runs punk through reggae and dub in ways nobody had tried before. Rolling Stone ranked it #260 all-time and credits it with inspiring Bikini Kill and Sleater-Kinney. Kurt Cobain cited it as an influence.</div>
+    <button class="tb" onclick="tog(this)">Nerd notes ▾</button>
+    <div class="nb" data-c="true"><span class="lb">Production & Lineage</span>Produced by Dennis Bovell, a reggae/dub producer — unusual choice that gave it rhythmic uniqueness. The Slits toured with the Clash and were part of the London punk cohort. The mud-covered album cover was their idea. Ari Up's mother later married John Lydon of the Sex Pistols. The album directly influenced the entire riot grrrl movement of the '90s.</div>
+    <button class="tb" onclick="tog(this)">Read & Watch ▾</button>
+    <div class="rs" data-c="true"><span class="lb">Before you listen</span>
+      <ul>
+        <li><span class="rt">Article</span> <a href="https://www.thestudentplaylist.com/the-slits-cut/" target="_blank">The Student Playlist — "CULT '70s: The Slits"</a> — contextual history of the band and the album's creation</li>
+        <li><span class="rt">YouTube</span> <a href="https://www.youtube.com/@TrashTheory" target="_blank">Trash Theory</a> — his post-punk history series covers the exact London scene</li>
+      </ul>
+      <span class="lb">After you listen</span>
+      <ul>
+        <li><span class="rt">Review</span> <a href="https://faroutmagazine.co.uk/the-slits-cut-album-review/" target="_blank">Far Out Magazine — review</a> — focuses on lyrical fearlessness and Bovell's production</li>
+        <li><span class="rt">Review</span> <a href="https://www.punknews.org/review/16786/the-slits-cut" target="_blank">Punknews.org — track-by-track</a> — great on "Typical Girls" as feminist anthem</li>
+        <li><span class="rt">Book</span> <em>Clothes, Clothes, Clothes. Music, Music, Music. Boys, Boys, Boys.</em> by Viv Albertine — the Slits guitarist's memoir. One of the best music autobiographies ever. If you liked Serj's book, you'll love this.</li>
+      </ul>
+    </div>
+    <div class="ct">Connects to → <span>Linda Lindas</span> <span>Rezillos</span> <span>B-52s</span></div>
+  </div>
+
+  <div class="ac"><input type="checkbox" class="ck" data-album="3">
+    <div class="am">1977 · Sire Records · Punk / New Wave</div>
+    <h3><em>Talking Heads: 77</em></h3>
+    <div class="aa">Talking Heads</div>
+    <div class="aw"><span class="lb">Why this album</span>The B-52s' CBGB contemporaries — art-school nerds who made punk brainy. "Psycho Killer" has the same twitchy energy as the Rezillos but filtered through David Byrne's anxious lens. Proved punk didn't have to be dumb to be dangerous.</div>
+    <button class="tb" onclick="tog(this)">Nerd notes ▾</button>
+    <div class="nb" data-c="true"><span class="lb">Production & Lineage</span>RISD graduates who migrated to New York. Sire Records (same as Rezillos, Ramones) was run by Seymour Stein, who launched a "Don't Call It Punk" campaign in 1977. Byrne's nervous vocal style became the post-punk singer template. Later work with Brian Eno on <em>Remain in Light</em> incorporated Afrobeat and became one of the most influential '80s records.</div>
+    <button class="tb" onclick="tog(this)">Read & Watch ▾</button>
+    <div class="rs" data-c="true"><span class="lb">Before you listen</span>
+      <ul>
+        <li><span class="rt">YouTube</span> <a href="https://www.youtube.com/@MicTheSnare" target="_blank">Mic the Snare: Deep Discog Dive — Talking Heads</a> — definitive career walkthrough, album by album</li>
+        <li><span class="rt">Essay</span> <a href="https://www.popmatters.com/new-wave-rebellion-into-money-2628904704.html" target="_blank">PopMatters — "New Wave: Turning Rebellion into Money"</a> — how punk became new wave</li>
+      </ul>
+      <span class="lb">After you listen</span>
+      <ul>
+        <li><span class="rt">Film</span> <em>Stop Making Sense</em> (1984, dir. Jonathan Demme) — the greatest concert film ever made. Essential.</li>
+        <li><span class="rt">Book</span> <em>How Music Works</em> by David Byrne — part memoir, part music theory, part cultural history</li>
+        <li><span class="rt">YouTube</span> <a href="https://www.youtube.com/@kexp" target="_blank">KEXP</a> — search for new wave and post-punk sessions; modern bands carrying this torch</li>
+      </ul>
+    </div>
+    <div class="ct">Connects to → <span>B-52s</span> <span>Rezillos</span> <span>Devo</span></div>
+  </div>
+</section><div class="sep"><hr></div>
+
+<!-- UNIT 2 -->
+<section class="unit" id="u2" data-g="indie">
+  <div class="unit-header"><span class="un">Unit 2</span><h2 class="ut">Jangly Indie Rock</h2></div>
+  <p class="ue">The Beths, Pynch, and the Cords play in a tradition going back to mid-'80s <strong>C86</strong> — guitar music that shimmers rather than crunches, with melodies that lodge in your brain and lyrics smarter than they let on. This unit traces the jangle back to its roots and sideways to the New Zealand scene that produced the Beths.</p>
+
+  <div class="ac"><input type="checkbox" class="ck" data-album="4">
+    <div class="am">2003 · Sub Pop Records · Indie Pop / Jangle Pop</div>
+    <h3><em>Chutes Too Narrow</em></h3>
+    <div class="aa">The Shins</div>
+    <div class="aw"><span class="lb">Why this album</span>The early-2000s equivalent of the Beths: smart indie-pop hooks in every direction. Swings between garage rock, psych-folk, and chamber pop without losing the thread. The Cords' happy college-years vibes? This album lives in that exact emotional zip code.</div>
+    <button class="tb" onclick="tog(this)">Nerd notes ▾</button>
+    <div class="nb" data-c="true"><span class="lb">Production & Lineage</span>Mercer formed the Shins in Albuquerque before relocating to Portland. Sub Pop (Nirvana's first label) signed them — fitting for the label's pivot from grunge to indie pop. Phil Ek's deliberately restrained production makes it sound like a great demo tape. Mercer's lyrics in "Saint Simon" reference Simone Weil and New Mexico landscapes simultaneously. The Shins sit on a direct line from the Byrds' jangle through REM to the Beths.</div>
+    <button class="tb" onclick="tog(this)">Read & Watch ▾</button>
+    <div class="rs" data-c="true"><span class="lb">Before you listen</span>
+      <ul>
+        <li><span class="rt">YouTube</span> <a href="https://www.youtube.com/@Middle8" target="_blank">Middle 8</a> — his indie-pop songwriting analyses explain why certain chord progressions hit emotionally; perfect prep</li>
+        <li><span class="rt">YouTube</span> <a href="https://www.youtube.com/@kexp" target="_blank">KEXP — The Shins sessions</a> — multiple sessions on the channel</li>
+      </ul>
+      <span class="lb">After you listen</span>
+      <ul>
+        <li><span class="rt">Article</span> <a href="https://www.treblezine.com/150-indie-rock-albums-21st-century/" target="_blank">Treble — "150 Favorite Indie Rock Albums of the 21st Century"</a> — great rabbit hole for this unit</li>
+        <li><span class="rt">Film</span> <em>Garden State</em> (2004) — "New Slang" in a pivotal scene. Divisive film, time-capsule soundtrack.</li>
+      </ul>
+    </div>
+    <div class="ct">Connects to → <span>The Beths</span> <span>The Cords</span> <span>Pynch</span></div>
+  </div>
+
+  <div class="ac"><input type="checkbox" class="ck" data-album="5">
+    <div class="am">2004 · Elefant / Merge · Indie Pop / Chamber Pop</div>
+    <h3><em>Underachievers Please Try Harder</em></h3>
+    <div class="aa">Camera Obscura</div>
+    <div class="aw"><span class="lb">Why this album</span>Scottish answer to the Beths' emotional precision. Tracyanne Campbell's voice is wry and devastating in equal measure. If you love how the Beths hide gut-punches inside shimmering guitars, Camera Obscura does the same with a slightly more orchestral palette.</div>
+    <button class="tb" onclick="tog(this)">Nerd notes ▾</button>
+    <div class="nb" data-c="true"><span class="lb">Production & Lineage</span>From Glasgow — labelmates and friends with Belle and Sebastian. The C86/twee lineage runs deep: Glasgow's Postcard Records (Orange Juice, Josef K) begat Creation Records bands, which begat the Scottish indie-pop tradition. Their use of strings and horns draws on Dusty Springfield and Phil Spector — vintage pop production through indie sensibility.</div>
+    <button class="tb" onclick="tog(this)">Read & Watch ▾</button>
+    <div class="rs" data-c="true"><span class="lb">Before you listen</span>
+      <ul>
+        <li><span class="rt">YouTube</span> <a href="https://www.youtube.com/@kexp" target="_blank">KEXP — Camera Obscura session</a></li>
+        <li><span class="rt">YouTube</span> <a href="https://www.youtube.com/@theneedledrop" target="_blank">The Needle Drop</a> — Fantano's Camera Obscura reviews for a second opinion</li>
+      </ul>
+      <span class="lb">After you listen</span>
+      <ul>
+        <li><span class="rt">Playlist</span> Search Spotify for "C86 NME" — the original compilation that named this whole sound. 86 tracks of jangly indie pop.</li>
+        <li><span class="rt">Article</span> <a href="https://wknc.org/2021/10/29/if-you-like-rilo-kiley-then-listen-to/" target="_blank">WKNC — "If You Like Rilo Kiley..."</a> — Camera Obscura is on here; good for your Rilo Kiley nostalgia</li>
+      </ul>
+    </div>
+    <div class="ct">Connects to → <span>The Beths</span> <span>Rilo Kiley</span> <span>Pynch</span></div>
+  </div>
+
+  <div class="ac"><input type="checkbox" class="ck" data-album="6">
+    <div class="am">1990 · Flying Nun Records · Noise Pop / Jangle Pop</div>
+    <h3><em>Here Come the Cars</em></h3>
+    <div class="aa">The Bats</div>
+    <div class="aw"><span class="lb">Why this album</span>The Beths are from Auckland — and this is the NZ indie rock tradition they grew up on. The Bats are key Flying Nun Records artists, the Kiwi label that defined lo-fi jangly guitar pop. Robert Scott's songwriting has the same quality you love in the Beths: effortless melodies that are architecturally precise. The roots of the tree that grew Elizabeth Stokes.</div>
+    <button class="tb" onclick="tog(this)">Nerd notes ▾</button>
+    <div class="nb" data-c="true"><span class="lb">Production & Lineage</span>Flying Nun Records (Christchurch, NZ, 1981) — one of indie music's most important labels. The "Dunedin Sound" was NZ's answer to C86: lo-fi recording, chiming guitars, post-punk structures with pop melodies. The Clean, the Chills, the Verlaines, and the Bats form the canon. The Beths have openly cited Flying Nun as foundational.</div>
+    <button class="tb" onclick="tog(this)">Read & Watch ▾</button>
+    <div class="rs" data-c="true"><span class="lb">Before you listen</span>
+      <ul>
+        <li><span class="rt">Film</span> <em>Heavenly Pop Hits: The Flying Nun Story</em> (2002) — documentary about the label. Essential for understanding where the Beths come from.</li>
+        <li><span class="rt">YouTube</span> <a href="https://www.youtube.com/@kexp" target="_blank">KEXP — The Beths session</a> — watch first, then listen to the Bats and hear the lineage</li>
+      </ul>
+      <span class="lb">After you listen</span>
+      <ul>
+        <li><span class="rt">Playlist</span> Search "Flying Nun Records essentials" on Spotify or Bandcamp</li>
+        <li><span class="rt">Book</span> <em>Positively George Street</em> by Matthew Bannister — oral history of the Flying Nun scene</li>
+      </ul>
+    </div>
+    <div class="ct">Connects to → <span>The Beths</span> <span>The Cords</span></div>
+  </div>
+</section><div class="sep"><hr></div>
+
+<!-- UNIT 3 -->
+<section class="unit" id="u3" data-g="emo">
+  <div class="unit-header"><span class="un">Unit 3</span><h2 class="ut">Emo & Post-Hardcore</h2></div>
+  <p class="ue">Your WWWY revelation — <strong>"totally opened my brain up to emo and punk"</strong> — is one of the most common late-bloomer music stories of the 2020s. This unit fills in the gaps between Movements and Blink.</p>
+
+  <div class="ac"><input type="checkbox" class="ck" data-album="7">
+    <div class="am">1999 · Polyvinyl Records · Midwest Emo / Math Rock</div>
+    <h3><em>American Football</em></h3>
+    <div class="aa">American Football</div>
+    <div class="aw"><span class="lb">Why this album</span>The album the entire emo revival was built on. Math-rock guitar tunings, jazz-influenced time signatures, emo that sounds like autumn. One album, then 17 years of silence. The house on the cover became a pilgrimage site. They're touring again in 2026 with a new (fourth!) self-titled album.</div>
+    <button class="tb" onclick="tog(this)">Nerd notes ▾</button>
+    <div class="nb" data-c="true"><span class="lb">Production & Lineage</span>Recorded in Urbana, Illinois. Mike Kinsella's brother Tim fronted Cap'n Jazz, one of emo's founding bands. Every song is in a different tuning — Kinsella said they couldn't buy shimmer pedals, so they did it manually and the accident became their signature. Pitchfork's Ian Cohen wrote that hundreds of bands rebuilt the genre on "open-tuned Telecasters, capos, and red and black flannels." When they reunited in 2014, demand crashed Polyvinyl's website.</div>
+    <button class="tb" onclick="tog(this)">Read & Watch ▾</button>
+    <div class="rs" data-c="true"><span class="lb">Before you listen</span>
+      <ul>
+        <li><span class="rt">YouTube</span> <a href="https://www.youtube.com/@MicTheSnare" target="_blank">Mic the Snare</a> — search for his emo/midwest emo coverage; his analysis of how the genre evolved is perfect context</li>
+        <li><span class="rt">YouTube</span> <a href="https://www.youtube.com/@theneedledrop" target="_blank">The Needle Drop</a> — Fantano reviewed all three self-titled albums; useful for calibrating expectations</li>
+      </ul>
+      <span class="lb">After you listen</span>
+      <ul>
+        <li><span class="rt">Book</span> <em>Nothing Feels Good: Punk Rock, Teenagers, and Emo</em> by Andy Greenwald — the definitive emo history book, published 2003, covers the exact era</li>
+        <li><span class="rt">Book</span> <em>Sellout: The Major-Label Feeding Frenzy That Swept Punk, Emo, and Hardcore</em> by Dan Ozzi — covers the scene's collision with the music industry</li>
+        <li><span class="rt">Visit</span> The house: 704 W High St, Urbana, IL. People still go. Don't be weird about it.</li>
+      </ul>
+    </div>
+    <div class="ct">Connects to → <span>Movements</span> <span>Blink-182</span> <span>New Found Glory</span></div>
+  </div>
+
+  <div class="ac"><input type="checkbox" class="ck" data-album="8">
+    <div class="am">2002 · Drive-Thru / MCA · Pop-Punk</div>
+    <h3><em>Sticks and Stones</em></h3>
+    <div class="aa">New Found Glory</div>
+    <div class="aw"><span class="lb">Why this album</span>You love <em>Listen Up!</em> for its grown-up positivity. <em>Sticks and Stones</em> is where NFG perfected the formula first — the album that codified the melodic pop-punk template. "My Friends Over You" is still one of the greatest pop-punk songs ever written. Going back after <em>Listen Up!</em> lets you hear the evolution: same DNA, different wisdom.</div>
+    <button class="tb" onclick="tog(this)">Nerd notes ▾</button>
+    <div class="nb" data-c="true"><span class="lb">Production & Lineage</span>From Coral Springs, Florida. Producer Neal Avron gave this the massive, radio-ready sound that became the pop-punk production standard. Jordan Pundik's vocal delivery was the key innovation: not sneering punk, not wailing emo, but an earnest, boyish sincerity that made the content feel genuine. This approach is exactly what they've carried into <em>Listen Up!</em>'s maturity.</div>
+    <button class="tb" onclick="tog(this)">Read & Watch ▾</button>
+    <div class="rs" data-c="true"><span class="lb">Before you listen</span>
+      <ul>
+        <li><span class="rt">YouTube</span> <a href="https://www.youtube.com/@ToddintheShadow" target="_blank">Todd in the Shadows — One Hit Wonderland</a> — covers bands from this pop-punk era with great cultural context</li>
+      </ul>
+      <span class="lb">After you listen</span>
+      <ul>
+        <li><span class="rt">Exercise</span> Listen to <em>Sticks and Stones</em> → <em>Listen Up!</em> back-to-back. Track how Pundik's delivery matured while the melodic DNA stayed constant. That's 20+ years of a band growing up.</li>
+      </ul>
+    </div>
+    <div class="ct">Connects to → <span>Blink-182</span> <span>Movements</span></div>
+  </div>
+
+  <div class="ac"><input type="checkbox" class="ck" data-album="9">
+    <div class="am">2017 · Fearless Records · Post-Hardcore / Emo</div>
+    <h3><em>Feel Something</em></h3>
+    <div class="aa">Movements</div>
+    <div class="aw"><span class="lb">Already in your rotation</span>Your anchor point for this unit. Connects backward to American Football's vulnerability, sideways to Blink's hooks, forward to the WWWY revival. Listen to the other two, then come back and hear how Patrick Miranda synthesized it all.</div>
+    <div class="ct">Your anchor → <span>American Football</span> <span>NFG</span> <span>Blink</span></div>
+  </div>
+</section><div class="sep"><hr></div>
+
+<!-- UNIT 4 -->
+<section class="unit" id="u4" data-g="folk">
+  <div class="unit-header"><span class="un">Unit 4</span><h2 class="ut">Folk & Americana</h2></div>
+  <p class="ue">Bonny Light Horseman and Mumford represent two poles of modern folk. You described BLH as the album that <strong>"puts its arm around your shoulder"</strong> in the evening. This unit gives you the connective tissue.</p>
+
+  <div class="ac"><input type="checkbox" class="ck" data-album="10">
+    <div class="am">2007 · 4AD / Interscope · Indie Folk / Indie Pop</div>
+    <h3><em>The Reminder</em></h3>
+    <div class="aa">Feist</div>
+    <div class="aw"><span class="lb">Why this album</span>Feist bridges the exact gap between your indie taste (Beths, Pynch) and your folk taste (BLH, Mumford). The deep cuts ("The Park," "Intuition") are where it really lives. Evening music for someone who also loves guitars.</div>
+    <button class="tb" onclick="tog(this)">Nerd notes ▾</button>
+    <div class="nb" data-c="true"><span class="lb">Production & Lineage</span>Feist came through Broken Social Scene, the Toronto collective that spawned Metric and Stars. Recorded partly in Paris with Gonzales. "1234" was used in an iPod commercial, triggering a "selling out" discourse that now feels quaint. 4AD is legendary — home to the Cocteau Twins, Pixies, and the National.</div>
+    <button class="tb" onclick="tog(this)">Read & Watch ▾</button>
+    <div class="rs" data-c="true"><span class="lb">Before you listen</span>
+      <ul>
+        <li><span class="rt">YouTube</span> <a href="https://www.youtube.com/@kexp" target="_blank">KEXP — Feist session</a> — her live performances strip the songs down beautifully</li>
+      </ul>
+      <span class="lb">After you listen</span>
+      <ul>
+        <li><span class="rt">YouTube</span> <a href="https://www.youtube.com/@Middle8" target="_blank">Middle 8</a> — his analyses of indie-pop production explain why Feist's arrangements hit differently from Mumford's</li>
+        <li><span class="rt">Next</span> If this clicks, try <em>Metals</em> (2011) — darker, weirder, closer to the Pynch end of your taste</li>
+      </ul>
+    </div>
+    <div class="ct">Connects to → <span>Bonny Light Horseman</span> <span>The Beths</span> <span>Mumford</span></div>
+  </div>
+
+  <div class="ac"><input type="checkbox" class="ck" data-album="11">
+    <div class="am">2020 · Southeastern / Thirty Tigers · Americana</div>
+    <h3><em>Reunions</em></h3>
+    <div class="aa">Jason Isbell and the 400 Unit</div>
+    <div class="aw"><span class="lb">Why this album</span>If Mumford brought your family together at Feed My Starving Children, Isbell is the solo-artist equivalent — that communal warmth but with sharper edges. <em>Reunions</em> is about coming back together, being a good partner and parent. "Dreamsicle" is the most tender childhood-nostalgia song I know.</div>
+    <button class="tb" onclick="tog(this)">Nerd notes ▾</button>
+    <div class="nb" data-c="true"><span class="lb">Production & Lineage</span>Former Drive-By Truckers member. Sobriety in 2012 transformed his songwriting — <em>Southeastern</em> (2013) documents that transition. Produced by Dave Cobb, who also produced Brandi Carlile and Chris Stapleton. His wife Amanda Shires plays violin in the 400 Unit, making the family-as-band theme literal.</div>
+    <button class="tb" onclick="tog(this)">Read & Watch ▾</button>
+    <div class="rs" data-c="true"><span class="lb">Before you listen</span>
+      <ul>
+        <li><span class="rt">YouTube</span> Search "Jason Isbell Tiny Desk Concert" — one of the best in the series; gives you his emotional range in 15 minutes</li>
+        <li><span class="rt">YouTube</span> <a href="https://www.youtube.com/@kexp" target="_blank">KEXP — Isbell session</a></li>
+      </ul>
+      <span class="lb">After you listen</span>
+      <ul>
+        <li><span class="rt">Interview</span> Search for his NPR All Things Considered interview on <em>Reunions</em> — incredibly candid about fatherhood and recovery</li>
+        <li><span class="rt">Next</span> Go backward to <em>Southeastern</em> (2013) — the sobriety album. Devastating and beautiful.</li>
+      </ul>
+    </div>
+    <div class="ct">Connects to → <span>Mumford & Sons</span> <span>Bonny Light Horseman</span></div>
+  </div>
+</section><div class="sep"><hr></div>
+
+<!-- UNIT 5 -->
+<section class="unit" id="u5" data-g="lofi">
+  <div class="unit-header"><span class="un">Unit 5</span><h2 class="ut">Lo-Fi & Instrumental</h2></div>
+  <p class="ue">Emapea and NewJeans scratch the same itch: <strong>music as productive atmosphere</strong>. Emapea's jazzy lo-fi comes from the beat tape tradition starting with J Dilla and Nujabes. This unit gives you the two foundational albums.</p>
+
+  <div class="ac"><input type="checkbox" class="ck" data-album="12">
+    <div class="am">2006 · Stones Throw Records · Instrumental Hip Hop</div>
+    <h3><em>Donuts</em></h3>
+    <div class="aa">J Dilla</div>
+    <div class="aw"><span class="lb">Why this album</span>If Emapea is your GOAT for flow-state, J Dilla is Emapea's GOAT. 31 tracks in 44 minutes — each a perfectly crafted sample collage. Made from his hospital bed in his final weeks. Released on his 32nd birthday; he died three days later. It radiates warmth that shouldn't be possible. Every lo-fi beat you've ever heard descends from this. The album loops infinitely — the last track flows back into the first.</div>
+    <button class="tb" onclick="tog(this)">Nerd notes ▾</button>
+    <div class="nb" data-c="true"><span class="lb">Production & Lineage</span>Dilla's innovation was "drunk drumming" — slightly off-grid beats giving machine-made music human swing. He produced for A Tribe Called Quest, Common, Erykah Badu, and the Roots. Stones Throw became the home base for instrumental hip-hop (Madlib, MF DOOM, Knxwledge). Kanye acknowledged the influence directly — the chopped sample style on <em>Watch the Throne</em> is pure Dilla.</div>
+    <button class="tb" onclick="tog(this)">Read & Watch ▾</button>
+    <div class="rs" data-c="true"><span class="lb">Before you listen</span>
+      <ul>
+        <li><span class="rt">Documentary</span> <a href="https://www.stonesthrow.com/news/j-dilla-doc-part-1-by-stussy/" target="_blank">Stussy × Stones Throw — J Dilla doc (3 parts)</a> — Part 3 is specifically about <em>Donuts</em></li>
+        <li><span class="rt">Essay</span> <a href="https://daily.redbullmusicacademy.com/2016/02/dilla-life-is-a-donut-feature/" target="_blank">Red Bull Music Academy — "Life Is A Donut"</a> — the best longform piece on the album's legacy</li>
+      </ul>
+      <span class="lb">After you listen</span>
+      <ul>
+        <li><span class="rt">YouTube</span> Search "Houston Loves J Dilla Donuts" — 44-minute found-footage video synced to the entire album, matching original samples to their sources</li>
+        <li><span class="rt">Book</span> <em>Dilla Time: The Life and Afterlife of J Dilla</em> by Dan Charnas (2022) — definitive biography; meticulously researched, emotionally devastating</li>
+        <li><span class="rt">Book</span> <em>Donuts</em> by Jordan Ferguson (33⅓ series) — short book-length analysis. The 33⅓ series does one book per album; this one is excellent.</li>
+      </ul>
+    </div>
+    <div class="ct">Connects to → <span>Emapea</span> <span>NewJeans (flow-state)</span></div>
+  </div>
+
+  <div class="ac"><input type="checkbox" class="ck" data-album="13">
+    <div class="am">2003 · Hydeout Productions · Instrumental Hip Hop / Jazz</div>
+    <h3><em>Metaphorical Music</em></h3>
+    <div class="aa">Nujabes</div>
+    <div class="aw"><span class="lb">Why this album</span>If Dilla is the Detroit foundation, Nujabes is the Tokyo counterpart — probably the single most direct influence on the lo-fi genre Emapea inhabits. Jazz piano samples, lush strings, head-nodding drums that feel less like "beats" and more like a warm bath. The connection to <em>Dreaming Zone</em> is almost 1:1.</div>
+    <button class="tb" onclick="tog(this)">Nerd notes ▾</button>
+    <div class="nb" data-c="true"><span class="lb">Production & Lineage</span>Jun Seba ran Tribe, a legendary record shop in Tokyo's Shibuya. He scored the anime <em>Samurai Champloo</em>, introducing his music to Western listeners. Like Dilla, he died young (car accident, 2010, age 36). Emapea, Idealism, Jinsang, and the entire "lo-fi hip-hop beats to study to" aesthetic descend directly from his sound.</div>
+    <button class="tb" onclick="tog(this)">Read & Watch ▾</button>
+    <div class="rs" data-c="true"><span class="lb">Before you listen</span>
+      <ul>
+        <li><span class="rt">Anime</span> <em>Samurai Champloo</em> — Nujabes scored it. Even a few episodes gives you the vibe. Opening credits alone are worth it.</li>
+        <li><span class="rt">YouTube</span> Search "Nujabes documentary" — fan-made tributes trace his story from record shop owner to lo-fi godfather</li>
+      </ul>
+      <span class="lb">After you listen</span>
+      <ul>
+        <li><span class="rt">Next</span> <em>Modal Soul</em> (2005) — many fans consider it even better. Then <em>Spiritual State</em> (2011, posthumous).</li>
+        <li><span class="rt">Deep cut</span> Search "Hydeout Productions compilations" on Spotify — the label Nujabes founded. Direct pipeline to more music like Emapea.</li>
+      </ul>
+    </div>
+    <div class="ct">Connects to → <span>Emapea</span> <span>J Dilla</span></div>
+  </div>
+</section><div class="sep"><hr></div>
+
+<!-- UNIT 6 -->
+<section class="unit" id="u6" data-g="grunge">
+  <div class="unit-header"><span class="un">Unit 6</span><h2 class="ut">Grunge & Alt-Metal</h2></div>
+  <p class="ue">Nirvana and SOAD are your catharsis music — controlled rage, loud guitars, anti-authority sentiment. <strong>Toxicity</strong> is metal crossed with Armenian folk music, and Serj's vocals owe as much to Middle Eastern singing as to hardcore.</p>
+
+  <div class="ac"><input type="checkbox" class="ck" data-album="14">
+    <div class="am">1991 · A&M Records · Grunge / Alternative Metal</div>
+    <h3><em>Badmotorfinger</em></h3>
+    <div class="aa">Soundgarden</div>
+    <div class="aw"><span class="lb">Why this album</span>Soundgarden bridged metal and grunge more than anyone. Chris Cornell's voice did things that shouldn't be physically possible, and Kim Thayil's guitar uses the odd time signatures and drop tunings SOAD later made their own. Heavier and weirder than <em>Nevermind</em> but just as melodic. "Outshined" and "Rusty Cage" hit with the same cathartic force as "Chop Suey!"</div>
+    <button class="tb" onclick="tog(this)">Nerd notes ▾</button>
+    <div class="nb" data-c="true"><span class="lb">Production & Lineage</span>Soundgarden formed 1984 — pre-dating Nirvana, Pearl Jam, and Alice in Chains. Time signatures (7/4, 15/8) borrowed from prog connect directly to SOAD's Armenian folk meters. Thayil's drop-D tuning on "Jesus Christ Pose" is what Malakian would later use extensively. Chris Cornell (d. 2017) had a four-octave range — whisper to scream mid-phrase.</div>
+    <button class="tb" onclick="tog(this)">Read & Watch ▾</button>
+    <div class="rs" data-c="true"><span class="lb">Before you listen</span>
+      <ul>
+        <li><span class="rt">YouTube</span> <a href="https://www.youtube.com/@TrashTheory" target="_blank">Trash Theory — grunge history</a> — his grunge origin docs are essential before diving into Seattle</li>
+        <li><span class="rt">YouTube</span> <a href="https://www.youtube.com/@MicTheSnare" target="_blank">Mic the Snare</a> — check for Soundgarden in his Deep Discog Dive series</li>
+      </ul>
+      <span class="lb">After you listen</span>
+      <ul>
+        <li><span class="rt">Film</span> <em>Singles</em> (1992, dir. Cameron Crowe) — fictional story set in the Seattle grunge scene. Soundgarden, Pearl Jam, Alice in Chains all appear.</li>
+        <li><span class="rt">Book</span> <em>Everybody Loves Our Town: An Oral History of Grunge</em> by Mark Yarm — the definitive grunge history. Interviews with everyone who was there. You said you'd have been down with the scene — this is your way in.</li>
+        <li><span class="rt">Exercise</span> Listen to "Jesus Christ Pose" → "Chop Suey!" back-to-back. Count the time signature changes in each. Same energy, different cultural roots.</li>
+      </ul>
+    </div>
+    <div class="ct">Connects to → <span>Nirvana</span> <span>SOAD</span></div>
+  </div>
+</section>
+
+<footer class="ft">
+  <p>Built by Claude, informed by your taste. The albums are the syllabus; the links are your teachers; your ears are the final authority.<br>Last updated: April 2026. Go listen to something.</p>
+</footer>
+
+<script>
+  window.addEventListener('scroll',()=>{const h=document.documentElement;document.getElementById('pb').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+'%'});
+  function tog(b){const x=b.nextElementSibling,c=x.getAttribute('data-c')==='true';x.setAttribute('data-c',c?'false':'true');const t=b.textContent.trim();if(t.startsWith('Nerd'))b.textContent=c?'Nerd notes ▴':'Nerd notes ▾';else b.textContent=c?'Read & Watch ▴':'Read & Watch ▾'}
+  function uc(){document.getElementById('ctr').textContent=Array.from(document.querySelectorAll('.ck')).filter(c=>c.checked).length}
+  document.querySelectorAll('.ck').forEach(cb=>{const k='a-'+cb.dataset.album;if(localStorage.getItem(k)==='true')cb.checked=true;cb.addEventListener('change',()=>{localStorage.setItem(k,cb.checked);uc()})});uc();
+  document.querySelectorAll('.unit-nav a').forEach(a=>{a.addEventListener('click',e=>{e.preventDefault();document.querySelector(a.getAttribute('href'))?.scrollIntoView({behavior:'smooth',block:'start'})})});
+</script>
+</body>
+</html>

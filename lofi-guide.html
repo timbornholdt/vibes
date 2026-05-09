@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A Field Guide to Lo-Fi Hip-Hop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;0,9..144,800;1,9..144,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f3ead8;
+    --paper-deep: #ebdfc6;
+    --ink: #1f1a14;
+    --ink-soft: #4a3f30;
+    --ink-faint: #8a7a5e;
+    --rule: #c9b896;
+    --accent: #c54a1a;
+    --accent-deep: #8e2f0d;
+    --tape: #2b2520;
+    --gold: #b8893d;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Fraunces', Georgia, serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.6;
+    min-height: 100vh;
+    /* paper texture via layered gradients */
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(139, 90, 43, 0.06) 0%, transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(139, 90, 43, 0.05) 0%, transparent 40%),
+      radial-gradient(circle at 50% 50%, rgba(0,0,0,0.02) 0%, transparent 50%);
+  }
+
+  /* grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.35;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+    mix-blend-mode: multiply;
+  }
+
+  .container {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 60px 32px 120px;
+    position: relative;
+  }
+
+  /* ---------- HEADER ---------- */
+  header {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 32px;
+    margin-bottom: 48px;
+    position: relative;
+  }
+
+  .top-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--ink-soft);
+    margin-bottom: 28px;
+  }
+
+  .top-meta .dot {
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+    vertical-align: middle;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 800;
+    font-size: clamp(48px, 8vw, 92px);
+    line-height: 0.92;
+    letter-spacing: -0.03em;
+    margin-bottom: 20px;
+  }
+  h1 em {
+    font-style: italic;
+    font-weight: 300;
+    color: var(--accent);
+  }
+
+  .subtitle {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 20px;
+    color: var(--ink-soft);
+    max-width: 560px;
+    line-height: 1.5;
+  }
+
+  .vol-stamp {
+    position: absolute;
+    top: 50px;
+    right: 0;
+    transform: rotate(6deg);
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    padding: 8px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  /* ---------- PROGRESS ---------- */
+  .progress {
+    background: var(--paper-deep);
+    border: 1px solid var(--rule);
+    padding: 20px 24px;
+    margin-bottom: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .progress-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--ink-soft);
+  }
+
+  .progress-text strong {
+    color: var(--accent);
+    font-size: 16px;
+  }
+
+  .progress-bar {
+    flex: 1;
+    min-width: 180px;
+    height: 6px;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .reset-btn {
+    background: none;
+    border: 1px solid var(--ink-soft);
+    color: var(--ink-soft);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .reset-btn:hover {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+
+  /* ---------- SECTIONS ---------- */
+  section {
+    margin-bottom: 72px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    margin-bottom: 8px;
+    border-bottom: 1px dashed var(--rule);
+    padding-bottom: 8px;
+  }
+
+  .section-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+  }
+
+  h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(28px, 4vw, 40px);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .section-intro {
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 17px;
+    margin: 16px 0 32px;
+    max-width: 680px;
+  }
+
+  /* ---------- LIST ITEMS ---------- */
+  .item {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: 20px;
+    padding: 24px 0;
+    border-bottom: 1px solid var(--rule);
+    cursor: pointer;
+    transition: background 0.25s;
+    align-items: flex-start;
+  }
+  .item:hover {
+    background: var(--paper-deep);
+    margin: 0 -16px;
+    padding: 24px 16px;
+  }
+
+  .check {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--ink);
+    background: var(--paper);
+    margin-top: 4px;
+    position: relative;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .item:hover .check {
+    border-color: var(--accent);
+  }
+  .item.done .check {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .item.done .check::after {
+    content: '✓';
+    position: absolute;
+    inset: 0;
+    color: var(--paper);
+    font-family: 'Fraunces', serif;
+    font-weight: 800;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .item-content {
+    min-width: 0;
+  }
+
+  .item.done .item-title {
+    text-decoration: line-through;
+    text-decoration-color: var(--ink-faint);
+    color: var(--ink-faint);
+  }
+
+  .item-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
+    transition: color 0.2s;
+  }
+  .item-title .role {
+    font-style: italic;
+    font-weight: 300;
+    color: var(--ink-soft);
+    font-size: 16px;
+    margin-left: 8px;
+  }
+
+  .item-desc {
+    color: var(--ink-soft);
+    font-size: 16px;
+    line-height: 1.55;
+    margin-bottom: 12px;
+  }
+
+  .listen-for {
+    background: var(--paper-deep);
+    border-left: 3px solid var(--accent);
+    padding: 12px 16px;
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--ink);
+  }
+  .listen-for strong {
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 10px;
+    color: var(--accent);
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+
+  .starter {
+    margin-top: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .starter::before {
+    content: '▸ ';
+    color: var(--accent);
+  }
+
+  /* ---------- FOOTER ---------- */
+  footer {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 2px solid var(--ink);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--ink-faint);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .cassette {
+    display: inline-block;
+    width: 24px;
+    height: 14px;
+    background: var(--tape);
+    position: relative;
+    vertical-align: middle;
+    margin-right: 8px;
+    border-radius: 1px;
+  }
+  .cassette::before, .cassette::after {
+    content: '';
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: var(--paper);
+    border-radius: 50%;
+    top: 5px;
+  }
+  .cassette::before { left: 4px; }
+  .cassette::after { right: 4px; }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width: 600px) {
+    .container { padding: 40px 20px 80px; }
+    .vol-stamp { display: none; }
+    .item:hover { margin: 0; padding: 24px 0; background: transparent; }
+    .top-meta { font-size: 10px; }
+  }
+
+  /* ---------- INITIAL LOAD ANIMATION ---------- */
+  header, .progress, section {
+    opacity: 0;
+    animation: fadeUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  }
+  header { animation-delay: 0.1s; }
+  .progress { animation-delay: 0.25s; }
+  section:nth-of-type(1) { animation-delay: 0.4s; }
+  section:nth-of-type(2) { animation-delay: 0.55s; }
+  section:nth-of-type(3) { animation-delay: 0.7s; }
+  section:nth-of-type(4) { animation-delay: 0.85s; }
+  section:nth-of-type(5) { animation-delay: 1s; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="top-meta">
+      <span><span class="dot"></span>NOW PLAYING — A Field Guide</span>
+      <span>EST. 2026 / VOL. 01</span>
+    </div>
+    <h1>How to Listen<br><em>to lo-fi.</em></h1>
+    <p class="subtitle">A guided path through beats, vibes, and the small details that separate the genuine article from the algorithmic slop.</p>
+    <div class="vol-stamp">Side A<br>Beats &<br>Vibes</div>
+  </header>
+
+  <div class="progress">
+    <div class="progress-text">Progress: <strong id="progress-count">0</strong> / <span id="progress-total">0</span></div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <button class="reset-btn" id="reset-btn">Reset</button>
+  </div>
+
+  <!-- ============ SECTION 1 ============ -->
+  <section>
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2>The Foundations</h2>
+    </div>
+    <p class="section-intro">Don't skip these. Every modern producer is in conversation with these records. If you can't hear the lineage, you'll just be drifting through playlists.</p>
+
+    <div class="item" data-id="found-nujabes">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">Nujabes <span class="role">Tokyo · the godfather</span></div>
+        <p class="item-desc">A Japanese producer whose quiet, jazz-soaked beats essentially invented the genre's emotional template. He died in 2010, but every dusty piano loop you hear today owes him something.</p>
+        <div class="listen-for">
+          <strong>Listen for</strong>
+          The way the drums sit slightly behind the beat — never punchy, always brushing against the melody. Notice how the jazz samples are treated with reverence, not chopped to oblivion.
+        </div>
+        <div class="starter">Start with: <em>Modal Soul</em> (2005), or the <em>Samurai Champloo</em> soundtrack</div>
+      </div>
+    </div>
+
+    <div class="item" data-id="found-dilla">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">J Dilla <span class="role">Detroit · the architect</span></div>
+        <p class="item-desc">The producer's producer. His unquantized drums — meaning he refused to let his MPC snap them to a perfect grid — created the loose, drunken swing that defines lo-fi.</p>
+        <div class="listen-for">
+          <strong>Listen for</strong>
+          Drums that feel "wrong" in the best way — kicks dragging, hats rushing. Your foot won't tap cleanly. That's the point. This is the famous "Dilla feel."
+        </div>
+        <div class="starter">Start with: <em>Donuts</em> (2006) — the Rosetta Stone of the genre</div>
+      </div>
+    </div>
+
+    <div class="item" data-id="found-madlib">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">Madlib <span class="role">Oxnard · the digger</span></div>
+        <p class="item-desc">A crate-digger of mythic proportions. His instrumentals feel like overheard transmissions — fragments of soul, jazz, Brazilian psych, all stitched together.</p>
+        <div class="listen-for">
+          <strong>Listen for</strong>
+          Tracks that end abruptly or change mid-thought. Vinyl crackle as a deliberate texture. Snippets of dialogue and TV clips that make a beat feel like a memory.
+        </div>
+        <div class="starter">Start with: <em>Madvillainy</em> instrumentals, or the <em>Beat Konducta</em> series</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 2 ============ -->
+  <section>
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2>What You're Actually Hearing</h2>
+    </div>
+    <p class="section-intro">Train your ear on these elements. Once you can name what you're hearing, you'll know why one beat hits harder than another that sounds superficially similar.</p>
+
+    <div class="item" data-id="ear-swing">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">The Swing</div>
+        <p class="item-desc">The rhythmic looseness in the drums. Not a metronome. The space between notes is where the feeling lives.</p>
+        <div class="listen-for">
+          <strong>Listen for</strong>
+          Try to clap along on beats 2 and 4. If it feels slightly elusive — like the snare arrives a hair late — you're hearing real swing. Programmed, "perfect" lo-fi sounds sterile by comparison.
+        </div>
+      </div>
+    </div>
+
+    <div class="item" data-id="ear-sample">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">The Sample Source</div>
+        <p class="item-desc">Most great lo-fi is built on a chopped piece of an older record — soul, jazz, bossa nova, sometimes obscure film scores.</p>
+        <div class="listen-for">
+          <strong>Listen for</strong>
+          A loop that has slight hiss or warmth that the rest of the track doesn't. That's the original record bleeding through. Try to imagine the song it came from.
+        </div>
+      </div>
+    </div>
+
+    <div class="item" data-id="ear-foley">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">Foley & Field Recordings</div>
+        <p class="item-desc">Rain, café chatter, vinyl crackle, tape hiss, footsteps, a distant train. These aren't accidents — they're carefully placed atmosphere.</p>
+        <div class="listen-for">
+          <strong>Listen for</strong>
+          Sounds that exist <em>between</em> the musical elements. A producer who layers good foley is creating a place, not just a beat. Kupla and The Field Tapes are masters of this.
+        </div>
+      </div>
+    </div>
+
+    <div class="item" data-id="ear-mix">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">The "Lo-Fi" Treatment</div>
+        <p class="item-desc">The deliberate degradation: muffled highs (like a blanket over a speaker), saturated bass, tape wobble, sidechained compression that makes the track "breathe."</p>
+        <div class="listen-for">
+          <strong>Listen for</strong>
+          A subtle wobble in sustained notes — that's tape emulation. A pumping rhythm in the pads — that's sidechain. Too much and it's a parody; just enough and it feels nostalgic.
+        </div>
+      </div>
+    </div>
+
+    <div class="item" data-id="ear-melancholy">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">The Emotional Register</div>
+        <p class="item-desc">Lo-fi lives in a specific emotional zone: bittersweet, contemplative, autumnal. Not happy, not sad — somewhere in between. Genuine producers feel this; AI generators don't.</p>
+        <div class="listen-for">
+          <strong>Listen for</strong>
+          Major chords with a minor passing tone. A melody that resolves but not cleanly. That faint ache of nostalgia for something you didn't actually live through.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 3 ============ -->
+  <section>
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2>Modern Producers</h2>
+    </div>
+    <p class="section-intro">A working selection. Don't try to listen to everyone at once — pick two, sit with them, then expand.</p>
+
+    <div class="item" data-id="mod-kupla">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">Kupla <span class="role">Helsinki · jazz-organic</span></div>
+        <p class="item-desc">Classically trained pianist and clarinetist. His tracks are warm, instrument-forward, with rich foley layering.</p>
+        <div class="listen-for">
+          <strong>Listen for</strong>
+          Real instruments, not just samples. The clarinet melody on "Lemonade" is unmistakably played, breathed into. Pay attention to how acoustic and digital textures coexist.
+        </div>
+        <div class="starter">Album: <em>Dimensions</em> (2023)</div>
+      </div>
+    </div>
+
+    <div class="item" data-id="mod-mondo">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">Mondo Loops <span class="role">UK · cinematic</span></div>
+        <p class="item-desc">More widescreen than most lo-fi — lush pads, dramatic chords, a sense of scale. Runs the Overgrown Tapes label.</p>
+        <div class="listen-for">
+          <strong>Listen for</strong>
+          The way a single track has dynamic shifts — quieter passages giving way to fuller ones. Most lo-fi sits at one volume; he sculpts arcs.
+        </div>
+        <div class="starter">Album: <em>Golden Age</em> (2023)</div>
+      </div>
+    </div>
+
+    <div class="item" data-id="mod-aso">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">Aso, Idealism, Sleepy Fish <span class="role">Chillhop staples</span></div>
+        <p class="item-desc">The dependable middle of the genre. Not flashy, not boring. If a Chillhop seasonal compilation has a track that just feels <em>right</em>, it's probably one of these three.</p>
+        <div class="listen-for">
+          <strong>Listen for</strong>
+          Restraint. Few elements, well chosen, well placed. This is harder than it sounds — minimal lo-fi is where weak producers get exposed.
+        </div>
+      </div>
+    </div>
+
+    <div class="item" data-id="mod-knxwledge">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">Knxwledge <span class="role">LA · raw, prolific</span></div>
+        <p class="item-desc">Closer to the Dilla lineage than the Lofi Girl lineage. Hundreds of releases, mostly short loops, gritty and unpolished.</p>
+        <div class="listen-for">
+          <strong>Listen for</strong>
+          Tracks under two minutes. Drums front-and-center. A working producer's sketchbook attitude — these are ideas captured, not over-finished.
+        </div>
+      </div>
+    </div>
+
+    <div class="item" data-id="mod-fieldtapes">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">The Field Tapes <span class="role">Upstate NY · pastoral</span></div>
+        <p class="item-desc">Kyle McEvoy's project. Heavy on natural sounds — birds, water, wind — woven into the music itself rather than dropped on top.</p>
+        <div class="listen-for">
+          <strong>Listen for</strong>
+          A field recording that fades in <em>before</em> the beat starts, establishing place. The music feels like a guest in the environment, not the other way around.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 4 ============ -->
+  <section>
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <h2>Tastemakers Worth Following</h2>
+    </div>
+    <p class="section-intro">Your filter against AI slop. Follow these and you'll skip months of wading through algorithmic mush.</p>
+
+    <div class="item" data-id="taste-chillhop">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">Chillhop Music <span class="role">label · Netherlands</span></div>
+        <p class="item-desc">The most reliable single source in the genre. Their seasonal "Essentials" compilations are the closest thing to a curated journal lo-fi has.</p>
+        <div class="starter">Action: Listen to the last 3 seasonal Essentials front-to-back. Note which tracks stop you.</div>
+      </div>
+    </div>
+
+    <div class="item" data-id="taste-stereofox">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">Stereofox <span class="role">blog + curators</span></div>
+        <p class="item-desc">Editorial-minded curators who explicitly screen out AI tracks. Their writing teaches you the genre while their playlists feed it to you.</p>
+        <div class="starter">Action: Follow their main lo-fi playlist on whatever streaming app you use</div>
+      </div>
+    </div>
+
+    <div class="item" data-id="taste-stones">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">Stones Throw Records <span class="role">label · Los Angeles</span></div>
+        <p class="item-desc">Home to Madlib, the Dilla estate releases, and the spiritual center of instrumental hip-hop. Less "study beats," more "this is the canon."</p>
+        <div class="starter">Action: Browse their full catalogue — every era of the label is worth knowing</div>
+      </div>
+    </div>
+
+    <div class="item" data-id="taste-lofigirl">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">Lofi Girl / Lofi Records <span class="role">label · stream</span></div>
+        <p class="item-desc">The 24/7 stream is fine wallpaper, but their actual record label releases are the real value. Use the label, treat the stream as background.</p>
+      </div>
+    </div>
+
+    <div class="item" data-id="taste-freshgoodies">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">freshgoodies <span class="role">collective · Netherlands</span></div>
+        <p class="item-desc">Dutch collective running roughly ten mood-specific playlists. Use them to learn the genre's sub-vibes — sleepy vs. study vs. dinner vs. melancholy.</p>
+      </div>
+    </div>
+
+    <div class="item" data-id="taste-coldbusted">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">Cold Busted Records <span class="role">label · LA</span></div>
+        <p class="item-desc">Funkier, jazzier end of the genre. If straight lo-fi feels too sleepy for you, this is your lane.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 5 ============ -->
+  <section>
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2>The Practice</h2>
+    </div>
+    <p class="section-intro">Education isn't passive. These are small assignments. Do them and your ear will grow noticeably sharper within a few weeks.</p>
+
+    <div class="item" data-id="prac-album">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">Listen to one full album, undivided</div>
+        <p class="item-desc">Pick <em>Donuts</em> or <em>Modal Soul</em>. No phone, no other tabs. Just listen, start to finish. Lo-fi is built for background but rewards foreground listening.</p>
+      </div>
+    </div>
+
+    <div class="item" data-id="prac-compare">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">Compare two versions of the same vibe</div>
+        <p class="item-desc">Pick a Chillhop track and an algorithmic "lofi beats to study to" track. Listen back to back. The differences will become loud once you start looking for them.</p>
+      </div>
+    </div>
+
+    <div class="item" data-id="prac-source">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">Identify a sample source</div>
+        <p class="item-desc">Use whosampled.com on a track you love. Go listen to the original record. This is the single fastest way to develop taste — you'll start hearing potential samples in everything.</p>
+      </div>
+    </div>
+
+    <div class="item" data-id="prac-followup">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">Follow one new producer per week</div>
+        <p class="item-desc">Don't try to take in everyone. Sit with one artist for a week. Listen to their full catalogue. Then move on. Depth beats breadth.</p>
+      </div>
+    </div>
+
+    <div class="item" data-id="prac-build">
+      <div class="check"></div>
+      <div class="item-content">
+        <div class="item-title">Build your own playlist</div>
+        <p class="item-desc">Curating forces you to make distinctions. The act of choosing what stays and what goes is the act of developing taste. Aim for 30 tracks that all feel like one mood.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span><span class="cassette"></span>END OF SIDE A</span>
+    <span>Press play. Take notes.</span>
+  </footer>
+
+</div>
+
+<script>
+  // -------- progress tracking via localStorage --------
+  const STORAGE_KEY = 'lofi-guide-progress';
+  const items = document.querySelectorAll('.item');
+  const fill = document.getElementById('progress-fill');
+  const countEl = document.getElementById('progress-count');
+  const totalEl = document.getElementById('progress-total');
+  const resetBtn = document.getElementById('reset-btn');
+
+  totalEl.textContent = items.length;
+
+  let progress = {};
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) progress = JSON.parse(saved);
+  } catch (e) {
+    progress = {};
+  }
+
+  function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(progress)); }
+    catch (e) { /* private browsing, etc. — fail silent */ }
+  }
+
+  function updateProgress() {
+    const done = Object.values(progress).filter(Boolean).length;
+    countEl.textContent = done;
+    fill.style.width = (done / items.length * 100) + '%';
+  }
+
+  items.forEach(item => {
+    const id = item.dataset.id;
+    if (progress[id]) item.classList.add('done');
+
+    item.addEventListener('click', () => {
+      const isDone = item.classList.toggle('done');
+      progress[id] = isDone;
+      save();
+      updateProgress();
+    });
+  });
+
+  resetBtn.addEventListener('click', () => {
+    if (!confirm('Clear all progress?')) return;
+    progress = {};
+    items.forEach(i => i.classList.remove('done'));
+    save();
+    updateProgress();
+  });
+
+  updateProgress();
+</script>
+</body>
+</html>

@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Patio Paver Planner</title>
+<style>
+  :root {
+    --bg: #1a1a1a;
+    --panel: #242424;
+    --panel-2: #2e2e2e;
+    --border: #3a3a3a;
+    --text: #e8e8e8;
+    --text-dim: #9a9a9a;
+    --accent: #c89b3c;
+    --paver-cut: #6b614c;
+    --paver-stroke: #2a2520;
+    --garden: #5a3e26;
+    --garden-stroke: #8a6438;
+    --wall: #6a6065;
+    --wall-light: #807580;
+    --wall-stroke: #2a2a2a;
+    --grass: #2a3422;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    height: 100%;
+  }
+  .app {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    height: 100vh;
+  }
+  .sidebar {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 18px;
+    overflow-y: auto;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px 0; color: var(--accent); }
+  .subtitle { font-size: 12px; color: var(--text-dim); margin-bottom: 18px; }
+  .section {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  .section h2 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin: 0 0 10px 0;
+  }
+  .control { margin-bottom: 10px; }
+  .control:last-child { margin-bottom: 0; }
+  .control-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 4px;
+  }
+  .control-label { font-size: 13px; }
+  .control-value {
+    font-size: 12px; color: var(--accent);
+    font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace;
+  }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  input[type="color"] {
+    width: 36px; height: 24px;
+    border: 1px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    border-radius: 3px;
+  }
+  .toggle-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; cursor: pointer; user-select: none;
+  }
+  .toggle-row input { cursor: pointer; }
+  .stats {
+    display: grid; grid-template-columns: 1fr auto;
+    gap: 4px 12px; font-size: 13px; font-variant-numeric: tabular-nums;
+  }
+  .stats .label { color: var(--text-dim); }
+  .stats .val { color: var(--accent); font-family: ui-monospace, monospace; }
+  .canvas-wrap {
+    position: relative; overflow: hidden; background: var(--grass);
+    user-select: none;
+  }
+  canvas { display: block; width: 100%; height: 100%; cursor: pointer; }
+  .legend {
+    position: absolute; bottom: 12px; left: 12px;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 8px 10px; font-size: 11px; line-height: 1.5;
+  }
+  .legend .swatch {
+    display: inline-block; width: 10px; height: 10px;
+    margin-right: 6px; vertical-align: middle;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .scale-info {
+    position: absolute; top: 12px; right: 12px;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 6px 10px; font-size: 11px;
+    color: var(--text-dim); font-family: ui-monospace, monospace;
+  }
+  .help-tip {
+    position: absolute; top: 12px; left: 12px;
+    background: rgba(200, 155, 60, 0.15);
+    border: 1px solid rgba(200, 155, 60, 0.4);
+    border-radius: 4px;
+    padding: 6px 10px; font-size: 11px;
+    color: var(--accent);
+  }
+  button.preset, button.reset-btn {
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 6px 10px; font-size: 12px; cursor: pointer;
+    margin-right: 4px; margin-bottom: 4px;
+  }
+  button.preset:hover { border-color: var(--accent); color: var(--accent); }
+  button.reset-btn {
+    background: #5a2a2a; border-color: #7a3a3a; color: #f0c0c0;
+    width: 100%;
+  }
+  button.reset-btn:hover { background: #7a3a3a; border-color: #c0606b; }
+  .color-row {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+  }
+  .color-row label { font-size: 13px; flex: 1; }
+  .color-row .hex {
+    font-size: 11px; color: var(--text-dim);
+    font-family: ui-monospace, monospace;
+  }
+  .stat-row-colors {
+    display: flex; align-items: center; gap: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .color-dot {
+    display: inline-block; width: 10px; height: 10px;
+    border-radius: 50%; border: 1px solid rgba(255,255,255,0.2);
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <h1>Patio Paver Planner</h1>
+    <div class="subtitle">Top-down view. House at top.</div>
+
+    <div class="section">
+      <h2>Paver Colors</h2>
+      <div class="color-row">
+        <input type="color" id="colorA" value="#4a4a4a">
+        <label for="colorA">Default (gray)</label>
+        <span class="hex" id="colorA-hex">#4a4a4a</span>
+      </div>
+      <div class="color-row">
+        <input type="color" id="colorB" value="#7a4a3e">
+        <label for="colorB">Accent (reddish)</label>
+        <span class="hex" id="colorB-hex">#7a4a3e</span>
+      </div>
+      <div style="font-size: 11px; color: var(--text-dim); line-height: 1.4; margin-top: 8px;">
+        Click a paver to toggle its color. Click and drag to paint multiple — all dragged pavers take the same color as the first one you toggled.
+      </div>
+      <button class="reset-btn" id="resetBtn" style="margin-top: 10px;">Reset all to default</button>
+    </div>
+
+    <div class="section">
+      <h2>Corner Radius</h2>
+      <div class="control">
+        <div class="control-row">
+          <span class="control-label">Outer corner radius</span>
+          <span class="control-value" id="radius-val">18"</span>
+        </div>
+        <input type="range" id="radius" min="0" max="60" step="1" value="18">
+      </div>
+      <div style="font-size: 11px; color: var(--text-dim); line-height: 1.4;">
+        Far (south) corners only. House-side stays square.
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Garden Bed Widths</h2>
+      <div class="control">
+        <div class="control-row">
+          <span class="control-label">North (house side)</span>
+          <span class="control-value" id="gn-val">0"</span>
+        </div>
+        <input type="range" id="gn" min="0" max="48" step="0.25" value="0">
+      </div>
+      <div class="control">
+        <div class="control-row">
+          <span class="control-label">South (far side)</span>
+          <span class="control-value" id="gs-val">12"</span>
+        </div>
+        <input type="range" id="gs" min="0" max="48" step="0.25" value="12">
+      </div>
+      <div class="control">
+        <div class="control-row">
+          <span class="control-label">West (left side)</span>
+          <span class="control-value" id="gw-val">12"</span>
+        </div>
+        <input type="range" id="gw" min="0" max="48" step="0.25" value="12">
+      </div>
+      <div class="control">
+        <div class="control-row">
+          <span class="control-label">East (right side)</span>
+          <span class="control-value" id="ge-val">12"</span>
+        </div>
+        <input type="range" id="ge" min="0" max="48" step="0.25" value="12">
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Pavers</h2>
+      <div class="control">
+        <div class="control-row">
+          <span class="control-label">Gap between pavers</span>
+          <span class="control-value" id="gap-val">0.125"</span>
+        </div>
+        <input type="range" id="gap" min="0" max="2" step="0.0625" value="0.125">
+      </div>
+      <div class="control">
+        <label class="toggle-row">
+          <input type="checkbox" id="allowCut" checked>
+          Allow cut pavers at edges
+        </label>
+      </div>
+      <div class="control">
+        <label class="toggle-row">
+          <input type="checkbox" id="showWall" checked>
+          Show retaining wall blocks
+        </label>
+      </div>
+      <div class="control">
+        <label class="toggle-row">
+          <input type="checkbox" id="showDims" checked>
+          Show dimensions
+        </label>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Presets</h2>
+      <button class="preset" data-preset="even12">Even 12" border</button>
+      <button class="preset" data-preset="even18">Even 18" border</button>
+      <button class="preset" data-preset="maxpavers">Max pavers</button>
+      <button class="preset" data-preset="render">Match render</button>
+      <button class="preset" data-preset="square">Square corners</button>
+    </div>
+
+    <div class="section">
+      <h2>Share</h2>
+      <button class="preset" id="shareBtn" style="width: 100%; margin-bottom: 6px;">Copy share link</button>
+      <div id="shareStatus" style="font-size: 11px; color: var(--text-dim); min-height: 14px;"></div>
+    </div>
+
+    <div class="section">
+      <h2>Stats</h2>
+      <div class="stats">
+        <span class="label">Whole pavers</span><span class="val" id="stat-whole">—</span>
+        <span class="label">
+          <span class="stat-row-colors">
+            <span class="color-dot" id="dot-default"></span>Default color
+          </span>
+        </span><span class="val" id="stat-color-a">—</span>
+        <span class="label">
+          <span class="stat-row-colors">
+            <span class="color-dot" id="dot-accent"></span>Accent color
+          </span>
+        </span><span class="val" id="stat-color-b">—</span>
+        <span class="label">Cut pavers</span><span class="val" id="stat-cut">—</span>
+        <span class="label">Wall blocks</span><span class="val" id="stat-blocks">—</span>
+        <span class="label">Garden area</span><span class="val" id="stat-garden">—</span>
+        <span class="label">Patio outer</span><span class="val" id="stat-outer">—</span>
+      </div>
+    </div>
+
+    <div class="section" style="font-size: 11px; color: var(--text-dim); line-height: 1.5;">
+      <strong style="color: var(--text);">Fixed dimensions</strong><br>
+      Outer footprint: 26'9.25" × 14'10.5"<br>
+      Wall blocks: 12" deep, 16.5"→12" tapered<br>
+      Pavers: 15.75" × 15.75"<br>
+      House on north edge (no wall)
+    </div>
+  </aside>
+
+  <main class="canvas-wrap">
+    <canvas id="cv"></canvas>
+    <div class="scale-info" id="scale-info">—</div>
+    <div class="help-tip">Click pavers to toggle color · Drag to paint</div>
+    <div class="legend">
+      <div><span class="swatch" id="legend-default"></span>Default paver</div>
+      <div><span class="swatch" id="legend-accent"></span>Accent paver</div>
+      <div><span class="swatch" style="background:var(--paver-cut)"></span>Cut paver</div>
+      <div><span class="swatch" style="background:var(--garden)"></span>Garden bed</div>
+      <div><span class="swatch" style="background:var(--wall)"></span>Retaining wall</div>
+    </div>
+  </main>
+</div>
+
+<script>
+(() => {
+  const OUTER_W = 26 * 12 + 9.25;
+  const OUTER_H = 14 * 12 + 10.5;
+  const WALL_DEPTH = 12;
+  const BLOCK_WIDE = 16.5;
+  const BLOCK_NARROW = 12;
+  const PAVER = 15.75;
+
+  const INNER_W = OUTER_W - 2 * WALL_DEPTH;
+  const INNER_H = OUTER_H - WALL_DEPTH;
+
+  const canvas = document.getElementById('cv');
+  const ctx = canvas.getContext('2d');
+
+  const state = {
+    radius: 18,
+    gn: 0, gs: 12, gw: 12, ge: 12,
+    gap: 0.125,
+    allowCut: true,
+    showWall: true,
+    showDims: true,
+    colorA: '#4a4a4a',
+    colorB: '#7a4a3e',
+    // paverColors: Map from "row,col" string -> 'A' or 'B'. Default is 'A' if not in map.
+    paverColors: new Map(),
+  };
+
+  // Track current paver layout so click handler can find which paver was clicked
+  // Each entry: { key: "r,c", x, y, w, h } in INCH coords (relative to outer top-left)
+  let wholePavers = [];
+
+  // Drag state for painting
+  let isDragging = false;
+  let dragPaintColor = null; // 'A' or 'B' — what we're painting
+
+  // ---- Bind controls ----
+  const bind = (id, key, fmt) => {
+    const el = document.getElementById(id);
+    const valEl = document.getElementById(id + '-val');
+    const update = () => {
+      state[key] = parseFloat(el.value);
+      if (valEl) valEl.textContent = fmt(state[key]);
+      draw();
+    };
+    el.addEventListener('input', update);
+    update();
+  };
+  const inchFmt = v => v.toFixed(2).replace(/\.?0+$/, '') + '"';
+  bind('radius', 'radius', v => v.toFixed(0) + '"');
+  bind('gn', 'gn', inchFmt);
+  bind('gs', 'gs', inchFmt);
+  bind('gw', 'gw', inchFmt);
+  bind('ge', 'ge', inchFmt);
+  bind('gap', 'gap', v => v.toFixed(3).replace(/\.?0+$/, '') + '"');
+
+  ['allowCut', 'showWall', 'showDims'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('change', () => { state[id] = el.checked; draw(); });
+  });
+
+  // Color pickers
+  document.getElementById('colorA').addEventListener('input', (e) => {
+    state.colorA = e.target.value;
+    document.getElementById('colorA-hex').textContent = e.target.value;
+    updateLegendSwatches();
+    draw();
+  });
+  document.getElementById('colorB').addEventListener('input', (e) => {
+    state.colorB = e.target.value;
+    document.getElementById('colorB-hex').textContent = e.target.value;
+    updateLegendSwatches();
+    draw();
+  });
+
+  function updateLegendSwatches() {
+    document.getElementById('legend-default').style.background = state.colorA;
+    document.getElementById('legend-accent').style.background = state.colorB;
+    document.getElementById('dot-default').style.background = state.colorA;
+    document.getElementById('dot-accent').style.background = state.colorB;
+  }
+  updateLegendSwatches();
+
+  // Reset button
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    state.paverColors.clear();
+    draw();
+  });
+
+  // Presets
+  document.querySelectorAll('.preset').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = btn.dataset.preset;
+      const apply = (vals) => {
+        Object.entries(vals).forEach(([id, v]) => {
+          document.getElementById(id).value = v;
+          document.getElementById(id).dispatchEvent(new Event('input'));
+        });
+      };
+      if (p === 'even12') apply({gn:12, gs:12, gw:12, ge:12, radius:18});
+      else if (p === 'even18') apply({gn:18, gs:18, gw:18, ge:18, radius:24});
+      else if (p === 'maxpavers') apply({gn:0, gs:0, gw:0, ge:0, radius:0});
+      else if (p === 'render') apply({gn:0, gs:18, gw:18, ge:18, radius:18});
+      else if (p === 'square') apply({radius: 0});
+    });
+  });
+
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+  }
+  window.addEventListener('resize', resize);
+
+  // ---- Click & drag handling ----
+  // Convert mouse event to inch coordinates relative to outer top-left
+  function mouseToInches(e) {
+    const rect = canvas.getBoundingClientRect();
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+    return canvasToInches(cx, cy);
+  }
+  function canvasToInches(cx, cy) {
+    const rect = canvas.getBoundingClientRect();
+    const W = rect.width, H = rect.height;
+    const margin = 60;
+    const scaleX = (W - 2 * margin) / OUTER_W;
+    const scaleY = (H - 2 * margin) / OUTER_H;
+    const s = Math.min(scaleX, scaleY);
+    const ox = (W - OUTER_W * s) / 2;
+    const oy = (H - OUTER_H * s) / 2;
+    return { x: (cx - ox) / s, y: (cy - oy) / s };
+  }
+
+  function findPaverAt(inX, inY) {
+    // Linear search through whole pavers (small list, not perf-critical)
+    for (const p of wholePavers) {
+      if (inX >= p.x && inX <= p.x + p.w && inY >= p.y && inY <= p.y + p.h) {
+        return p;
+      }
+    }
+    return null;
+  }
+
+  canvas.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    const { x, y } = mouseToInches(e);
+    const p = findPaverAt(x, y);
+    if (!p) return;
+    // Toggle this paver's color, and remember which color we're painting
+    const current = state.paverColors.get(p.key) || 'A';
+    const next = current === 'A' ? 'B' : 'A';
+    if (next === 'A') state.paverColors.delete(p.key);
+    else state.paverColors.set(p.key, next);
+    dragPaintColor = next;
+    isDragging = true;
+    draw();
+  });
+
+  canvas.addEventListener('mousemove', (e) => {
+    if (!isDragging || dragPaintColor === null) return;
+    const { x, y } = mouseToInches(e);
+    const p = findPaverAt(x, y);
+    if (!p) return;
+    // Set this paver's color to dragPaintColor (regardless of current state)
+    const current = state.paverColors.get(p.key) || 'A';
+    if (current !== dragPaintColor) {
+      if (dragPaintColor === 'A') state.paverColors.delete(p.key);
+      else state.paverColors.set(p.key, dragPaintColor);
+      draw();
+    }
+  });
+
+  const endDrag = () => { isDragging = false; dragPaintColor = null; };
+  window.addEventListener('mouseup', endDrag);
+  window.addEventListener('mouseleave', endDrag);
+  canvas.addEventListener('mouseleave', () => { /* keep drag alive across leave; ended by window mouseup */ });
+
+  // ---- Geometry ----
+  function isInsidePaver(px, py) {
+    const left = WALL_DEPTH + state.gw;
+    const right = OUTER_W - WALL_DEPTH - state.ge;
+    const top = state.gn;
+    const bottom = OUTER_H - WALL_DEPTH - state.gs;
+    if (px < left || px > right || py < top || py > bottom) return false;
+
+    const rInner = Math.max(0, state.radius - WALL_DEPTH);
+    if (rInner <= 0) return true;
+
+    const cxSW = WALL_DEPTH + rInner;
+    const cySW = OUTER_H - WALL_DEPTH - rInner;
+    if (px < cxSW && py > cySW) {
+      const dx = px - cxSW, dy = py - cySW;
+      const rPav = Math.max(0, rInner - Math.min(state.gw, state.gs));
+      if (dx * dx + dy * dy > rPav * rPav) return false;
+    }
+    const cxSE = OUTER_W - WALL_DEPTH - rInner;
+    const cySE = cySW;
+    if (px > cxSE && py > cySE) {
+      const dx = px - cxSE, dy = py - cySE;
+      const rPav = Math.max(0, rInner - Math.min(state.ge, state.gs));
+      if (dx * dx + dy * dy > rPav * rPav) return false;
+    }
+    return true;
+  }
+
+  function pathInnerArea(X, Y, s) {
+    const left = WALL_DEPTH;
+    const right = OUTER_W - WALL_DEPTH;
+    const bottom = OUTER_H - WALL_DEPTH;
+    const r = Math.max(0, state.radius - WALL_DEPTH);
+    ctx.beginPath();
+    ctx.moveTo(X(left), Y(0));
+    ctx.lineTo(X(right), Y(0));
+    ctx.lineTo(X(right), Y(bottom - r));
+    if (r > 0) ctx.arc(X(right - r), Y(bottom - r), r * s, 0, Math.PI / 2, false);
+    ctx.lineTo(X(left + r), Y(bottom));
+    if (r > 0) ctx.arc(X(left + r), Y(bottom - r), r * s, Math.PI / 2, Math.PI, false);
+    ctx.lineTo(X(left), Y(0));
+    ctx.closePath();
+  }
+
+  function pathPaverRegion(X, Y, s) {
+    const left = WALL_DEPTH + state.gw;
+    const right = OUTER_W - WALL_DEPTH - state.ge;
+    const top = state.gn;
+    const bottom = OUTER_H - WALL_DEPTH - state.gs;
+    const rInner = Math.max(0, state.radius - WALL_DEPTH);
+    const rSW = Math.max(0, rInner - Math.min(state.gw, state.gs));
+    const rSE = Math.max(0, rInner - Math.min(state.ge, state.gs));
+    const cxSW = WALL_DEPTH + rInner;
+    const cySW = OUTER_H - WALL_DEPTH - rInner;
+    const cxSE = OUTER_W - WALL_DEPTH - rInner;
+    const cySE = cySW;
+
+    ctx.beginPath();
+    ctx.moveTo(X(left), Y(top));
+    ctx.lineTo(X(right), Y(top));
+    if (rSE > 0) {
+      ctx.lineTo(X(right), Y(cySE));
+      ctx.arc(X(cxSE), Y(cySE), rSE * s, 0, Math.PI / 2, false);
+    } else {
+      ctx.lineTo(X(right), Y(bottom));
+    }
+    if (rSW > 0) {
+      ctx.lineTo(X(cxSW), Y(bottom));
+      ctx.arc(X(cxSW), Y(cySW), rSW * s, Math.PI / 2, Math.PI, false);
+    } else {
+      ctx.lineTo(X(left), Y(bottom));
+    }
+    ctx.lineTo(X(left), Y(top));
+    ctx.closePath();
+  }
+
+  function generateBlocks() {
+    const blocks = [];
+    const r = state.radius;
+    const rInner = Math.max(0, r - WALL_DEPTH);
+
+    function addStraightBlock(outerA, outerB, normalX, normalY) {
+      const len = Math.hypot(outerB[0] - outerA[0], outerB[1] - outerA[1]);
+      const innerLen = len * (BLOCK_NARROW / BLOCK_WIDE);
+      const innerOffset = (len - innerLen) / 2;
+      const dx = (outerB[0] - outerA[0]) / len;
+      const dy = (outerB[1] - outerA[1]) / len;
+      const innerA = [
+        outerA[0] + dx * innerOffset + normalX * WALL_DEPTH,
+        outerA[1] + dy * innerOffset + normalY * WALL_DEPTH,
+      ];
+      const innerB = [
+        outerB[0] - dx * innerOffset + normalX * WALL_DEPTH,
+        outerB[1] - dy * innerOffset + normalY * WALL_DEPTH,
+      ];
+      blocks.push({ pts: [outerA, outerB, innerB, innerA] });
+    }
+
+    {
+      const len = OUTER_H - r;
+      const n = Math.max(1, Math.round(len / BLOCK_WIDE));
+      const step = len / n;
+      for (let i = 0; i < n; i++) {
+        addStraightBlock([0, i * step], [0, (i + 1) * step], 1, 0);
+      }
+    }
+    if (r > 0) {
+      const cx = r, cy = OUTER_H - r;
+      const arcLen = (Math.PI / 2) * r;
+      const n = Math.max(1, Math.round(arcLen / BLOCK_WIDE));
+      const dA = (Math.PI / 2) / n;
+      for (let i = 0; i < n; i++) {
+        const a0 = Math.PI - i * dA;
+        const a1 = Math.PI - (i + 1) * dA;
+        const o0 = [cx + r * Math.cos(a0), cy + r * Math.sin(a0)];
+        const o1 = [cx + r * Math.cos(a1), cy + r * Math.sin(a1)];
+        const i1 = [cx + rInner * Math.cos(a1), cy + rInner * Math.sin(a1)];
+        const i0 = [cx + rInner * Math.cos(a0), cy + rInner * Math.sin(a0)];
+        blocks.push({ pts: [o0, o1, i1, i0] });
+      }
+    }
+    {
+      const len = OUTER_W - 2 * r;
+      const n = Math.max(1, Math.round(len / BLOCK_WIDE));
+      const step = len / n;
+      for (let i = 0; i < n; i++) {
+        addStraightBlock(
+          [r + i * step, OUTER_H],
+          [r + (i + 1) * step, OUTER_H],
+          0, -1
+        );
+      }
+    }
+    if (r > 0) {
+      const cx = OUTER_W - r, cy = OUTER_H - r;
+      const arcLen = (Math.PI / 2) * r;
+      const n = Math.max(1, Math.round(arcLen / BLOCK_WIDE));
+      const dA = (Math.PI / 2) / n;
+      for (let i = 0; i < n; i++) {
+        const a0 = Math.PI / 2 - i * dA;
+        const a1 = Math.PI / 2 - (i + 1) * dA;
+        const o0 = [cx + r * Math.cos(a0), cy + r * Math.sin(a0)];
+        const o1 = [cx + r * Math.cos(a1), cy + r * Math.sin(a1)];
+        const i1 = [cx + rInner * Math.cos(a1), cy + rInner * Math.sin(a1)];
+        const i0 = [cx + rInner * Math.cos(a0), cy + rInner * Math.sin(a0)];
+        blocks.push({ pts: [o0, o1, i1, i0] });
+      }
+    }
+    {
+      const len = OUTER_H - r;
+      const n = Math.max(1, Math.round(len / BLOCK_WIDE));
+      const step = len / n;
+      for (let i = 0; i < n; i++) {
+        addStraightBlock(
+          [OUTER_W, i * step],
+          [OUTER_W, (i + 1) * step],
+          -1, 0
+        );
+      }
+    }
+    return blocks;
+  }
+
+  function draw() {
+    const rect = canvas.getBoundingClientRect();
+    const W = rect.width, H = rect.height;
+    ctx.clearRect(0, 0, W, H);
+
+    const margin = 60;
+    const scaleX = (W - 2 * margin) / OUTER_W;
+    const scaleY = (H - 2 * margin) / OUTER_H;
+    const s = Math.min(scaleX, scaleY);
+
+    document.getElementById('scale-info').textContent =
+      `Scale: 1" = ${s.toFixed(2)}px  |  Inner: ${(INNER_W/12).toFixed(2)}' × ${(INNER_H/12).toFixed(2)}'`;
+
+    const ox = (W - OUTER_W * s) / 2;
+    const oy = (H - OUTER_H * s) / 2;
+    const X = x => ox + x * s;
+    const Y = y => oy + y * s;
+
+    // House
+    ctx.fillStyle = '#1f1f1f';
+    ctx.strokeStyle = '#4a4a4a';
+    ctx.lineWidth = 1;
+    ctx.fillRect(ox - 40, oy - 30, OUTER_W * s + 80, 30);
+    ctx.strokeRect(ox - 40, oy - 30, OUTER_W * s + 80, 30);
+    ctx.fillStyle = '#9a9a9a';
+    ctx.font = '11px ui-monospace, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('HOUSE', ox + (OUTER_W * s) / 2, oy - 12);
+
+    // Garden bed
+    pathInnerArea(X, Y, s);
+    ctx.fillStyle = getCss('--garden');
+    ctx.fill();
+    ctx.strokeStyle = getCss('--garden-stroke');
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Pavers
+    wholePavers = []; // reset list
+    let wholeCount = 0, cutCount = 0;
+    let countA = 0, countB = 0;
+
+    const pavBoxLeft = WALL_DEPTH + state.gw;
+    const pavBoxRight = OUTER_W - WALL_DEPTH - state.ge;
+    const pavBoxTop = state.gn;
+    const pavBoxBottom = OUTER_H - WALL_DEPTH - state.gs;
+    const pavBoxW = pavBoxRight - pavBoxLeft;
+    const pavBoxH = pavBoxBottom - pavBoxTop;
+
+    if (pavBoxW > 0 && pavBoxH > 0) {
+      const step = PAVER + state.gap;
+      const cols = Math.floor((pavBoxW + state.gap) / step + 1e-9);
+      const rows = Math.floor((pavBoxH + state.gap) / step + 1e-9);
+      const usedW = cols * PAVER + Math.max(0, cols - 1) * state.gap;
+      const usedH = rows * PAVER + Math.max(0, rows - 1) * state.gap;
+      const offsetX = (pavBoxW - usedW) / 2;
+      const offsetY = (pavBoxH - usedH) / 2;
+      const startX = pavBoxLeft + offsetX;
+      const startY = pavBoxTop + offsetY;
+
+      ctx.save();
+      pathPaverRegion(X, Y, s);
+      ctx.fillStyle = '#3a342a';
+      ctx.fill();
+      ctx.clip();
+
+      ctx.lineWidth = 0.75;
+
+      const extraCols = Math.ceil(Math.max(state.gw, state.ge, state.radius) / step) + 1;
+      const extraRows = Math.ceil(Math.max(state.gn, state.gs, state.radius) / step) + 1;
+
+      for (let r2 = -extraRows; r2 < rows + extraRows; r2++) {
+        for (let c = -extraCols; c < cols + extraCols; c++) {
+          const px = startX + c * step;
+          const py = startY + r2 * step;
+          const samples = [
+            [px, py], [px + PAVER, py],
+            [px + PAVER, py + PAVER], [px, py + PAVER],
+            [px + PAVER / 2, py + PAVER / 2],
+          ];
+          let inside = 0;
+          for (const [sx, sy] of samples) if (isInsidePaver(sx, sy)) inside++;
+
+          if (inside === 5) {
+            const key = `${r2},${c}`;
+            const colorTag = state.paverColors.get(key) || 'A';
+            const fill = colorTag === 'A' ? state.colorA : state.colorB;
+            ctx.fillStyle = fill;
+            ctx.strokeStyle = getCss('--paver-stroke');
+            ctx.fillRect(X(px), Y(py), PAVER * s, PAVER * s);
+            ctx.strokeRect(X(px), Y(py), PAVER * s, PAVER * s);
+            wholeCount++;
+            if (colorTag === 'A') countA++; else countB++;
+            wholePavers.push({
+              key, x: px, y: py, w: PAVER, h: PAVER,
+            });
+          } else if (inside > 0 && state.allowCut) {
+            ctx.fillStyle = getCss('--paver-cut');
+            ctx.strokeStyle = getCss('--paver-stroke');
+            ctx.fillRect(X(px), Y(py), PAVER * s, PAVER * s);
+            ctx.strokeRect(X(px), Y(py), PAVER * s, PAVER * s);
+            cutCount++;
+          }
+        }
+      }
+      ctx.restore();
+    }
+
+    // Wall blocks
+    let blockCount = 0;
+    if (state.showWall) {
+      const blocks = generateBlocks();
+      blockCount = blocks.length;
+      ctx.lineWidth = 0.6;
+      for (let i = 0; i < blocks.length; i++) {
+        const b = blocks[i];
+        ctx.fillStyle = (i % 2 === 0) ? getCss('--wall') : getCss('--wall-light');
+        ctx.strokeStyle = getCss('--wall-stroke');
+        ctx.beginPath();
+        for (let j = 0; j < b.pts.length; j++) {
+          const [x, y] = b.pts[j];
+          if (j === 0) ctx.moveTo(X(x), Y(y));
+          else ctx.lineTo(X(x), Y(y));
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+
+    if (state.showDims) {
+      ctx.fillStyle = getCss('--text-dim');
+      ctx.font = '11px ui-monospace, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(formatFt(OUTER_W), ox + OUTER_W * s / 2, oy - 38);
+      ctx.save();
+      ctx.translate(ox + OUTER_W * s + 30, oy + OUTER_H * s / 2);
+      ctx.rotate(Math.PI / 2);
+      ctx.fillText(formatFt(OUTER_H), 0, 0);
+      ctx.restore();
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.font = '10px ui-monospace, monospace';
+      ctx.fillText('inner: ' + formatFt(INNER_W), ox + OUTER_W * s / 2, oy + OUTER_H * s + 18);
+    }
+
+    document.getElementById('stat-whole').textContent = wholeCount;
+    document.getElementById('stat-color-a').textContent = countA;
+    document.getElementById('stat-color-b').textContent = countB;
+    document.getElementById('stat-cut').textContent = state.allowCut ? cutCount : '0 (disabled)';
+    document.getElementById('stat-blocks').textContent = blockCount;
+
+    const innerArea = computeInnerArea();
+    const paverRegionArea = computePaverRegionArea();
+    document.getElementById('stat-garden').textContent = sqft(Math.max(0, innerArea - paverRegionArea));
+    document.getElementById('stat-outer').textContent = sqft(computeOuterArea());
+  }
+
+  function computeOuterArea() {
+    const r = state.radius;
+    return OUTER_W * OUTER_H - 2 * (r * r) + 2 * (Math.PI * r * r / 4);
+  }
+  function computeInnerArea() {
+    const r = Math.max(0, state.radius - WALL_DEPTH);
+    return INNER_W * INNER_H - 2 * (r * r) + 2 * (Math.PI * r * r / 4);
+  }
+  function computePaverRegionArea() {
+    const r = Math.max(0, state.radius - WALL_DEPTH);
+    const w = INNER_W - state.gw - state.ge;
+    const h = INNER_H - state.gn - state.gs;
+    if (w <= 0 || h <= 0) return 0;
+    const rSW = Math.max(0, r - Math.min(state.gw, state.gs));
+    const rSE = Math.max(0, r - Math.min(state.ge, state.gs));
+    let area = w * h;
+    area -= rSW * rSW - Math.PI * rSW * rSW / 4;
+    area -= rSE * rSE - Math.PI * rSE * rSE / 4;
+    return area;
+  }
+
+  function getCss(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+  function formatFt(inches) {
+    const ft = Math.floor(inches / 12);
+    const inch = inches - ft * 12;
+    const inchStr = (Math.round(inch * 100) / 100).toString();
+    return `${ft}' ${inchStr}"`;
+  }
+  function sqft(sqInches) {
+    return (sqInches / 144).toFixed(1) + ' ft²';
+  }
+
+  // ---- Share URL encode/decode ----
+  // Format: a single URL-safe string in the hash.
+  // We use a compact pipe-delimited format then URI-encode it.
+  // v1|radius|gn|gs|gw|ge|gap|allowCut|showWall|showDims|colorA|colorB|paverData
+  // paverData is comma-separated entries like "r,c,B" (color tag).
+  // Only B-tagged pavers are stored (A is default).
+  function encodeState() {
+    const parts = [
+      'v1',
+      state.radius,
+      state.gn,
+      state.gs,
+      state.gw,
+      state.ge,
+      state.gap,
+      state.allowCut ? 1 : 0,
+      state.showWall ? 1 : 0,
+      state.showDims ? 1 : 0,
+      state.colorA.replace('#', ''),
+      state.colorB.replace('#', ''),
+    ];
+    const paverEntries = [];
+    for (const [key, tag] of state.paverColors.entries()) {
+      if (tag === 'B') paverEntries.push(key); // r,c form
+    }
+    parts.push(paverEntries.join(';'));
+    return parts.join('|');
+  }
+
+  function decodeState(str) {
+    try {
+      const parts = str.split('|');
+      if (parts[0] !== 'v1') {
+        console.warn('Unknown share version:', parts[0]);
+        return false;
+      }
+      // Apply each value
+      const setSlider = (id, v) => {
+        const el = document.getElementById(id);
+        el.value = v;
+        el.dispatchEvent(new Event('input'));
+      };
+      const setCheckbox = (id, v) => {
+        const el = document.getElementById(id);
+        el.checked = !!v;
+        el.dispatchEvent(new Event('change'));
+      };
+      const setColor = (id, hex) => {
+        const el = document.getElementById(id);
+        el.value = '#' + hex;
+        el.dispatchEvent(new Event('input'));
+      };
+
+      setSlider('radius', parseFloat(parts[1]));
+      setSlider('gn', parseFloat(parts[2]));
+      setSlider('gs', parseFloat(parts[3]));
+      setSlider('gw', parseFloat(parts[4]));
+      setSlider('ge', parseFloat(parts[5]));
+      setSlider('gap', parseFloat(parts[6]));
+      setCheckbox('allowCut', parseInt(parts[7]));
+      setCheckbox('showWall', parseInt(parts[8]));
+      setCheckbox('showDims', parseInt(parts[9]));
+      setColor('colorA', parts[10]);
+      setColor('colorB', parts[11]);
+
+      // Paver overrides
+      state.paverColors.clear();
+      const paverData = parts[12] || '';
+      if (paverData) {
+        for (const entry of paverData.split(';')) {
+          if (entry) state.paverColors.set(entry, 'B');
+        }
+      }
+      draw();
+      return true;
+    } catch (e) {
+      console.error('Failed to decode share state:', e);
+      return false;
+    }
+  }
+
+  function buildShareUrl() {
+    const encoded = encodeURIComponent(encodeState());
+    const base = window.location.origin + window.location.pathname;
+    return base + '#s=' + encoded;
+  }
+
+  // Copy to clipboard with fallback
+  async function copyToClipboard(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) {
+      // Fallback for non-secure contexts (file://, etc.)
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return ok;
+      } catch (e2) {
+        return false;
+      }
+    }
+  }
+
+  document.getElementById('shareBtn').addEventListener('click', async () => {
+    const url = buildShareUrl();
+    const status = document.getElementById('shareStatus');
+    // Update the address bar so the URL is bookmarkable too
+    history.replaceState(null, '', '#s=' + encodeURIComponent(encodeState()));
+    const ok = await copyToClipboard(url);
+    if (ok) {
+      status.style.color = 'var(--accent)';
+      status.textContent = 'Link copied! ' + url.length + ' chars';
+    } else {
+      status.style.color = '#e89090';
+      status.textContent = 'Copy failed — URL is in the address bar';
+    }
+    setTimeout(() => { status.textContent = ''; }, 4000);
+  });
+
+  // Load shared state from URL hash on page load.
+  // Fire before resize() so we don't flash the default state.
+  function loadFromHash() {
+    const hash = window.location.hash;
+    if (hash.startsWith('#s=')) {
+      const encoded = hash.slice(3);
+      try {
+        const decoded = decodeURIComponent(encoded);
+        decodeState(decoded);
+      } catch (e) {
+        console.error('Bad share hash:', e);
+      }
+    }
+  }
+  loadFromHash();
+
+  resize();
+})();
+</script>
+</body>
+</html>

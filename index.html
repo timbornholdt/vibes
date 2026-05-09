@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="vibes">
+<meta name="theme-color" content="#0A0A0A">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>vibes</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --yellow: #FFE600;
+    --pink:   #FF2D78;
+    --green:  #39FF14;
+    --black:  #0A0A0A;
+    --dim:    #1A1A1A;
+    --muted:  #444;
+    --text:   #CCC;
+  }
+
+  body {
+    font-family: 'JetBrains Mono', 'Fira Mono', 'Cascadia Code', ui-monospace, monospace;
+    background: var(--black);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 48px 20px 80px;
+  }
+
+  /* ── Icon ── */
+  .icon-wrap {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: 24px;
+  }
+
+  .icon-wrap img {
+    width: 72px;
+    height: 72px;
+  }
+
+  /* ── Header ── */
+  header {
+    margin-bottom: 40px;
+  }
+
+  .site-title {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--yellow);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .site-title span {
+    color: var(--pink);
+  }
+
+  .site-sub {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ── Divider ── */
+  .rule {
+    font-size: 11px;
+    color: var(--muted);
+    margin: 0 0 4px;
+    letter-spacing: 0;
+    white-space: pre;
+    overflow: hidden;
+  }
+
+  /* ── Items ── */
+  .items {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .item {
+    display: block;
+    text-decoration: none;
+    padding: 18px 0;
+    border-bottom: 1px solid #1E1E1E;
+    transition: background 0.1s;
+    position: relative;
+  }
+
+  .item::before {
+    content: '> ';
+    color: var(--muted);
+    font-size: 12px;
+    position: absolute;
+    left: -18px;
+    top: 20px;
+    transition: color 0.1s;
+  }
+
+  .item:hover::before {
+    color: var(--yellow);
+  }
+
+  .item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+
+  .item-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #E8E8E8;
+    letter-spacing: -0.2px;
+    line-height: 1.3;
+    transition: color 0.1s;
+  }
+
+  .item:hover .item-title {
+    color: var(--yellow);
+  }
+
+  .item-tag {
+    font-size: 10px;
+    color: var(--pink);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .item-desc {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+
+  .item-date {
+    font-size: 10px;
+    color: #333;
+    margin-top: 6px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── Footer ── */
+  footer {
+    margin-top: 48px;
+  }
+
+  .footer-rule {
+    font-size: 11px;
+    color: #1E1E1E;
+    margin-bottom: 12px;
+    white-space: pre;
+    overflow: hidden;
+  }
+
+  .footer-text {
+    font-size: 10px;
+    color: #2A2A2A;
+    letter-spacing: 0.5px;
+  }
+
+  @media (max-width: 440px) {
+    .page { padding: 36px 24px 60px; }
+    .site-title { font-size: 22px; }
+    .item::before { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="icon-wrap">
+    <img src="icon.svg" alt="vibes">
+  </div>
+
+  <header>
+    <div class="site-title">vibes<span>.</span></div>
+    <div class="site-sub">junk.timbornholdt.com</div>
+  </header>
+
+  <div class="rule">────────────────────────────────────────────────────────────</div>
+
+  <div class="items">
+
+    <a class="item" href="patio.html">
+      <div class="item-row">
+        <span class="item-title">Patio</span>
+        <span class="item-tag">home</span>
+      </div>
+      <div class="item-desc">Visualize patio designs for the back patio.</div>
+      <div class="item-date">may 2026</div>
+    </a>
+
+    <a class="item" href="lofi-guide.html">
+      <div class="item-row">
+        <span class="item-title">A Field Guide to Lo-Fi</span>
+        <span class="item-tag">music</span>
+      </div>
+      <div class="item-desc">Checkable listening path through the genre's foundations. Filter the slop, develop actual taste.</div>
+      <div class="item-date">apr 2026</div>
+    </a>
+
+    <a class="item" href="ps2-curriculum.html">
+      <div class="item-row">
+        <span class="item-title">PS2 Gaming Curriculum</span>
+        <span class="item-tag">games</span>
+      </div>
+      <div class="item-desc">12 all-timers sequenced by genre. A syllabus for testing whether you still like video games.</div>
+      <div class="item-date">apr 2026</div>
+    </a>
+
+    <a class="item" href="music-syllabus.html">
+      <div class="item-row">
+        <span class="item-title">The Syllabus</span>
+        <span class="item-tag">music</span>
+      </div>
+      <div class="item-desc">14-album guided listen across punk, emo, folk, lo-fi, grunge. Production notes, reading lists, connections.</div>
+      <div class="item-date">apr 2026</div>
+    </a>
+
+  </div>
+
+  <footer>
+    <div class="footer-rule">────────────────────────────────────────────────────────────</div>
+    <div class="footer-text">// push to main to deploy</div>
+  </footer>
+
+</div>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
+</script>
+</body>
+</html>

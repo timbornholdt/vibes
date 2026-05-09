@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PS2 Gaming Curriculum — Am I Still a Gamer?</title>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'IBM Plex Sans', sans-serif; min-height: 100vh; background: #0a0a0b; color: #f0f0f0; padding: 40px 24px; }
+  .container { max-width: 720px; margin: 0 auto; }
+  .mono { font-family: 'Courier Prime', monospace; }
+  .display { font-family: 'Space Grotesk', sans-serif; }
+
+  .header-label { font-size: 12px; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 3px; margin-bottom: 12px; }
+  h1 { font-size: 36px; font-weight: 700; margin-bottom: 12px; letter-spacing: -1.5px; line-height: 1.1; }
+  .subtitle { font-size: 15px; color: rgba(255,255,255,0.45); line-height: 1.6; max-width: 540px; }
+
+  .track-switcher { display: flex; gap: 8px; margin-bottom: 32px; margin-top: 48px; }
+  .track-btn {
+    flex: 1; border-radius: 10px; padding: 16px; cursor: pointer; text-align: left;
+    transition: all 0.3s ease; background: rgba(255,255,255,0.02); border: 2px solid rgba(255,255,255,0.06);
+  }
+  .track-btn.active-b { background: rgba(6,182,212,0.07); border-color: rgba(6,182,212,0.25); }
+  .track-btn.active-a { background: rgba(245,158,11,0.07); border-color: rgba(245,158,11,0.25); }
+  .track-btn-label { font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.4); margin-bottom: 4px; }
+  .track-btn.active-b .track-btn-label { color: #06b6d4; }
+  .track-btn.active-a .track-btn-label { color: #f59e0b; }
+  .track-btn-sub { font-size: 12px; color: rgba(255,255,255,0.3); }
+
+  .progress-bar { display: flex; gap: 4px; margin-bottom: 24px; padding: 0 4px; }
+  .progress-pip { flex: 1; height: 3px; border-radius: 2px; transition: all 0.3s ease; }
+
+  .games-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .game-card {
+    background: rgba(255,255,255,0.02); border: 2px solid rgba(255,255,255,0.06);
+    border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.3s ease;
+    position: relative; overflow: hidden;
+  }
+  .game-card.active { background: rgba(255,255,255,0.08); }
+  .game-card .accent-bar { position: absolute; top: 0; left: 0; width: 4px; height: 100%; display: none; }
+  .game-card.active .accent-bar { display: block; }
+
+  .game-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .game-header-left { flex: 1; min-width: 200px; }
+  .game-title-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .game-order { font-size: 14px; font-weight: 700; min-width: 28px; }
+  .game-title { font-size: 20px; font-weight: 700; color: #f0f0f0; letter-spacing: -0.5px; }
+  .mc-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 13px; font-weight: 700; width: 32px; height: 24px;
+    border-radius: 4px; letter-spacing: -0.5px; flex-shrink: 0;
+  }
+  .mc-green { background: #6dc849; }
+  .mc-yellow { background: #fdca04; }
+  .mc-red { background: #fc4b37; }
+
+  .game-meta { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .game-meta span { font-size: 12px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
+  .game-meta .dot { font-size: 11px; color: rgba(255,255,255,0.35); text-transform: none; letter-spacing: 0; }
+  .game-meta .time { text-transform: none; letter-spacing: 0; }
+  .sfw-badge { font-size: 11px !important; padding: 2px 8px; border-radius: 4px; text-transform: none !important; letter-spacing: 0 !important; }
+
+  .expand-hint { font-size: 12px; color: rgba(255,255,255,0.25); }
+
+  .game-details { padding-left: 40px; display: none; flex-direction: column; gap: 16px; margin-top: 16px; }
+  .game-card.active .game-details { display: flex; }
+
+  .detail-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 6px; }
+  .detail-text { font-size: 14px; line-height: 1.7; color: rgba(255,255,255,0.75); }
+
+  .reviews-toggle {
+    background: none; border: none; cursor: pointer; padding: 0;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: rgba(255,255,255,0.45); display: flex; align-items: center; gap: 8px;
+    font-family: 'Courier Prime', monospace;
+  }
+  .reviews-toggle.open { color: inherit; }
+  .reviews-content { display: none; margin-top: 12px; }
+  .reviews-content.open { display: block; }
+  .reviews-summary { font-size: 14px; line-height: 1.7; color: rgba(255,255,255,0.7); margin-bottom: 12px; }
+  .reviews-links { display: flex; gap: 8px; flex-wrap: wrap; }
+  .review-link {
+    font-size: 11px; text-decoration: none; padding: 4px 10px; border-radius: 4px;
+    font-family: 'Courier Prime', monospace; transition: all 0.2s ease;
+  }
+
+  .vibe-line { font-size: 13px; font-style: italic; color: rgba(255,255,255,0.4); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 12px; }
+  .review-section { border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px; }
+
+  .footer { margin-top: 48px; padding: 24px; border-top: 1px solid rgba(255,255,255,0.06); }
+  .footer-label { font-size: 11px; color: rgba(255,255,255,0.25); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; }
+  .footer p { font-size: 13px; line-height: 1.8; color: rgba(255,255,255,0.4); margin-bottom: 8px; }
+  .footer p:last-child { margin-bottom: 0; }
+  .footer strong { color: rgba(255,255,255,0.55); }
+  .footer .track-b-color { color: #06b6d4; }
+  .footer .track-a-color { color: #f59e0b; }
+
+  @media (max-width: 500px) {
+    body { padding: 24px 16px; }
+    h1 { font-size: 28px; }
+    .game-title { font-size: 17px; }
+    .game-details { padding-left: 20px; }
+    .game-meta { gap: 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div>
+    <div class="mono header-label">PlayStation 2 — Gaming Curriculum</div>
+    <h1 class="display">Am I Still a Gamer?</h1>
+    <p class="subtitle">Two parallel tracks. Play alongside GTA: San Andreas. Track B for quick sessions, Track A when you're ready to sink in. Expand any game and tap "What Critics Said" for the review consensus and links.</p>
+  </div>
+
+  <div class="track-switcher">
+    <button class="track-btn active-b" id="btn-pickUpAndPlay" onclick="switchTrack('pickUpAndPlay')">
+      <div class="display track-btn-label">Track B — Pick Up & Play</div>
+      <div class="track-btn-sub">Quick sessions, skill-based, SFW-friendly</div>
+    </button>
+    <button class="track-btn" id="btn-deepDives" onclick="switchTrack('deepDives')">
+      <div class="display track-btn-label">Track A — Deep Dives</div>
+      <div class="track-btn-sub">Story, immersion, expanding your range</div>
+    </button>
+  </div>
+
+  <div class="progress-bar" id="progress-bar"></div>
+  <div class="games-list" id="games-list"></div>
+
+  <div class="footer">
+    <div class="mono footer-label">How to Use This</div>
+    <p><strong>GTA: San Andreas</strong> is your ongoing main game. Always have it going.</p>
+    <p><strong class="track-b-color">Track B</strong> games are your palate cleansers — play these in shorter sessions, especially when you want something SFW or low-commitment.</p>
+    <p><strong class="track-a-color">Track A</strong> games are your main courses after San Andreas. Play them roughly in order — each one builds on the vocabulary of the last.</p>
+    <p>If a game doesn't click after its evaluation window, move on guilt-free. Not every classic is for everyone, and that's real talk.</p>
+  </div>
+</div>
+
+<script>
+const games = {
+  pickUpAndPlay: [
+    { order:1, title:"Burnout 3: Takedown", genre:"Arcade Racing", timeToEval:"1–2 sessions", metacritic:94, whyNow:"Lowest barrier to entry on the entire list. You will know within 15 minutes if you still love games. Pure dopamine, zero story, no tutorials that drag. This is your gateway drug back into gaming.", whyItMatters:"Widely considered the best arcade racer ever made. If someone says \"I love racing games,\" this is often what they mean.", connectsTo:"If you like this → SSX 3 is the same energy on a mountain.", sfw:5, vibe:"Aggressive, fast, explosive, hilarious", reviews:{ summary:"Critics were almost unanimously ecstatic. GameSpot opened its review by calling it one of the best racing games of all time and said it should appeal even to people who don't normally like driving games. GamesTM gave it a perfect score, declaring it the greatest racing game ever made. It won Game of the Year from Official U.S. PlayStation Magazine — beating out GTA: San Andreas. The only consistent criticisms were a somewhat annoying radio DJ and occasional camera issues during crashes. It holds a 94 on Metacritic, making it one of the highest-rated racers in history.", links:[{outlet:"GameSpot",url:"https://www.gamespot.com/reviews/burnout-3-takedown-review/1900-6106827/"},{outlet:"Metacritic",url:"https://www.metacritic.com/game/burnout-3-takedown/"}]}},
+    { order:2, title:"SSX 3", genre:"Snowboarding / Flow State", timeToEval:"2–3 sessions", metacritic:93, whyNow:"After Burnout's chaos, SSX 3 teaches you what \"flow state\" means in games. It's still arcadey but more about rhythm and mastery. The open mountain structure is also a gentle intro to open-world design outside of GTA.", whyItMatters:"One of the defining sports games of the era. The EA Big label (Burnout, SSX, NFL Street) was a whole vibe that doesn't exist anymore.", connectsTo:"If the trick system clicks → THPS3 is literally next. If the open structure clicks → you're ready for bigger worlds.", sfw:5, vibe:"Chill, stylish, groovy soundtrack, zen-like mastery", reviews:{ summary:"GameSpot praised SSX 3 for delivering a rush that few racing or action sports games had ever achieved, highlighting the open mountain structure as a major evolution. IGN said it expands on its predecessor in every way. Critics loved the trick system, the soundtrack (which dynamically layers based on performance), and the seamless open-world mountain with no loading screens. Minor gripes included the GameCube controller not having enough buttons for the trick system, and some reviewers noted it could get repetitive in extended sessions. 93 on Metacritic.", links:[{outlet:"GameSpot",url:"https://www.gamespot.com/reviews/ssx-3-review/1900-6077123/"},{outlet:"Metacritic",url:"https://www.metacritic.com/game/ssx-3/critic-reviews/"}]}},
+    { order:3, title:"Tony Hawk's Pro Skater 3", genre:"Skateboarding / Arcade", timeToEval:"2–3 sessions", metacritic:97, whyNow:"You've just done two arcade sports games (Burnout, SSX). Now you get the purest pick-up-and-play score-chasing game ever made. Two-minute runs, clear objectives, infinite combo potential. This is the \"one more try\" game. You already love Street Fighter 2 for this exact reason — THPS3 is that energy with a skateboard.", whyItMatters:"Holds a 97 on Metacritic — one of the highest-rated PS2 games period. Introduced the revert mechanic, which combined with manuals to create the combo system that defined an entire genre. Also singlehandedly made a generation of kids discover punk rock.", connectsTo:"If you love it and want a story version → Tony Hawk's Underground (THUG). If the trick-chaining clicks → SSX 3's combo system will feel even deeper on replay.", sfw:5, vibe:"Addictive, punk rock soundtrack, pure arcade bliss", reviews:{ summary:"Almost impossible to overstate the critical reception. It earned a 97 on Metacritic, making it one of the highest-rated games on any platform. Critics praised the revert mechanic as a game-changer that made million-point combos possible. The level design was called creative and packed with secrets. It was also the first PS2 game to support online multiplayer. The soundtrack — featuring Motorhead, Del the Funky Homosapien, the Ramones — became iconic. Criticisms were essentially nonexistent; reviewers just wanted more of it.", links:[{outlet:"Metacritic",url:"https://www.metacritic.com/game/tony-hawks-pro-skater-3/"}]}},
+    { order:4, title:"Tekken 5", genre:"Fighting", timeToEval:"2–3 sessions", metacritic:88, whyNow:"You already know Tekken. This is your comfort zone but upgraded. Playing this after Burnout and SSX will help you feel the difference between \"games where you compete against the environment\" and \"games where you compete against a system/opponent.\"", whyItMatters:"Top 3 fighting game on PS2, arguably peak Tekken. Fighting games are a foundational genre and this is an elite entry point since you already have muscle memory.", connectsTo:"If you want something wilder → Devil May Cry 3 takes fighting-game-style combat into an action game.", sfw:3, vibe:"Competitive, technical, satisfying when you land a combo", reviews:{ summary:"Critics praised Tekken 5 as a triumphant return to form after the uneven Tekken 4, with faster combat and the return of classic mechanics. GameSpot said the core fighting is nearly perfect. The inclusion of arcade-perfect ports of Tekken 1, 2, and 3 was widely praised as incredible value. The 'Devil Within' beat-em-up minigame was the main criticism — reviewers found it derivative and poorly executed. It won Best Fighting Game of 2005 from GameSpot and Best PS2 Fighting Game from IGN. 88 on Metacritic.", links:[{outlet:"Metacritic",url:"https://www.metacritic.com/game/playstation-2/tekken-5"},{outlet:"Wikipedia",url:"https://en.wikipedia.org/wiki/Tekken_5"}]}},
+    { order:5, title:"TimeSplitters 2", genre:"Arcade FPS", timeToEval:"2–3 sessions", metacritic:90, whyNow:"You've done racing, snowboarding, skateboarding, and fighting. Time to come home to shooters — but the goofy, creative, N64-era kind you grew up on, not the military kind. Made by the actual Goldeneye/Perfect Dark developers.", whyItMatters:"This is the missing link between your N64 shooters and Halo/COD. Understanding this game helps you see how the FPS genre evolved.", connectsTo:"Bridges directly to your Halo/COD experience. If you want FPS but scarier → Resident Evil 4 awaits on Track A.", sfw:3, vibe:"Nostalgic, funny, varied, multiplayer gold", reviews:{ summary:"GameSpot declared it possibly the best split-screen multiplayer FPS ever created. IGN called it the best multiplayer FPS on the PS2 but noted the story wasn't particularly engaging. Official U.S. PlayStation Magazine said it was the best FPS on the system, period. Critics universally loved the absurd variety of characters, weapons, and modes but acknowledged the single-player story was thin. The map editor and challenge modes were seen as giving it near-infinite replay value. 90 on Metacritic.", links:[{outlet:"GameSpot",url:"https://www.gamespot.com/reviews/timesplitters-2-review/1900-2884943/"},{outlet:"Metacritic",url:"https://www.metacritic.com/game/timesplitters-2/"}]}},
+    { order:6, title:"Devil May Cry 3: Special Edition", genre:"Stylish Action", timeToEval:"3–4 sessions (give it time)", metacritic:87, whyNow:"This is your graduation exam for Track B. Everything you've learned about timing (Tekken), flow (SSX), aggression (Burnout), and aiming (TimeSplitters) converges here. It's hard, but you're ready.", whyItMatters:"Invented the \"stylish action\" genre. Without DMC, no Bayonetta, no God of War reboot combat, no character action games. It's historically enormous.", connectsTo:"If you love this → God of War on Track A will feel like a more accessible cousin. If you want MORE punishment → look into Ninja Gaiden (Xbox, but worth knowing about).", sfw:3, vibe:"Aggressive, punk rock, demanding, incredibly rewarding", reviews:{ summary:"Critics called it one of the best action games on PS2 and a massive redemption after the disastrous Devil May Cry 2. The style system, which lets you choose between combat approaches, was praised for adding serious depth. Multiple outlets noted it's extremely challenging — the original US release was famously harder than the Japanese version. The Special Edition (which you should play) added Vergil as a playable character and rebalanced the difficulty. Camera issues were the most common complaint. User reviews are even more glowing than critics, with many calling it the gold standard for the genre. 87 on Metacritic (SE).", links:[{outlet:"Metacritic (SE)",url:"https://www.metacritic.com/game/playstation-2/devil-may-cry-3-special-edition"},{outlet:"Metacritic (Original)",url:"https://www.metacritic.com/game/devil-may-cry-3-dantes-awakening/"}]}},
+  ],
+  deepDives: [
+    { order:1, title:"Jak and Daxter: The Precursor Legacy", genre:"3D Platformer", timeToEval:"6–10 hours", metacritic:90, whyNow:"Your first deep dive should be approachable, not punishing. This is the PS2's answer to Mario 64 — a collectathon platformer that teaches you how 3D platformers work without ever feeling unfair. It's also gorgeous and genuinely funny.", whyItMatters:"Naughty Dog made this before Uncharted and The Last of Us. Playing this helps you understand the DNA of modern AAA gaming. Platformers are also a massive blind spot for you — this fills it painlessly.", connectsTo:"Jak II goes open-world/GTA-style if you want more. Ratchet & Clank is the sibling series with guns.", sfw:5, vibe:"Colorful, adventurous, Saturday morning cartoon energy", reviews:{ summary:"Critics were blown away by the technical achievement — a seamless open world with zero loading screens on a PS2 in 2001. IGN praised its gorgeous graphics and called the gameplay a masterpiece. GameSpot highlighted Daxter's humor as the game's secret weapon. The main criticisms were that Jak himself is a silent protagonist (making him feel a bit generic) and that the game is on the easier side. Multiple reviewers called it the best platformer on the system and compared it favorably to Mario 64. 90 on Metacritic.", links:[{outlet:"Metacritic",url:"https://www.metacritic.com/game/jak-and-daxter-the-precursor-legacy/"},{outlet:"Metacritic (critic reviews)",url:"https://www.metacritic.com/game/jak-and-daxter-the-precursor-legacy/critic-reviews/"}]}},
+    { order:2, title:"Kingdom Hearts", genre:"Action RPG", timeToEval:"15–25 hours", metacritic:85, whyNow:"After Jak, you understand platforming and 3D spaces. Now add RPG progression — leveling up, equipment, abilities. Kingdom Hearts is the most accessible entry point to JRPGs because the combat is real-time (not turn-based) and the Disney worlds give you constant variety.", whyItMatters:"Culturally massive. A generation's introduction to RPG mechanics. Also shows you what Square Enix (Final Fantasy) was capable of. If you \"get\" this game, a whole universe of RPGs opens up.", connectsTo:"If you love the RPG systems → Final Fantasy X is the next step (turn-based, but the gold standard). If you love the action → God of War.", sfw:5, vibe:"Earnest, magical, surprisingly emotional, great combat", reviews:{ summary:"Critics were surprised by how well the Disney-meets-Final Fantasy mashup worked. Adrenaline Vault called it visually stunning and dripping with nostalgia. GameZone noted a few flaws but praised its jaw-dropping graphics and unique character pairings. The camera was universally criticized — it's fixed in places and clunky in others. The combat was called fun but simple compared to dedicated action games. Where it truly excels is atmosphere and heart — reviewers consistently noted that its emotional story and Yoko Shimomura's soundtrack elevate it far beyond what the concept suggests on paper. 85 on Metacritic.", links:[{outlet:"Metacritic",url:"https://www.metacritic.com/game/kingdom-hearts/"}]}},
+    { order:3, title:"God of War", genre:"Action / Mythology", timeToEval:"10–15 hours", metacritic:94, whyNow:"You've done a platformer and an RPG. Now pure action-spectacle. God of War is linear and cinematic — it pulls you forward relentlessly. After Kingdom Hearts' complexity, this will feel focused like a laser beam.", whyItMatters:"Launched one of gaming's biggest franchises. The 2018 reboot and Ragnarök are among the most celebrated modern games. Playing the original gives you the full arc.", connectsTo:"If you want more story → Metal Gear Solid 3. If you want harder combat → you've already hit Devil May Cry 3 on Track B.", sfw:2, vibe:"Epic, violent, mythological, blockbuster energy", reviews:{ summary:"God of War was met with near-universal rapture. Multiple critics called it the best game on PS2. One reviewer at Official PlayStation Magazine said they found it difficult to resist genuflecting in its presence. The combat was praised for blending systems from Onimusha, Devil May Cry, and Prince of Persia into something uniquely brutal and satisfying. The only consistent negatives were occasional camera issues during platforming sections and some puzzles that relied too heavily on trial-and-error timing. It won numerous Game of the Year awards. 94 on Metacritic — one of the highest-rated PS2 games ever.", links:[{outlet:"Metacritic",url:"https://www.metacritic.com/game/god-of-war-2005/"},{outlet:"Metacritic (critic reviews)",url:"https://www.metacritic.com/game/god-of-war-2005/critic-reviews/"}]}},
+    { order:4, title:"Metal Gear Solid 3: Snake Eater", genre:"Stealth Action", timeToEval:"15–20 hours", metacritic:91, whyNow:"This is where you learn patience. Every game so far has rewarded aggression. MGS3 rewards observation, planning, and creativity. It's the most important genre you haven't tried — stealth — and this is the single best stealth game on PS2.", whyItMatters:"Regularly appears on \"greatest games of all time\" lists. Hideo Kojima is one of gaming's most important auteurs. This game is funny, heartbreaking, and weird in ways that only video games can be.", connectsTo:"If stealth clicks → Splinter Cell: Chaos Theory is excellent. If the cinematic storytelling clicks → you'll understand why people lose their minds over Kojima games.", sfw:3, vibe:"Cinematic, tense, funny, emotionally devastating ending", reviews:{ summary:"Critics praised the intriguing Cold War scenario, incredible boss battles, and a long adventure that stays riveting throughout. GameSpot said some humor feels lost in translation, but the emotional story more than compensates. The game's final boss fight is consistently cited as one of the greatest in gaming history. The original version's overhead camera was the biggest complaint — the Subsistence re-release fixed this with a fully controllable 3D camera (which scored even higher at 94). IGN awarded it Best Overall Action Game, Best Story, and Best PS2 Use of Sound in 2004. Multiple publications have since ranked it in the top 3 PS2 games of all time. 91 on Metacritic.", links:[{outlet:"Metacritic",url:"https://www.metacritic.com/game/metal-gear-solid-3-snake-eater/"},{outlet:"Metacritic (Subsistence — 94)",url:"https://www.metacritic.com/game/metal-gear-solid-3-subsistence/"},{outlet:"Metacritic (critic reviews)",url:"https://www.metacritic.com/game/metal-gear-solid-3-snake-eater/critic-reviews/"}]}},
+    { order:5, title:"Shadow of the Colossus", genre:"Action / Art", timeToEval:"8–12 hours", metacritic:91, whyNow:"This is your capstone. After everything else, you now have the vocabulary to appreciate what this game is doing differently. No enemies. No towns. No loot. Just you, a horse, and 16 colossal beings to climb and defeat. It's the game that made the strongest case for \"games are art\" in the PS2 era.", whyItMatters:"One of the most influential games ever made. It proved games could be melancholy, minimalist, and profound. If this hits you — and it probably will after the journey you've taken — you're not a curmudgeon. You're a gamer.", connectsTo:"ICO is its companion game (same developer, similar vibes). If you want more \"games as art\" → Okami is gorgeous.", sfw:5, vibe:"Lonely, majestic, haunting, unforgettable", reviews:{ summary:"Critics struggled to find comparisons. One reviewer wrote that they had never played a game like it because no other games like it exist. It was compared to Citizen Kane for its artistic achievement. The first glimpse of a colossus was called awe-inspiring and terrifying simultaneously. The consistent criticisms were the PS2's framerate struggling with the scale, and occasionally frustrating camera and horse controls. But reviewers overwhelmingly felt the flaws were trivial against the emotional impact. It won Game of the Year from GamesRadar and multiple GDCA awards including Game of the Year and Innovation. The 2018 PS4 remake scored a 93, proving its timelessness. 91 on Metacritic.", links:[{outlet:"Metacritic (critic reviews)",url:"https://www.metacritic.com/game/playstation-2/shadow-of-the-colossus/critic-reviews"},{outlet:"Never Ending Realm",url:"https://neverendingrealm.com/reviews/shadow-of-the-colossus-ps2-review/"}]}},
+    { order:6, title:"Resident Evil 4", genre:"Survival Horror / Action", timeToEval:"15–20 hours", metacritic:96, whyNow:"Bonus round. By now you've played platformers, RPGs, action games, stealth, and art games. RE4 blends survival, shooting, and tension in a way that literally redefined third-person games. Every modern shooter you've played (Gears, COD, etc.) borrowed from this game.", whyItMatters:"Changed the camera angle and feel of an entire generation of games. Understanding RE4 is understanding why modern games feel the way they do.", connectsTo:"If you love it → Silent Hill 2 for pure horror. If you want more action-horror → Dead Space (PS3/360 era) is RE4's spiritual successor.", sfw:2, vibe:"Tense, campy, satisfying gunplay, surprisingly funny", reviews:{ summary:"There might not be a more critically acclaimed PS2-era game. Game Informer gave it a perfect score and called it a landmark regardless of platform. IGN called it easily a top-10 PS2 game. GameSpot said the praise is warranted and recommended approaching it with no preconceptions. Multiple outlets declared it the greatest horror game ever made and a masterpiece of game design. The zone-based targeting system was called revolutionary. The PS2 version includes the bonus 'Separate Ways' Ada Wong campaign not in the original GameCube release. Criticisms were almost nonexistent — occasional campy dialogue was about it. 96 on Metacritic — tied for the highest-rated PS2 game ever.", links:[{outlet:"Metacritic",url:"https://www.metacritic.com/game/resident-evil-4-2005/"},{outlet:"Metacritic (critic reviews)",url:"https://www.metacritic.com/game/resident-evil-4-2005/critic-reviews/"},{outlet:"Engadget (metareview)",url:"https://www.engadget.com/2005-10-25-metareview-resident-evil-4-ps2.html"}]}},
+  ]
+};
+
+const sfwLabels = {5:"Totally Clean",4:"Mostly Clean",3:"Some Edge",2:"Pretty Mature",1:"Very Mature"};
+const sfwColors = {5:"#4ade80",4:"#a3e635",3:"#facc15",2:"#fb923c",1:"#f87171"};
+const trackColors = { pickUpAndPlay:"#06b6d4", deepDives:"#f59e0b" };
+
+let activeTrack = "pickUpAndPlay";
+let activeGame = null;
+
+function mcClass(score) { return score >= 90 ? "mc-green" : score >= 75 ? "mc-yellow" : "mc-red"; }
+
+function switchTrack(track) {
+  activeTrack = track;
+  activeGame = null;
+  document.getElementById("btn-pickUpAndPlay").className = "track-btn" + (track === "pickUpAndPlay" ? " active-b" : "");
+  document.getElementById("btn-deepDives").className = "track-btn" + (track === "deepDives" ? " active-a" : "");
+  render();
+}
+
+function toggleGame(index) {
+  activeGame = activeGame === index ? null : index;
+  render();
+}
+
+function toggleReviews(evt, cardId) {
+  evt.stopPropagation();
+  const content = document.getElementById("reviews-content-" + cardId);
+  const btn = document.getElementById("reviews-btn-" + cardId);
+  if (content.classList.contains("open")) {
+    content.classList.remove("open");
+    btn.classList.remove("open");
+    btn.querySelector(".arrow").textContent = "▸";
+  } else {
+    content.classList.add("open");
+    btn.classList.add("open");
+    btn.querySelector(".arrow").textContent = "▾";
+  }
+}
+
+function render() {
+  const color = trackColors[activeTrack];
+  const list = games[activeTrack];
+
+  // Progress bar
+  const bar = document.getElementById("progress-bar");
+  bar.innerHTML = list.map((_, i) =>
+    `<div class="progress-pip" style="background:${activeGame === i ? color : color + '25'}"></div>`
+  ).join("");
+
+  // Game cards
+  const container = document.getElementById("games-list");
+  container.innerHTML = list.map((g, i) => {
+    const isActive = activeGame === i;
+    const cardId = activeTrack + "-" + i;
+    const sfwBg = sfwColors[g.sfw] + "15";
+    const sfwBorder = sfwColors[g.sfw] + "30";
+
+    return `
+    <div class="game-card${isActive ? ' active' : ''}" style="${isActive ? 'border-color:'+color : ''}" onclick="toggleGame(${i})">
+      <div class="accent-bar" style="background:${color}"></div>
+      <div class="game-header">
+        <div class="game-header-left">
+          <div class="game-title-row">
+            <span class="mono game-order" style="color:${color}">0${g.order}</span>
+            <span class="display game-title">${g.title}</span>
+            <span class="mono mc-badge ${mcClass(g.metacritic)}">${g.metacritic}</span>
+          </div>
+          <div class="game-meta">
+            <span class="mono">${g.genre}</span>
+            <span class="dot">•</span>
+            <span class="mono time">${g.timeToEval}</span>
+            <span class="dot">•</span>
+            <span class="mono sfw-badge" style="background:${sfwBg};color:${sfwColors[g.sfw]};border:1px solid ${sfwBorder}">SFW: ${sfwLabels[g.sfw]}</span>
+          </div>
+        </div>
+        ${!isActive ? '<span class="mono expand-hint">tap to expand ↓</span>' : ''}
+      </div>
+      <div class="game-details">
+        <div>
+          <div class="mono detail-label" style="color:${color}">Why This, Why Now</div>
+          <p class="detail-text">${g.whyNow}</p>
+        </div>
+        <div>
+          <div class="mono detail-label" style="color:${color}">Why It Matters</div>
+          <p class="detail-text">${g.whyItMatters}</p>
+        </div>
+        <div>
+          <div class="mono detail-label" style="color:${color}">Where It Leads</div>
+          <p class="detail-text">${g.connectsTo}</p>
+        </div>
+        <div class="review-section">
+          <button class="reviews-toggle" id="reviews-btn-${cardId}" onclick="toggleReviews(event,'${cardId}')" style="color:rgba(255,255,255,0.45)">
+            <span class="arrow">▸</span>
+            <span>What Critics Said</span>
+          </button>
+          <div class="reviews-content" id="reviews-content-${cardId}">
+            <p class="reviews-summary">${g.reviews.summary}</p>
+            <div class="reviews-links">
+              ${g.reviews.links.map(l => `<a class="mono review-link" href="${l.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="color:${color};border:1px solid ${color}40;background:${color}10">${l.outlet} ↗</a>`).join("")}
+            </div>
+          </div>
+        </div>
+        <div class="vibe-line">Vibe: ${g.vibe}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+render();
+</script>
+</body>
+</html>
