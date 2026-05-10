@@ -47,7 +47,7 @@ This is the provenance trail — it's how I'll know later what was asked for and
 
 ## Update index page
 
-It's crucial that every new page to this repo is represented with a link on the index.html page.
+It's crucial that every new page to this repo is represented with a link on the index.html page. When you make a meaningful update to an existing tool, also bump that tool's `last deployed` date to today.
 
 Format:
 
@@ -58,11 +58,11 @@ Format:
         <span class="item-tag">[appropriate tag(s), make something up that feels right]</span>
       </div>
       <div class="item-desc">[pithy description of what this tool does, two sentence max.]</div>
-      <div class="item-date">[current month/year, e.g. may 2026]</div>
+      <div class="item-date">last deployed [today's date, e.g. last deployed may 10, 2026]</div>
     </a>
 ```
 
-Insert this block at the top of the list.
+Insert this block at the top of the list when adding a new tool. Use lowercase month names with a numeric day and year (e.g. `last deployed may 10, 2026`). Older entries that pre-date this convention can keep their existing date strings — don't backfill them retroactively.
 
 ## Shipping
 
