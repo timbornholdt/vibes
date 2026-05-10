@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0a0a">
+<title>Skull Calf Tattoo Care</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --bg: #0a0a0a;
+    --panel: #161616;
+    --panel-2: #1f1f1f;
+    --border: #2a2a2a;
+    --text: #ececec;
+    --text-dim: #888;
+    --text-very-dim: #555;
+    --blood: #c81e1e;
+    --bone: #e8e4d8;
+    --done: #3a8a3a;
+  }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', 'Fira Mono', 'Cascadia Code', ui-monospace, monospace;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  .page {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 36px 20px 80px;
+  }
+  header { margin-bottom: 18px; }
+  h1 {
+    font-size: 32px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    line-height: 1;
+    color: var(--bone);
+    margin: 0 0 8px 0;
+    text-transform: uppercase;
+  }
+  h1 span { color: var(--blood); }
+  .sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .now-banner {
+    background: var(--panel-2);
+    border-left: 4px solid var(--blood);
+    padding: 12px 14px;
+    margin: 20px 0 24px;
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  .now-banner b { color: var(--bone); font-weight: 700; }
+
+  .phase {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    scroll-margin-top: 16px;
+  }
+  .phase.current {
+    border-color: var(--blood);
+    box-shadow: 0 0 0 1px var(--blood) inset;
+  }
+  .phase-head {
+    padding: 14px 16px;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .phase.current .phase-head {
+    background: rgba(200, 30, 30, 0.08);
+  }
+  .phase-status {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 3px;
+    margin-bottom: 6px;
+    background: var(--border);
+    color: var(--text-dim);
+  }
+  .phase.current .phase-status {
+    background: var(--blood);
+    color: #fff;
+  }
+  .phase-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--bone);
+    margin-bottom: 4px;
+    line-height: 1.25;
+  }
+  .phase-when {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+    text-transform: lowercase;
+  }
+  .phase-body { padding: 6px 16px 8px; }
+  .task {
+    display: flex;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+    font-size: 14px;
+    line-height: 1.5;
+    cursor: pointer;
+  }
+  .task:last-of-type { border-bottom: none; }
+  .task input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border: 2px solid #444;
+    border-radius: 3px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    cursor: pointer;
+    background: transparent;
+    position: relative;
+    transition: background 0.1s, border-color 0.1s;
+  }
+  .task input[type="checkbox"]:checked {
+    background: var(--done);
+    border-color: var(--done);
+  }
+  .task input[type="checkbox"]:checked::after {
+    content: '\2713';
+    position: absolute;
+    inset: 0;
+    color: #fff;
+    text-align: center;
+    line-height: 14px;
+    font-size: 13px;
+    font-weight: 900;
+  }
+  .task-text { flex: 1; color: var(--text); }
+  .task input[type="checkbox"]:checked ~ .task-text {
+    color: var(--text-very-dim);
+    text-decoration: line-through;
+  }
+  .phase-note {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.55;
+    padding: 10px 12px;
+    margin: 8px 0 4px;
+    border-left: 2px solid var(--border);
+    background: rgba(255,255,255,0.02);
+    font-style: italic;
+  }
+
+  footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-very-dim);
+    letter-spacing: 0.5px;
+  }
+  footer a { color: var(--text-dim); text-decoration: none; }
+  footer a:hover { color: var(--blood); }
+
+  @media (max-width: 480px) {
+    .page { padding: 28px 16px 60px; }
+    h1 { font-size: 26px; }
+    .phase-title { font-size: 16px; }
+    .task { font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>Skull Care<span>.</span></h1>
+    <div class="sub">left calf &middot; ink received may 9, 2026 &middot; 6:00 pm</div>
+  </header>
+
+  <div class="now-banner" id="now-banner"></div>
+
+  <div id="timeline"></div>
+
+  <footer>
+    <a href="https://github.com/timbornholdt/junk/blob/main/tattoo-care.html">view source</a>
+  </footer>
+</div>
+
+<script type="module">
+const START = new Date('2026-05-09T18:00:00');
+const HOUR_MS = 60 * 60 * 1000;
+
+const phases = [
+  {
+    id: 'p0',
+    title: 'Leave the second skin alone',
+    startH: 0, endH: 24,
+    rangeLabel: 'first 24 hours',
+    note: 'Plasma, blood, and ink will pool under the bandage. That is normal. Do not panic, do not peek.',
+    tasks: [
+      'Sleep with a clean sheet or towel under your left calf in case the bandage leaks',
+      'Skip the gym, no swimming, no soaking',
+      'If the bandage edges lift significantly or it leaks heavily, replace it with a fresh second skin (clean wash + reapply) — or remove and switch to traditional aftercare from day 3-5 below',
+    ],
+  },
+  {
+    id: 'p1',
+    title: 'Keep the second skin on',
+    startH: 24, endH: 72,
+    rangeLabel: 'days 1-3',
+    note: 'Most second-skin protocols leave the original bandage on for 3 to 5 days. Trust it.',
+    tasks: [
+      'Quick showers are fine — pat the bandage dry afterward, do not soak it',
+      'Do not pick at the edges of the second skin',
+      'If fluid pools dramatically and the bandage starts leaking, remove it early and skip ahead to the day 3-5 instructions',
+      'Loose pants only — no tight socks rubbing the bottom edge',
+    ],
+  },
+  {
+    id: 'p2',
+    title: 'Remove the second skin',
+    startH: 72, endH: 120,
+    rangeLabel: 'days 3-5',
+    note: 'The single most important wash. Take it slow.',
+    tasks: [
+      'In the shower, peel the second skin off slowly under warm running water, in the direction of hair growth',
+      "Wash with lukewarm water and unscented antibacterial soap (Dr. Bronner's unscented, Dial Gold, or CeraVe gentle cleanser) — use clean fingers, not a washcloth",
+      'Pat dry with a clean paper towel — never rub',
+      'Wait ~10 minutes for the skin to fully dry, then apply a very thin layer of Aquaphor',
+      'From now until ~day 14: wash 2-3x per day, moisturize 3-4x per day',
+    ],
+  },
+  {
+    id: 'p3',
+    title: 'Peeling and itching phase',
+    startH: 120, endH: 24 * 14,
+    rangeLabel: 'days 5-14',
+    note: 'It will look like a flaky, scabby mess. It is supposed to. Do not pick. Do not scratch. Pulling a flake pulls ink with it.',
+    tasks: [
+      'Wash 2-3x daily with unscented soap, pat dry, apply a thin layer of unscented lotion (Aveeno, Lubriderm, CeraVe, or Hustle Butter)',
+      'Around day 5-7, switch from Aquaphor to a lighter unscented lotion — over-moisturizing causes breakouts',
+      'When it itches, slap it or apply lotion. Do not scratch',
+      'No swimming, no baths, no hot tubs, no saunas, no soaking of any kind',
+      'Loose pants only. Sleep on clean sheets',
+      'Keep it out of direct sunlight — cover with clothing if you are outside',
+      'If you go to the gym: wipe down equipment, shower immediately after, wear loose clothing over the calf',
+    ],
+  },
+  {
+    id: 'p4',
+    title: 'Outer skin healed — milky stage',
+    startH: 24 * 14, endH: 24 * 30,
+    rangeLabel: 'days 14-30',
+    note: 'The tattoo may look slightly cloudy or "milky" — that is the new layer of skin forming over the ink. It clears up by week 4-6.',
+    tasks: [
+      'Moisturize once or twice a day with unscented lotion',
+      'Still no swimming, soaking, or hot tubs',
+      'Still cover with clothing in direct sun — no sunscreen on the tattoo until fully healed (~day 30+)',
+      'Resume normal gym and activity, just keep it clean',
+    ],
+  },
+  {
+    id: 'p5',
+    title: 'Healed. Now keep it that way.',
+    startH: 24 * 30, endH: null,
+    rangeLabel: 'day 30 and forever',
+    note: 'Outer skin is fully healed. Deep dermis healing continues for ~3-4 months but you are done with active aftercare. The rest is lifelong skin care.',
+    tasks: [
+      "Sunscreen SPF 30+ on the tattoo whenever it is exposed to sun. This is the single biggest factor in long-term color quality",
+      'Keep your skin moisturized — hydrated skin holds ink better and ages slower',
+      'Avoid long sessions in chlorinated pools, hot tubs, or salt water when you can — they are harsh on tattoos even fully healed',
+      'If colors fade noticeably in a few years, that is a touch-up conversation with your artist, not a re-tattoo',
+    ],
+  },
+];
+
+const fmtDate = d => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).toLowerCase();
+
+function phaseDateLabel(p) {
+  const start = new Date(START.getTime() + p.startH * HOUR_MS);
+  if (p.endH === null) return `${fmtDate(start)} → forever`;
+  const endDisplay = new Date(START.getTime() + p.endH * HOUR_MS - 1);
+  if (fmtDate(start) === fmtDate(endDisplay)) return fmtDate(start);
+  return `${fmtDate(start)} – ${fmtDate(endDisplay)}`;
+}
+
+const storageKey = (phaseId, taskIdx) => `tattoo-care:${phaseId}:${taskIdx}`;
+const loadChecked = (pid, i) => localStorage.getItem(storageKey(pid, i)) === '1';
+const saveChecked = (pid, i, v) => v
+  ? localStorage.setItem(storageKey(pid, i), '1')
+  : localStorage.removeItem(storageKey(pid, i));
+
+const elapsedHours = () => (Date.now() - START.getTime()) / HOUR_MS;
+
+function phaseStatus(p, h) {
+  if (p.endH !== null && h >= p.endH) return 'past';
+  if (h >= p.startH) return 'current';
+  return 'upcoming';
+}
+
+function relLabel(h) {
+  if (h < 0) return `tattoo applied ${Math.abs(Math.floor(h))} hours from now (clock issue?)`;
+  if (h < 24) return `${Math.floor(h)} hours in`;
+  const days = Math.floor(h / 24) + 1;
+  if (days <= 14) return `day ${days}`;
+  if (days <= 30) return `day ${days} — outer healing`;
+  return `day ${days} — long-term care`;
+}
+
+function render() {
+  const h = elapsedHours();
+
+  const banner = document.getElementById('now-banner');
+  banner.innerHTML = `you are <b>${relLabel(h)}</b>.<br>past phases hidden — only what is now and ahead.`;
+
+  const tl = document.getElementById('timeline');
+  tl.innerHTML = '';
+
+  for (const p of phases) {
+    const status = phaseStatus(p, h);
+    if (status === 'past') continue;
+
+    const el = document.createElement('div');
+    el.className = `phase ${status}`;
+
+    const head = document.createElement('div');
+    head.className = 'phase-head';
+    const statusEl = document.createElement('div');
+    statusEl.className = 'phase-status';
+    statusEl.textContent = status === 'current' ? 'now' : 'upcoming';
+    const titleEl = document.createElement('div');
+    titleEl.className = 'phase-title';
+    titleEl.textContent = p.title;
+    const whenEl = document.createElement('div');
+    whenEl.className = 'phase-when';
+    whenEl.textContent = `${p.rangeLabel} · ${phaseDateLabel(p)}`;
+    head.append(statusEl, titleEl, whenEl);
+    el.appendChild(head);
+
+    const body = document.createElement('div');
+    body.className = 'phase-body';
+    p.tasks.forEach((t, i) => {
+      const id = `task-${p.id}-${i}`;
+      const label = document.createElement('label');
+      label.className = 'task';
+      label.htmlFor = id;
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.id = id;
+      cb.checked = loadChecked(p.id, i);
+      cb.addEventListener('change', () => saveChecked(p.id, i, cb.checked));
+      const span = document.createElement('span');
+      span.className = 'task-text';
+      span.textContent = t;
+      label.append(cb, span);
+      body.appendChild(label);
+    });
+    if (p.note) {
+      const note = document.createElement('div');
+      note.className = 'phase-note';
+      note.textContent = p.note;
+      body.appendChild(note);
+    }
+    el.appendChild(body);
+    tl.appendChild(el);
+  }
+}
+
+render();
+setInterval(render, 60_000);
+</script>
+</body>
+</html>
