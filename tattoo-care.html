@@ -30,9 +30,20 @@
   .page {
     max-width: 680px;
     margin: 0 auto;
-    padding: 36px 20px 80px;
+    padding: 28px 20px 60px;
   }
-  header { margin-bottom: 18px; }
+  header {
+    margin-bottom: 28px;
+    text-align: center;
+  }
+  .hero {
+    width: 100%;
+    max-width: 320px;
+    height: auto;
+    display: block;
+    margin: 0 auto 8px;
+    filter: drop-shadow(0 6px 24px rgba(200, 30, 30, 0.35));
+  }
   h1 {
     font-size: 32px;
     font-weight: 900;
@@ -49,16 +60,23 @@
     letter-spacing: 1.5px;
     text-transform: uppercase;
   }
-  .now-banner {
-    background: var(--panel-2);
-    border-left: 4px solid var(--blood);
-    padding: 12px 14px;
-    margin: 20px 0 24px;
-    font-size: 12px;
-    color: var(--text-dim);
-    line-height: 1.6;
+  @keyframes flicker {
+    0%, 100% { transform: scaleY(1) scaleX(1); }
+    25%      { transform: scaleY(1.04) scaleX(0.98); }
+    50%      { transform: scaleY(0.97) scaleX(1.02); }
+    75%      { transform: scaleY(1.02) scaleX(0.99); }
   }
-  .now-banner b { color: var(--bone); font-weight: 700; }
+  .flame-outer {
+    transform-origin: 50% 100%;
+    animation: flicker 2.6s ease-in-out infinite;
+  }
+  .flame-inner {
+    transform-origin: 50% 100%;
+    animation: flicker 1.7s ease-in-out infinite reverse;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .flame-outer, .flame-inner { animation: none; }
+  }
 
   .phase {
     background: var(--panel);
@@ -164,21 +182,10 @@
     font-style: italic;
   }
 
-  footer {
-    margin-top: 40px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
-    text-align: center;
-    font-size: 11px;
-    color: var(--text-very-dim);
-    letter-spacing: 0.5px;
-  }
-  footer a { color: var(--text-dim); text-decoration: none; }
-  footer a:hover { color: var(--blood); }
-
   @media (max-width: 480px) {
-    .page { padding: 28px 16px 60px; }
+    .page { padding: 24px 16px 60px; }
     h1 { font-size: 26px; }
+    .hero { max-width: 240px; }
     .phase-title { font-size: 16px; }
     .task { font-size: 14px; }
   }
@@ -187,17 +194,47 @@
 <body>
 <div class="page">
   <header>
+    <svg class="hero" viewBox="0 0 280 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <linearGradient id="flameOuter" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%"   stop-color="#3a0000"/>
+          <stop offset="30%"  stop-color="#a01818"/>
+          <stop offset="65%"  stop-color="#ff5e1a"/>
+          <stop offset="100%" stop-color="#ffd84a"/>
+        </linearGradient>
+        <linearGradient id="flameInner" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%"   stop-color="#7a0000"/>
+          <stop offset="50%"  stop-color="#ff6a1a"/>
+          <stop offset="100%" stop-color="#fff0a0"/>
+        </linearGradient>
+      </defs>
+      <path class="flame-outer" d="M 25 232 C 10 200, 26 175, 16 150 C 6 120, 32 105, 26 80 C 36 55, 56 65, 62 45 C 68 25, 86 35, 92 18 C 102 -2, 116 24, 126 8 C 140 -6, 152 24, 166 14 C 182 -2, 196 24, 202 40 C 218 36, 226 60, 222 76 C 246 80, 250 106, 240 126 C 264 136, 260 166, 244 176 C 268 196, 258 224, 252 232 Z" fill="url(#flameOuter)"/>
+      <path class="flame-inner" d="M 60 218 C 50 196, 66 176, 56 160 C 50 140, 70 130, 66 110 C 76 95, 86 100, 92 80 C 96 64, 106 76, 112 60 C 116 44, 126 60, 136 50 C 146 40, 156 60, 166 60 C 176 60, 182 80, 192 86 C 202 92, 206 106, 200 120 C 216 130, 216 152, 206 166 C 220 176, 216 200, 206 218 Z" fill="url(#flameInner)" opacity="0.92"/>
+      <g class="skull">
+        <path d="M 140 50 C 85 50, 60 90, 65 130 C 67 150, 75 168, 85 178 L 85 195 L 195 195 L 195 178 C 205 168, 213 150, 215 130 C 220 90, 195 50, 140 50 Z" fill="#ece6d6" stroke="#080808" stroke-width="2" stroke-linejoin="round"/>
+        <ellipse cx="110" cy="125" rx="18" ry="22" fill="#080808"/>
+        <ellipse cx="170" cy="125" rx="18" ry="22" fill="#080808"/>
+        <circle cx="113" cy="120" r="3" fill="#ff3030"/>
+        <circle cx="173" cy="120" r="3" fill="#ff3030"/>
+        <path d="M 140 152 L 130 175 Q 140 182 150 175 Z" fill="#080808"/>
+        <g stroke="#080808" stroke-width="2.2" stroke-linecap="round" fill="none">
+          <line x1="85"  y1="190" x2="195" y2="190"/>
+          <line x1="100" y1="190" x2="100" y2="206"/>
+          <line x1="115" y1="190" x2="115" y2="206"/>
+          <line x1="130" y1="190" x2="130" y2="206"/>
+          <line x1="145" y1="190" x2="145" y2="206"/>
+          <line x1="160" y1="190" x2="160" y2="206"/>
+          <line x1="175" y1="190" x2="175" y2="206"/>
+        </g>
+        <path d="M 90 162 Q 96 172 100 180" fill="none" stroke="#080808" stroke-width="1.5" opacity="0.35"/>
+        <path d="M 190 162 Q 184 172 180 180" fill="none" stroke="#080808" stroke-width="1.5" opacity="0.35"/>
+      </g>
+    </svg>
     <h1>Skull Care<span>.</span></h1>
-    <div class="sub">left calf &middot; ink received may 9, 2026 &middot; 6:00 pm</div>
+    <div class="sub">left calf &middot; may 9, 2026 &middot; 6:00 pm</div>
   </header>
 
-  <div class="now-banner" id="now-banner"></div>
-
   <div id="timeline"></div>
-
-  <footer>
-    <a href="https://github.com/timbornholdt/junk/blob/main/tattoo-care.html">view source</a>
-  </footer>
 </div>
 
 <script type="module">
@@ -312,21 +349,8 @@ function phaseStatus(p, h) {
   return 'upcoming';
 }
 
-function relLabel(h) {
-  if (h < 0) return `tattoo applied ${Math.abs(Math.floor(h))} hours from now (clock issue?)`;
-  if (h < 24) return `${Math.floor(h)} hours in`;
-  const days = Math.floor(h / 24) + 1;
-  if (days <= 14) return `day ${days}`;
-  if (days <= 30) return `day ${days} — outer healing`;
-  return `day ${days} — long-term care`;
-}
-
 function render() {
   const h = elapsedHours();
-
-  const banner = document.getElementById('now-banner');
-  banner.innerHTML = `you are <b>${relLabel(h)}</b>.<br>past phases hidden — only what is now and ahead.`;
-
   const tl = document.getElementById('timeline');
   tl.innerHTML = '';
 
