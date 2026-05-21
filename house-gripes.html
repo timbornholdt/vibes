@@ -4,171 +4,223 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="theme-color" content="#0A0A0A">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#5C3F28">
 <title>Stuff That Sucks</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   :root {
-    --yellow: #FFE600;
-    --pink:   #FF2D78;
-    --green:  #39FF14;
+    --paper:      #F3E9D6;
+    --paper-edge: #E2D2B4;
+    --card:       #FBF5E7;
+    --ink:        #352A1E;
+    --ink-soft:   #6F6151;
+    --sage:       #7E9070;
+    --sage-deep:  #566B4C;
+    --forest:     #3B5140;
+    --olive:      #9A9450;
+    --gold:       #C0902E;
+    --gold-soft:  #D8B45D;
+    --walnut:     #5C3F28;
+    --walnut-soft:#7A5436;
+    --taupe:      #C8B79A;
+    --rust:       #A8492E;
+    --shadow:     0 2px 6px rgba(70, 46, 20, 0.14);
+    --shadow-lg:  0 8px 24px rgba(70, 46, 20, 0.18);
+    --r: 12px;
+    --sans:  'Futura', 'Century Gothic', 'Avenir Next', 'Trebuchet MS', system-ui, sans-serif;
+    --serif: 'Palatino Linotype', Palatino, 'Iowan Old Style', 'Hoefler Text', Georgia, serif;
   }
 
   body {
-    font-family: 'JetBrains Mono', 'Fira Mono', 'Cascadia Code', ui-monospace, monospace;
-    background-color: #000;
-    background-image: radial-gradient(circle, #0d3d06 1.5px, transparent 1.5px);
-    background-size: 5px 5px;
+    font-family: var(--sans);
+    background-color: var(--paper);
+    background-image:
+      radial-gradient(circle at 50% -5%, rgba(126, 144, 112, 0.12), transparent 55%),
+      repeating-linear-gradient(90deg, rgba(92, 63, 40, 0.025) 0 1px, transparent 1px 14px);
+    color: var(--ink);
     min-height: 100vh;
-    color: #fff;
     -webkit-font-smoothing: antialiased;
   }
 
   .page {
-    max-width: 620px;
+    max-width: 600px;
     margin: 0 auto;
-    padding: 40px 20px 80px;
+    padding: 32px 20px 80px;
   }
 
-  /* ── Header ── */
-  header { margin-bottom: 24px; }
+  /* ── Masthead (teak nameplate) ── */
+  .masthead {
+    position: relative;
+    background-color: var(--walnut);
+    background-image:
+      repeating-linear-gradient(90deg, rgba(255, 248, 235, 0.04) 0 2px, transparent 2px 7px),
+      repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.06) 0 1px, transparent 1px 11px),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.12));
+    border-radius: var(--r);
+    padding: 30px 26px 26px;
+    box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .sprig {
+    position: absolute;
+    top: 16px;
+    right: 18px;
+    width: 78px;
+    height: 78px;
+  }
+  .sprig .stem { stroke: var(--sage-deep); stroke-width: 3; fill: none; stroke-linecap: round; }
+  .sprig .leaf { fill: var(--sage); }
 
   h1 {
-    font-size: 56px;
-    font-weight: 900;
-    letter-spacing: -2px;
-    color: var(--yellow);
-    -webkit-text-stroke: 3px #000;
-    paint-order: stroke fill;
-    line-height: 0.9;
-    margin-bottom: 10px;
-    text-transform: uppercase;
+    font-family: var(--serif);
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 0.98;
+    letter-spacing: -0.5px;
+    color: #F4EAD6;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+    margin-bottom: 12px;
   }
-
-  h1 span { color: var(--pink); }
+  h1 span { color: var(--gold-soft); }
 
   .site-sub {
     font-size: 11px;
-    background: #000;
-    color: var(--green);
-    letter-spacing: 2px;
+    letter-spacing: 3px;
     text-transform: uppercase;
-    display: inline-block;
-    padding: 3px 8px;
+    color: var(--gold-soft);
   }
 
   .rule {
-    border-top: 4px solid var(--pink);
-    margin: 16px 0;
-    overflow: hidden;
-    font-size: 0;
-    height: 0;
+    width: 48px;
+    height: 3px;
+    background: var(--gold);
+    border-radius: 3px;
+    margin: 0 0 24px;
   }
 
   /* ── Add form ── */
   .add {
-    background: #000;
-    border-left: 6px solid var(--yellow);
-    border-bottom: 4px solid var(--yellow);
-    padding: 16px;
-    margin-bottom: 28px;
+    background: var(--card);
+    border: 1px solid var(--paper-edge);
+    border-radius: var(--r);
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: var(--shadow);
   }
 
-  .add label {
+  .add label,
+  .gripe-edit label {
     display: block;
-    font-size: 9px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--green);
-    margin-bottom: 6px;
-  }
-
-  .add input,
-  .add textarea {
-    width: 100%;
-    font-family: inherit;
-    font-size: 16px;
-    background: #111;
-    color: #fff;
-    border: 2px solid #333;
-    padding: 10px 12px;
-    margin-bottom: 12px;
-  }
-
-  .add input:focus,
-  .add textarea:focus {
-    outline: none;
-    border-color: var(--yellow);
-  }
-
-  .add textarea { resize: vertical; min-height: 52px; }
-
-  .add button {
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 900;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    background: var(--green);
-    color: #000;
-    border: none;
-    padding: 12px 18px;
-    cursor: pointer;
-    width: 100%;
-    border-bottom: 4px solid #1f8c0a;
-    transition: transform 0.08s;
-  }
-
-  .add button:active { transform: translateY(2px); border-bottom-width: 2px; }
-
-  /* ── Section labels ── */
-  .section-label {
     font-size: 10px;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: #777;
-    margin: 0 0 12px;
+    font-weight: 700;
+    color: var(--sage-deep);
+    margin-bottom: 7px;
+  }
+
+  .add input,
+  .add textarea,
+  .gripe-edit input,
+  .gripe-edit textarea {
+    width: 100%;
+    font-family: var(--sans);
+    font-size: 16px;
+    color: var(--ink);
+    background: #FFFDF6;
+    border: 1.5px solid #D8C7A6;
+    border-radius: 8px;
+    padding: 11px 13px;
+    margin-bottom: 14px;
+  }
+
+  .add input:focus,
+  .add textarea:focus,
+  .gripe-edit input:focus,
+  .gripe-edit textarea:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(192, 144, 46, 0.18);
+  }
+
+  .add textarea,
+  .gripe-edit textarea { resize: vertical; min-height: 54px; }
+
+  .add button {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #F4EAD6;
+    background: var(--forest);
+    border: none;
+    border-radius: 8px;
+    padding: 13px 18px;
+    width: 100%;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: background 0.15s, transform 0.08s;
+  }
+
+  .add button:hover { background: #46624c; }
+  .add button:active { transform: translateY(1px); }
+
+  /* ── Section label ── */
+  .section-label {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--ink-soft);
+    margin: 0 0 14px;
   }
 
   /* ── List ── */
-  .items { display: flex; flex-direction: column; gap: 12px; }
+  .items { display: flex; flex-direction: column; gap: 14px; }
 
   .empty {
-    color: #555;
-    font-size: 13px;
+    color: var(--ink-soft);
+    font-size: 14px;
     line-height: 1.7;
-    padding: 8px 0 24px;
+    padding: 6px 2px 22px;
   }
 
   .gripe {
     position: relative;
-    background: #000;
-    border-left: 6px solid var(--green);
-    border-bottom: 4px solid var(--green);
-    padding: 16px 16px 14px;
+    background: var(--card);
+    border: 1px solid var(--paper-edge);
+    border-left: 5px solid var(--sage);
+    border-radius: var(--r);
+    padding: 18px 18px 16px;
     cursor: pointer;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
-    transition: transform 0.08s, border-color 0.2s;
+    box-shadow: var(--shadow);
+    transition: transform 0.1s, box-shadow 0.15s, border-color 0.2s;
   }
 
-  /* top 3 priorities get the loud colors */
-  .items .gripe:nth-child(1) { border-left-color: var(--pink);   border-bottom-color: var(--pink); }
-  .items .gripe:nth-child(2) { border-left-color: var(--yellow); border-bottom-color: var(--yellow); }
-  .items .gripe:nth-child(3) { border-left-color: var(--green);  border-bottom-color: var(--green); }
-  .items .gripe:nth-child(n+4) { border-left-color: #444; border-bottom-color: #444; }
+  .gripe:hover { box-shadow: var(--shadow-lg); }
 
-  .gripe:active { transform: translate(-2px, -2px); }
-  .gripe.bumped { animation: bump 0.4s ease; }
+  /* priority accent — gold for the worst, fading to taupe */
+  .items .gripe:nth-child(1) { border-left-color: var(--gold); }
+  .items .gripe:nth-child(2) { border-left-color: var(--olive); }
+  .items .gripe:nth-child(3) { border-left-color: var(--sage); }
+  .items .gripe:nth-child(n+4) { border-left-color: var(--taupe); }
+
+  .gripe:active { transform: translateY(1px); }
+  .gripe.bumped { animation: bump 0.45s ease; }
 
   @keyframes bump {
     0%   { transform: scale(1); }
-    30%  { transform: scale(1.04) translate(-3px, -3px); box-shadow: 6px 6px 0 var(--pink); }
+    30%  { transform: scale(1.025); box-shadow: var(--shadow-lg); }
     100% { transform: scale(1); }
   }
 
@@ -176,146 +228,123 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 10px;
+    gap: 12px;
   }
 
   .gripe-title {
-    font-size: 19px;
-    font-weight: 900;
-    letter-spacing: -0.3px;
-    line-height: 1.2;
-    text-transform: uppercase;
-    color: #fff;
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--ink);
     word-break: break-word;
   }
 
   .gripe-notes {
-    font-size: 13px;
+    font-size: 13.5px;
     line-height: 1.55;
-    color: #aaa;
+    color: var(--ink-soft);
     margin-top: 7px;
     white-space: pre-wrap;
     word-break: break-word;
   }
 
   .gripe-meta {
-    font-size: 10px;
-    letter-spacing: 0.5px;
-    color: #666;
-    margin-top: 10px;
+    font-size: 11px;
+    letter-spacing: 0.3px;
+    color: var(--ink-soft);
+    margin-top: 11px;
     display: flex;
     flex-wrap: wrap;
-    gap: 4px 12px;
+    gap: 4px 14px;
   }
 
-  .gripe-meta b { color: var(--yellow); font-weight: 700; }
+  .gripe-meta b { color: var(--gold); font-weight: 700; }
 
   .hint {
-    font-size: 9px;
+    font-size: 10px;
     letter-spacing: 1px;
     text-transform: uppercase;
-    color: #444;
-    margin-top: 8px;
+    color: var(--sage);
+    margin-top: 9px;
   }
 
-  /* done button */
-  .done-btn {
-    flex-shrink: 0;
-    font-family: inherit;
-    font-size: 18px;
-    line-height: 1;
-    background: #111;
-    color: var(--green);
-    border: 2px solid #333;
-    width: 38px;
-    height: 38px;
-    cursor: pointer;
-    transition: background 0.12s, color 0.12s, transform 0.08s;
-  }
-
-  .done-btn:hover { background: var(--green); color: #000; border-color: var(--green); }
-  .done-btn:active { transform: scale(0.9); }
-
+  /* ── Icon buttons ── */
   .gripe-actions {
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
   }
 
-  .edit-btn {
-    font-family: inherit;
-    font-size: 15px;
-    line-height: 1;
-    background: #111;
-    color: var(--yellow);
-    border: 2px solid #333;
+  .edit-btn,
+  .done-btn {
     width: 38px;
     height: 38px;
+    border-radius: 50%;
+    font-family: var(--sans);
+    line-height: 1;
+    background: #FFFDF6;
     cursor: pointer;
-    transition: background 0.12s, color 0.12s, transform 0.08s;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.08s;
   }
 
-  .edit-btn:hover { background: var(--yellow); color: #000; border-color: var(--yellow); }
-  .edit-btn:active { transform: scale(0.9); }
+  .edit-btn { border: 1.5px solid var(--gold); color: var(--gold); font-size: 16px; }
+  .edit-btn:hover { background: var(--gold); color: #FFFDF6; }
+
+  .done-btn { border: 1.5px solid var(--sage-deep); color: var(--sage-deep); font-size: 18px; }
+  .done-btn:hover { background: var(--forest); color: #F4EAD6; border-color: var(--forest); }
+
+  .edit-btn:active,
+  .done-btn:active { transform: scale(0.9); }
 
   /* ── Inline edit form ── */
-  .gripe.editing { cursor: default; border-left-color: var(--yellow) !important; border-bottom-color: var(--yellow) !important; }
-
-  .gripe-edit label {
-    display: block;
-    font-size: 9px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--green);
-    margin-bottom: 6px;
+  .gripe.editing {
+    cursor: default;
+    border-left-color: var(--gold);
+    box-shadow: var(--shadow-lg);
   }
-
-  .gripe-edit input,
-  .gripe-edit textarea {
-    width: 100%;
-    font-family: inherit;
-    font-size: 16px;
-    background: #111;
-    color: #fff;
-    border: 2px solid #333;
-    padding: 10px 12px;
-    margin-bottom: 12px;
-  }
-
-  .gripe-edit input:focus,
-  .gripe-edit textarea:focus { outline: none; border-color: var(--yellow); }
-
-  .gripe-edit textarea { resize: vertical; min-height: 52px; }
 
   .edit-row { display: flex; gap: 8px; }
 
   .edit-row button {
-    font-family: inherit;
+    font-family: var(--sans);
     font-size: 12px;
-    font-weight: 900;
+    font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
     border: none;
-    padding: 10px 14px;
+    border-radius: 8px;
+    padding: 11px 14px;
     cursor: pointer;
-    transition: transform 0.08s;
+    transition: background 0.15s, transform 0.08s;
   }
 
-  .edit-row button:active { transform: translateY(2px); }
+  .edit-row button:active { transform: translateY(1px); }
 
-  .save-btn { background: var(--green); color: #000; border-bottom: 4px solid #1f8c0a; flex: 1; }
-  .cancel-btn { background: #222; color: #ccc; border-bottom: 4px solid #000; }
+  .save-btn { background: var(--forest); color: #F4EAD6; flex: 1; }
+  .save-btn:hover { background: #46624c; }
+  .cancel-btn { background: #E7DAC0; color: var(--ink); }
+  .cancel-btn:hover { background: #dccba9; }
 
   .delete-btn {
-    background: #2a0a12;
-    color: var(--pink);
-    border: 2px solid var(--pink) !important;
-    margin-top: 12px;
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: #FBEDE7;
+    color: var(--rust);
+    border: 1.5px solid var(--rust);
+    border-radius: 8px;
+    margin-top: 14px;
     width: 100%;
+    padding: 11px 14px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
   }
 
-  .delete-btn.armed { background: var(--pink); color: #000; animation: nudge 0.3s; }
+  .delete-btn.armed { background: var(--rust); color: #FBF5E7; animation: nudge 0.3s; }
 
   @keyframes nudge {
     0%, 100% { transform: translateX(0); }
@@ -325,21 +354,22 @@
 
   /* ── Archive ── */
   .archive-toggle {
-    font-family: inherit;
+    font-family: var(--sans);
     font-size: 11px;
-    letter-spacing: 1px;
+    letter-spacing: 2px;
     text-transform: uppercase;
+    font-weight: 700;
     background: none;
-    color: #777;
+    color: var(--sage-deep);
     border: none;
     cursor: pointer;
     padding: 0;
     margin-top: 36px;
   }
 
-  .archive-toggle:hover { color: var(--green); }
+  .archive-toggle:hover { color: var(--forest); }
 
-  .archive { margin-top: 14px; display: none; }
+  .archive { margin-top: 16px; display: none; }
   .archive.open { display: block; }
 
   .arch-item {
@@ -347,37 +377,39 @@
     justify-content: space-between;
     align-items: center;
     gap: 10px;
-    background: #080808;
-    border-left: 4px solid #2a2a2a;
-    padding: 10px 12px;
-    margin-bottom: 8px;
+    background: #EEE3CC;
+    border: 1px solid var(--paper-edge);
+    border-radius: 8px;
+    padding: 11px 14px;
+    margin-bottom: 9px;
   }
 
   .arch-title {
-    font-size: 13px;
-    color: #888;
+    font-family: var(--serif);
+    font-size: 14px;
+    color: var(--ink-soft);
     text-decoration: line-through;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
     word-break: break-word;
   }
 
-  .arch-date { font-size: 9px; color: #555; margin-top: 3px; letter-spacing: 0.5px; }
+  .arch-date { font-size: 10px; color: #9c8c75; margin-top: 3px; letter-spacing: 0.5px; }
 
   .restore-btn {
     flex-shrink: 0;
-    font-family: inherit;
-    font-size: 9px;
+    font-family: var(--sans);
+    font-size: 10px;
     letter-spacing: 1px;
     text-transform: uppercase;
-    background: #111;
-    color: var(--yellow);
-    border: 2px solid #333;
-    padding: 6px 8px;
+    font-weight: 700;
+    background: #FFFDF6;
+    color: var(--gold);
+    border: 1.5px solid var(--gold);
+    border-radius: 7px;
+    padding: 7px 10px;
     cursor: pointer;
   }
 
-  .restore-btn:hover { background: var(--yellow); color: #000; border-color: var(--yellow); }
+  .restore-btn:hover { background: var(--gold); color: #FFFDF6; }
 
   /* ── Celebration ── */
   #confetti {
@@ -402,50 +434,54 @@
   #celebrate.show { display: flex; }
 
   .celebrate-word {
-    font-size: 19vw;
-    font-weight: 900;
-    letter-spacing: -4px;
-    color: var(--green);
-    -webkit-text-stroke: 4px #000;
-    paint-order: stroke fill;
-    text-transform: uppercase;
+    font-family: var(--serif);
+    font-size: 17vw;
+    font-weight: 700;
+    letter-spacing: -2px;
+    color: var(--forest);
+    text-shadow: 0 2px 0 var(--gold-soft), 0 6px 22px rgba(59, 81, 64, 0.4);
     text-align: center;
-    line-height: 0.85;
-    animation: pop 0.5s cubic-bezier(.18,1.5,.4,1);
+    line-height: 0.9;
+    animation: popUp 0.5s cubic-bezier(.18, 1.5, .4, 1);
   }
 
   .celebrate-sub {
-    margin-top: 14px;
-    font-size: 16px;
-    font-weight: 900;
+    font-family: var(--sans);
+    margin-top: 16px;
+    font-size: 15px;
+    font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
-    background: var(--pink);
-    color: #000;
-    padding: 8px 16px;
+    background: var(--gold);
+    color: var(--walnut);
+    padding: 9px 16px;
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
     text-align: center;
-    animation: pop 0.5s 0.1s backwards cubic-bezier(.18,1.5,.4,1);
     max-width: 90vw;
     word-break: break-word;
+    animation: popUp 0.5s 0.1s backwards cubic-bezier(.18, 1.5, .4, 1);
   }
 
-  @keyframes pop {
-    0%   { transform: scale(0) rotate(-8deg); opacity: 0; }
-    100% { transform: scale(1) rotate(-3deg); opacity: 1; }
+  @keyframes popUp {
+    0%   { transform: scale(0.4); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
   }
 
   footer {
-    margin-top: 48px;
-    font-size: 10px;
-    color: #555;
+    margin-top: 52px;
+    font-size: 11px;
+    color: var(--ink-soft);
     letter-spacing: 0.5px;
   }
 
-  footer a { color: var(--green); }
+  footer a { color: var(--forest); text-decoration: underline; text-underline-offset: 2px; }
+  footer a:hover { color: var(--gold); }
 
   @media (max-width: 440px) {
-    .page { padding: 32px 16px 60px; }
-    h1 { font-size: 42px; -webkit-text-stroke: 2px #000; }
+    .page { padding: 24px 16px 60px; }
+    h1 { font-size: 40px; }
+    .sprig { width: 62px; height: 62px; }
   }
 </style>
 </head>
@@ -459,9 +495,15 @@
 
 <div class="page">
 
-  <header>
+  <header class="masthead">
+    <svg class="sprig" viewBox="0 0 100 100" aria-hidden="true">
+      <path class="stem" d="M50 96 C49 74 50 52 50 30"/>
+      <path class="leaf" d="M50 70 C36 66 24 52 18 32 C40 34 52 50 50 70 Z"/>
+      <path class="leaf" d="M50 56 C66 52 78 38 84 18 C60 20 48 38 50 56 Z"/>
+      <path class="leaf" d="M50 42 C42 30 44 14 52 4 C62 16 60 32 50 42 Z"/>
+    </svg>
     <h1>Stuff That<br>Sucks<span>.</span></h1>
-    <div class="site-sub">household nag list</div>
+    <div class="site-sub">a considered list of domestic grievances</div>
   </header>
 
   <div class="rule"></div>
@@ -470,20 +512,20 @@
     <label for="title">What's bugging you?</label>
     <input id="title" type="text" placeholder="e.g. corner cabinet is impossible to organize" maxlength="120" autocomplete="off">
     <label for="notes">Notes (optional)</label>
-    <textarea id="notes" placeholder="ideas, context, what you've tried..." maxlength="500"></textarea>
+    <textarea id="notes" placeholder="ideas, context, what you've tried..."></textarea>
     <button id="add-btn">Add to the list</button>
   </div>
 
   <div class="section-label">
-    <span>The list -- worst first</span>
+    <span>In order of insistence</span>
     <span id="count"></span>
   </div>
 
   <div class="items" id="items"></div>
   <div class="empty" id="empty">
-    Nothing here yet. Add the first thing that bugs you above.<br><br>
-    Tap a card every time the annoyance hits you in real life -- the more
-    recently &amp; often it bugs you, the higher it climbs.
+    Nothing here yet &mdash; add the first thing that nags you above.<br><br>
+    Tap a card each time the annoyance strikes in real life; the more
+    recently &amp; often it bugs you, the higher it rises.
   </div>
 
   <button class="archive-toggle" id="archive-toggle"></button>
@@ -595,7 +637,7 @@ function render() {
 
     const hint = document.createElement('div');
     hint.className = 'hint';
-    hint.textContent = 'tap card when it bugs you again → floats up';
+    hint.textContent = 'tap when it nags you again ↑ rises to the top';
     titleWrap.appendChild(hint);
 
     top.appendChild(titleWrap);
@@ -805,7 +847,7 @@ const celebrateEl = document.getElementById('celebrate');
 const celebrateSub = document.getElementById('celebrate-sub');
 const canvas = document.getElementById('confetti');
 const ctx = canvas.getContext('2d');
-const COLORS = ['#FFE600', '#FF2D78', '#39FF14', '#ffffff'];
+const COLORS = ['#C0902E', '#D8B45D', '#7E9070', '#3B5140', '#7A5436', '#F4EAD6'];
 let pieces = [];
 let rafId = null;
 
@@ -816,7 +858,7 @@ function sizeCanvas() {
 window.addEventListener('resize', sizeCanvas);
 
 function celebrate(title) {
-  celebrateSub.textContent = '"' + title + '" is dead to you';
+  celebrateSub.textContent = '"' + title + '" is handled';
   celebrateEl.classList.add('show');
   sizeCanvas();
   canvas.style.display = 'block';
