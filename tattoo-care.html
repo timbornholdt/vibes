@@ -249,6 +249,140 @@
   <div id="timeline"></div>
 </div>
 
+<script>
+/* vibes-sync: shared token gate + JSON sync for gated tools.
+   The same block is inlined into each gated tool (files must be self-contained). */
+window.VibesSync = (function () {
+  const TOKEN_KEY = 'vibes-token';
+  const BASE = '/api/store/';
+  let token = localStorage.getItem(TOKEN_KEY) || '';
+  let gateEl, gateInput, gateErr, resolver;
+
+  function injectStyle() {
+    if (document.getElementById('vibes-gate-style')) return;
+    const s = document.createElement('style');
+    s.id = 'vibes-gate-style';
+    s.textContent =
+      '.vibes-gate{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;' +
+      'justify-content:center;background:#0a0a0a;padding:24px;' +
+      "font-family:'JetBrains Mono','Fira Mono',ui-monospace,monospace;}" +
+      '.vibes-gate-box{width:100%;max-width:340px;display:flex;flex-direction:column;gap:12px;}' +
+      '.vibes-gate-title{color:#FFE600;font-size:28px;font-weight:900;text-transform:uppercase;letter-spacing:-1px;}' +
+      '.vibes-gate-sub{color:#888;font-size:12px;line-height:1.5;}' +
+      '.vibes-gate-input{font-size:16px;padding:12px;background:#161616;border:1px solid #2a2a2a;color:#ececec;border-radius:6px;width:100%;}' +
+      '.vibes-gate-input:focus{outline:none;border-color:#FF2D78;}' +
+      '.vibes-gate-btn{font-size:16px;padding:12px;background:#FF2D78;color:#000;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-family:inherit;text-transform:uppercase;letter-spacing:1px;}' +
+      '.vibes-gate-err{color:#FF2D78;font-size:12px;min-height:16px;}';
+    document.head.appendChild(s);
+  }
+
+  function buildGate() {
+    injectStyle();
+    gateEl = document.createElement('div');
+    gateEl.className = 'vibes-gate';
+    const box = document.createElement('div');
+    box.className = 'vibes-gate-box';
+    box.innerHTML =
+      '<div class="vibes-gate-title">Locked</div>' +
+      '<div class="vibes-gate-sub">This one is private. Paste your access token to continue.</div>' +
+      '<input class="vibes-gate-input" type="password" autocomplete="current-password" placeholder="access token">' +
+      '<button class="vibes-gate-btn" type="button">Unlock</button>' +
+      '<div class="vibes-gate-err"></div>';
+    gateEl.appendChild(box);
+    document.body.appendChild(gateEl);
+    gateInput = box.querySelector('.vibes-gate-input');
+    gateErr = box.querySelector('.vibes-gate-err');
+    const btn = box.querySelector('.vibes-gate-btn');
+    const submit = () => {
+      const v = gateInput.value.trim();
+      if (!v) { gateInput.focus(); return; }
+      const r = resolver; resolver = null;
+      if (r) r(v);
+    };
+    btn.addEventListener('click', submit);
+    gateInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submit(); } });
+  }
+
+  function showGate(msg) {
+    if (!gateEl) buildGate();
+    gateEl.style.display = 'flex';
+    gateErr.textContent = msg || '';
+    gateInput.value = '';
+    setTimeout(() => gateInput.focus(), 50);
+    return new Promise(res => { resolver = res; });
+  }
+  function hideGate() { if (gateEl) gateEl.style.display = 'none'; }
+
+  function headers(extra) {
+    return Object.assign({ 'Authorization': 'Bearer ' + token }, extra || {});
+  }
+
+  async function remoteGet(key) {
+    const res = await fetch(BASE + key, { headers: headers(), cache: 'no-store' });
+    if (res.status === 401) { const e = new Error('unauthorized'); e.code = 401; throw e; }
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error('GET ' + res.status);
+    return res.json();
+  }
+
+  async function remotePut(key, payload) {
+    const res = await fetch(BASE + key, {
+      method: 'PUT',
+      headers: headers({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(payload)
+    });
+    if (res.status === 401) { const e = new Error('unauthorized'); e.code = 401; throw e; }
+    if (!res.ok) throw new Error('PUT ' + res.status);
+    return res.json().catch(() => ({}));
+  }
+
+  function readCache(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw == null) return null;
+      return { value: JSON.parse(raw), updatedAt: Number(localStorage.getItem(key + ':updatedAt')) || 0 };
+    } catch (e) { return null; }
+  }
+  function writeCache(key, value, updatedAt) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      localStorage.setItem(key + ':updatedAt', String(updatedAt));
+    } catch (e) {}
+  }
+
+  // Gate the page on <key>. Resolves to { value, updatedAt, offline }.
+  // value is null when the server has nothing stored yet.
+  async function unlock(key) {
+    for (;;) {
+      if (!token) token = await showGate();
+      try {
+        const remote = await remoteGet(key);
+        localStorage.setItem(TOKEN_KEY, token);
+        hideGate();
+        if (remote) { writeCache(key, remote.value, remote.updatedAt); return { value: remote.value, updatedAt: remote.updatedAt, offline: false }; }
+        return { value: null, updatedAt: 0, offline: false };
+      } catch (e) {
+        if (e.code === 401) { localStorage.removeItem(TOKEN_KEY); token = await showGate('That token did not work.'); continue; }
+        const cached = readCache(key);
+        if (token && cached) { hideGate(); return { value: cached.value, updatedAt: cached.updatedAt, offline: true }; }
+        token = await showGate("Can't reach the server. Check your connection and try again.");
+        continue;
+      }
+    }
+  }
+
+  // Cache locally + push to the server. Last-write-wins.
+  async function save(key, value) {
+    const updatedAt = Date.now();
+    writeCache(key, value, updatedAt);
+    try { await remotePut(key, { value: value, updatedAt: updatedAt }); return { synced: true }; }
+    catch (e) { return { synced: false, error: e }; }
+  }
+
+  return { unlock: unlock, save: save };
+})();
+</script>
+
 <script type="module">
 const START = new Date('2026-05-09T18:00:00');
 const HOUR_MS = 60 * 60 * 1000;
@@ -336,11 +470,29 @@ function phaseDateLabel(p) {
   return `${fmtDate(start)} – ${fmtDate(endDisplay)}`;
 }
 
-const storageKey = (phaseId, taskIdx) => `tattoo-care:${phaseId}:${taskIdx}`;
-const loadChecked = (pid, i) => localStorage.getItem(storageKey(pid, i)) === '1';
-const saveChecked = (pid, i, v) => v
-  ? localStorage.setItem(storageKey(pid, i), '1')
-  : localStorage.removeItem(storageKey(pid, i));
+const KEY = 'tattoo-care-v1';
+let state = { checked: {} };
+
+// One-time import of the old per-checkbox keys (tattoo-care:<pid>:<i>) into the blob.
+function migrateLegacy() {
+  let found = false;
+  for (let k = localStorage.length - 1; k >= 0; k--) {
+    const name = localStorage.key(k);
+    if (name && name.startsWith('tattoo-care:')) {
+      if (localStorage.getItem(name) === '1') { state.checked[name.slice('tattoo-care:'.length)] = true; found = true; }
+      localStorage.removeItem(name);
+    }
+  }
+  return found;
+}
+
+const taskKey = (pid, i) => pid + ':' + i;
+const loadChecked = (pid, i) => state.checked[taskKey(pid, i)] === true;
+const saveChecked = (pid, i, v) => {
+  if (v) state.checked[taskKey(pid, i)] = true;
+  else delete state.checked[taskKey(pid, i)];
+  VibesSync.save(KEY, state);
+};
 
 const elapsedHours = () => (Date.now() - START.getTime()) / HOUR_MS;
 
@@ -405,8 +557,16 @@ function render() {
   }
 }
 
-render();
-setInterval(render, 60_000);
+(async function init() {
+  const r = await VibesSync.unlock(KEY);
+  if (r.value && typeof r.value === 'object' && r.value.checked) {
+    state = r.value;
+  } else if (migrateLegacy()) {
+    VibesSync.save(KEY, state);
+  }
+  render();
+  setInterval(render, 60_000);
+})();
 </script>
 </body>
 </html>
