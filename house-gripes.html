@@ -236,6 +236,93 @@
   .done-btn:hover { background: var(--green); color: #000; border-color: var(--green); }
   .done-btn:active { transform: scale(0.9); }
 
+  .gripe-actions {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .edit-btn {
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1;
+    background: #111;
+    color: var(--yellow);
+    border: 2px solid #333;
+    width: 38px;
+    height: 38px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s, transform 0.08s;
+  }
+
+  .edit-btn:hover { background: var(--yellow); color: #000; border-color: var(--yellow); }
+  .edit-btn:active { transform: scale(0.9); }
+
+  /* ── Inline edit form ── */
+  .gripe.editing { cursor: default; border-left-color: var(--yellow) !important; border-bottom-color: var(--yellow) !important; }
+
+  .gripe-edit label {
+    display: block;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 6px;
+  }
+
+  .gripe-edit input,
+  .gripe-edit textarea {
+    width: 100%;
+    font-family: inherit;
+    font-size: 16px;
+    background: #111;
+    color: #fff;
+    border: 2px solid #333;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+  }
+
+  .gripe-edit input:focus,
+  .gripe-edit textarea:focus { outline: none; border-color: var(--yellow); }
+
+  .gripe-edit textarea { resize: vertical; min-height: 52px; }
+
+  .edit-row { display: flex; gap: 8px; }
+
+  .edit-row button {
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: none;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: transform 0.08s;
+  }
+
+  .edit-row button:active { transform: translateY(2px); }
+
+  .save-btn { background: var(--green); color: #000; border-bottom: 4px solid #1f8c0a; flex: 1; }
+  .cancel-btn { background: #222; color: #ccc; border-bottom: 4px solid #000; }
+
+  .delete-btn {
+    background: #2a0a12;
+    color: var(--pink);
+    border: 2px solid var(--pink) !important;
+    margin-top: 12px;
+    width: 100%;
+  }
+
+  .delete-btn.armed { background: var(--pink); color: #000; animation: nudge 0.3s; }
+
+  @keyframes nudge {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+
   /* ── Archive ── */
   .archive-toggle {
     font-family: inherit;
@@ -414,6 +501,7 @@ const HALF_LIFE_DAYS = 10;
 const DAY = 86400000;
 
 let state = load();
+let editingId = null;
 
 function load() {
   try {
@@ -473,6 +561,13 @@ function render() {
     card.className = 'gripe';
     card.dataset.id = g.id;
 
+    if (g.id === editingId) {
+      card.classList.add('editing');
+      card.appendChild(buildEditForm(g));
+      itemsEl.appendChild(card);
+      continue;
+    }
+
     const top = document.createElement('div');
     top.className = 'gripe-top';
 
@@ -505,12 +600,24 @@ function render() {
 
     top.appendChild(titleWrap);
 
+    const actions = document.createElement('div');
+    actions.className = 'gripe-actions';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'edit-btn';
+    editBtn.title = 'Edit';
+    editBtn.textContent = '✎';
+    editBtn.addEventListener('click', (e) => { e.stopPropagation(); editingId = g.id; render(); });
+
     const doneBtn = document.createElement('button');
     doneBtn.className = 'done-btn';
     doneBtn.title = 'Mark done';
     doneBtn.textContent = '✓';
     doneBtn.addEventListener('click', (e) => { e.stopPropagation(); finish(g.id); });
-    top.appendChild(doneBtn);
+
+    actions.appendChild(editBtn);
+    actions.appendChild(doneBtn);
+    top.appendChild(actions);
 
     card.appendChild(top);
     card.addEventListener('click', () => bump(g.id, card));
@@ -518,6 +625,87 @@ function render() {
   }
 
   renderArchive();
+}
+
+function buildEditForm(g) {
+  const form = document.createElement('div');
+  form.className = 'gripe-edit';
+
+  const titleLabel = document.createElement('label');
+  titleLabel.textContent = "What's bugging you?";
+  const titleInput = document.createElement('input');
+  titleInput.type = 'text';
+  titleInput.maxLength = 120;
+  titleInput.value = g.title;
+
+  const notesLabel = document.createElement('label');
+  notesLabel.textContent = 'Notes (optional)';
+  const notesInput = document.createElement('textarea');
+  notesInput.maxLength = 500;
+  notesInput.value = g.notes || '';
+
+  const row = document.createElement('div');
+  row.className = 'edit-row';
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'save-btn';
+  saveBtn.textContent = 'Save';
+  saveBtn.addEventListener('click', () => saveEdit(g.id, titleInput.value, notesInput.value));
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'cancel-btn';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.addEventListener('click', () => { editingId = null; render(); });
+  row.appendChild(saveBtn);
+  row.appendChild(cancelBtn);
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'delete-btn';
+  delBtn.textContent = 'Delete forever';
+  let armed = false;
+  delBtn.addEventListener('click', () => {
+    if (!armed) {
+      armed = true;
+      delBtn.classList.add('armed');
+      delBtn.textContent = 'Tap again to delete';
+      return;
+    }
+    deleteGripe(g.id);
+  });
+
+  titleInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); saveEdit(g.id, titleInput.value, notesInput.value); }
+    if (e.key === 'Escape') { editingId = null; render(); }
+  });
+
+  form.appendChild(titleLabel);
+  form.appendChild(titleInput);
+  form.appendChild(notesLabel);
+  form.appendChild(notesInput);
+  form.appendChild(row);
+  form.appendChild(delBtn);
+
+  setTimeout(() => titleInput.focus(), 0);
+  return form;
+}
+
+function saveEdit(id, title, notes) {
+  const g = state.gripes.find(x => x.id === id);
+  if (!g) return;
+  const t = title.trim();
+  if (!t) return;
+  g.title = t;
+  g.notes = notes.trim();
+  editingId = null;
+  save();
+  render();
+}
+
+function deleteGripe(id) {
+  const idx = state.gripes.findIndex(x => x.id === id);
+  if (idx === -1) return;
+  state.gripes.splice(idx, 1);
+  editingId = null;
+  save();
+  render();
 }
 
 function renderArchive() {
