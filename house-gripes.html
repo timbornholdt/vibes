@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="theme-color" content="#212529">
+<meta name="theme-color" content="#16161a">
 <title>Stuff That Sucks</title>
 <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/nes.css@2.3.0/css/nes.min.css" rel="stylesheet">
@@ -18,8 +18,12 @@
     font-family: 'Press Start 2P', monospace;
     font-size: 12px;
     line-height: 1.8;
-    background-color: #f4ecd8;
-    color: #2b2b2b;
+    background-color: #16161a;
+    background-image:
+      radial-gradient(circle at 50% -8%, rgba(224, 32, 43, 0.38), transparent 55%),
+      radial-gradient(circle at 50% 118%, rgba(31, 139, 224, 0.14), transparent 55%);
+    background-attachment: fixed;
+    color: #fff;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -29,8 +33,14 @@
     padding: 28px 16px 80px;
   }
 
-  .nes-container { background: #fff; }
   .items .nes-container { margin: 0; }
+
+  /* ── Smash palette overrides ── */
+  .nes-btn.is-error { background-color: #e0202b; }
+  .nes-btn.is-error::after { box-shadow: inset -4px -4px #9c1118; }
+  .nes-btn.is-error:hover::after { box-shadow: inset -6px -6px #9c1118; }
+  .nes-btn.is-error:active:not(.is-disabled)::after { box-shadow: inset 4px 4px #9c1118; }
+  .nes-container.is-dark.with-title > .title { color: #fff; background-color: #212529; }
 
   /* ── Masthead ── */
   .masthead { margin-bottom: 28px; }
@@ -41,9 +51,9 @@
     margin: 0 0 18px;
   }
 
-  .masthead .dot { color: #f7d51d; }
+  .masthead .dot { color: #e0202b; }
 
-  .tagline { font-size: 10px; line-height: 1.9; color: #f7d51d; margin: 0; }
+  .tagline { font-size: 10px; line-height: 1.9; color: #e0202b; margin: 0; }
 
   /* ── Add form ── */
   .add-form { margin-bottom: 30px; }
@@ -72,14 +82,14 @@
     gap: 10px;
     font-size: 10px;
     line-height: 1.8;
-    color: #555;
+    color: #cfcfcf;
     margin: 0 0 16px;
   }
 
   /* ── List ── */
   .items { display: flex; flex-direction: column; gap: 20px; }
 
-  .empty { font-size: 10px; line-height: 2; color: #666; padding: 4px 2px 20px; }
+  .empty { font-size: 10px; line-height: 2; color: #bbb; padding: 4px 2px 20px; }
 
   .gripe { cursor: pointer; }
 
@@ -91,13 +101,17 @@
   }
 
   .rank { font-size: 9px; display: inline-block; margin: 0 0 10px; }
+  .rank.r1 { color: #e0202b; }
+  .rank.r2 { color: #f7d51d; }
+  .rank.r3 { color: #fff; }
+  .rank.rn { color: #8f8f8f; }
 
   .gripe-title { font-size: 13px; line-height: 1.6; margin: 0; word-break: break-word; }
 
   .gripe-notes {
     font-size: 10px;
     line-height: 1.8;
-    color: #555;
+    color: #c9c9c9;
     margin: 12px 0 0;
     white-space: pre-wrap;
     word-break: break-word;
@@ -106,16 +120,16 @@
   .gripe-meta {
     font-size: 8px;
     line-height: 1.9;
-    color: #777;
+    color: #9a9a9a;
     margin: 14px 0 0;
     display: flex;
     flex-wrap: wrap;
     gap: 4px 14px;
   }
 
-  .gripe-meta b { color: #4a7a2a; }
+  .gripe-meta b { color: #f7d51d; }
 
-  .hint { font-size: 8px; line-height: 1.8; color: #5a8a2e; margin: 12px 0 0; }
+  .hint { font-size: 8px; line-height: 1.8; color: #8f8f8f; margin: 12px 0 0; }
 
   /* ── Action buttons ── */
   .gripe-actions {
@@ -143,13 +157,13 @@
     line-height: 1.8;
     background: none;
     border: none;
-    color: #4a7a2a;
+    color: #f7d51d;
     cursor: pointer;
     padding: 0;
     margin-top: 32px;
   }
 
-  .archive-toggle:hover { color: #2b2b2b; }
+  .archive-toggle:hover { color: #fff; }
 
   .archive { margin-top: 18px; display: none; }
   .archive.open { display: block; }
@@ -159,14 +173,14 @@
     justify-content: space-between;
     align-items: center;
     gap: 12px;
-    background: #eaddc2;
-    border: 3px solid #c8b48a;
+    background: #202024;
+    border: 3px solid #4a4a4a;
     padding: 12px 14px;
     margin-bottom: 12px;
   }
 
-  .arch-title { font-size: 10px; line-height: 1.7; color: #777; text-decoration: line-through; word-break: break-word; }
-  .arch-date { font-size: 8px; line-height: 1.8; color: #998; margin-top: 6px; }
+  .arch-title { font-size: 10px; line-height: 1.7; color: #9a9a9a; text-decoration: line-through; word-break: break-word; }
+  .arch-date { font-size: 8px; line-height: 1.8; color: #777; margin-top: 6px; }
   .restore-btn { flex-shrink: 0; font-size: 9px; padding: 6px 8px; }
 
   /* ── Celebration ── */
@@ -196,8 +210,8 @@
     font-family: 'Press Start 2P', monospace;
     font-size: 13vw;
     line-height: 1.3;
-    color: #92cc41;
-    text-shadow: 4px 4px 0 #2b2b2b;
+    color: #fff;
+    text-shadow: 5px 5px 0 #e0202b;
     text-align: center;
     animation: popUp 0.45s steps(5);
   }
@@ -207,10 +221,10 @@
     font-size: 11px;
     line-height: 1.7;
     margin-top: 26px;
-    background: #f7d51d;
-    color: #2b2b2b;
+    background: #e0202b;
+    color: #fff;
     padding: 14px 18px;
-    box-shadow: 6px 6px 0 #2b2b2b;
+    box-shadow: 6px 6px 0 #16161a;
     text-align: center;
     max-width: 92vw;
     word-break: break-word;
@@ -244,17 +258,17 @@
     <p class="tagline">This shit sucks. Go fix it.</p>
   </header>
 
-  <div class="add-form nes-container with-title is-rounded">
+  <div class="add-form nes-container with-title is-rounded is-dark">
     <p class="title">Add a gripe</p>
     <div class="nes-field">
       <label for="title">What's bugging you?</label>
-      <input id="title" class="nes-input" type="text" placeholder="corner cabinet is a mess" maxlength="120" autocomplete="off">
+      <input id="title" class="nes-input is-dark" type="text" placeholder="corner cabinet is a mess" maxlength="120" autocomplete="off">
     </div>
     <div class="nes-field">
       <label for="notes">Notes (optional)</label>
-      <textarea id="notes" class="nes-textarea" placeholder="ideas, context, what you've tried"></textarea>
+      <textarea id="notes" class="nes-textarea is-dark" placeholder="ideas, context, what you've tried"></textarea>
     </div>
-    <button id="add-btn" type="button" class="nes-btn is-success">Add to the list</button>
+    <button id="add-btn" type="button" class="nes-btn is-error">Add to the list</button>
   </div>
 
   <div class="section-label">
@@ -337,7 +351,7 @@ function render() {
 
   sorted.forEach((g, i) => {
     const card = document.createElement('div');
-    card.className = 'nes-container is-rounded gripe';
+    card.className = 'nes-container is-rounded is-dark gripe';
     card.dataset.id = g.id;
 
     if (g.id === editingId) {
@@ -353,7 +367,7 @@ function render() {
     const body = document.createElement('div');
 
     const rank = document.createElement('span');
-    rank.className = 'rank nes-text ' + (i === 0 ? 'is-warning' : i < 3 ? 'is-success' : 'is-disabled');
+    rank.className = 'rank ' + (i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : 'rn');
     rank.textContent = '#' + (i + 1);
     body.appendChild(rank);
 
@@ -396,7 +410,7 @@ function render() {
 
     const doneBtn = document.createElement('button');
     doneBtn.type = 'button';
-    doneBtn.className = 'nes-btn is-success';
+    doneBtn.className = 'nes-btn is-error';
     doneBtn.textContent = 'done';
     doneBtn.addEventListener('click', (e) => { e.stopPropagation(); finish(g.id); });
 
@@ -422,7 +436,7 @@ function buildEditForm(g) {
   titleLabel.textContent = "What's bugging you?";
   const titleInput = document.createElement('input');
   titleInput.type = 'text';
-  titleInput.className = 'nes-input';
+  titleInput.className = 'nes-input is-dark';
   titleInput.maxLength = 120;
   titleInput.value = g.title;
   f1.appendChild(titleLabel);
@@ -433,7 +447,7 @@ function buildEditForm(g) {
   const notesLabel = document.createElement('label');
   notesLabel.textContent = 'Notes (optional)';
   const notesInput = document.createElement('textarea');
-  notesInput.className = 'nes-textarea';
+  notesInput.className = 'nes-textarea is-dark';
   notesInput.maxLength = 500;
   notesInput.value = g.notes || '';
   f2.appendChild(notesLabel);
@@ -443,7 +457,7 @@ function buildEditForm(g) {
   row.className = 'edit-row';
   const saveBtn = document.createElement('button');
   saveBtn.type = 'button';
-  saveBtn.className = 'nes-btn is-success save-btn';
+  saveBtn.className = 'nes-btn is-error save-btn';
   saveBtn.textContent = 'Save';
   saveBtn.addEventListener('click', () => saveEdit(g.id, titleInput.value, notesInput.value));
   const cancelBtn = document.createElement('button');
@@ -600,7 +614,7 @@ const celebrateEl = document.getElementById('celebrate');
 const celebrateSub = document.getElementById('celebrate-sub');
 const canvas = document.getElementById('confetti');
 const ctx = canvas.getContext('2d');
-const COLORS = ['#92cc41', '#f7d51d', '#209cee', '#e76e55', '#ffffff', '#2b2b2b'];
+const COLORS = ['#e0202b', '#f7d51d', '#ffffff', '#1f8be0', '#16161a'];
 let pieces = [];
 let rafId = null;
 
