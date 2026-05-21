@@ -83,9 +83,32 @@ This repo auto-deploys to https://junk.timbornholdt.com/ when changes land on
 Only ship once the thing actually works in a browser. Don't merge
 half-finished work.
 
+### Deploy automatically — standing permission
+
+I (the repo owner) can't verify a change until it's live on
+junk.timbornholdt.com, so deploying is effectively part of finishing the
+work. **You have my standing permission to run the full ship flow above
+(PR → rebase-merge → resync) automatically, without stopping to ask each
+time.** Once a change works in a browser, ship it. Treat this as the
+default; you don't need a fresh "deploy"/"ship it" from me.
+
+This standing permission covers normal tool work in this repo: adding or
+editing HTML tools under the repo root, updating `index.html`, and the
+supporting files (`manifest.json`, `sw.js`, `icon.svg`, `README.md`,
+`CLAUDE.md`). It does NOT cover anything destructive or out of scope —
+**stop and ask first** if a change would:
+- delete or overwrite files unrelated to the tool you're working on,
+- touch anything outside this project folder,
+- remove or rewrite other tools' code, or
+- otherwise do something I clearly wouldn't expect from the request.
+
+When in doubt about whether a change is destructive or in-scope, ask
+before merging. The auto-deploy permission is for the safe, additive,
+single-tool work that is the norm here.
+
 Reminder: the system prompt forbids pushing to `main` without explicit
-permission. A user request to "merge this to main" or "ship this" counts
-as that permission for the current change.
+permission. This standing permission IS that explicit permission for the
+in-scope work described above.
 
 ## What this repo is *not*
 
