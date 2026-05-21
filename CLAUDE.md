@@ -34,8 +34,7 @@ Every tool file should:
 - Have a `<title>` matching the tool's purpose.
 - Include `<meta name="viewport" content="width=device-width, initial-scale=1">`.
 - Have a clear `<h1>` at the top naming the tool.
-- Include a small footer linking back to the source on GitHub:
-  `<a href="https://github.com/timbornholdt/junk/blob/main/vibes/<filename>.html">view source</a>`
+- Do **not** add a "view source" footer link (or any GitHub source link). I don't want it on any page.
 
 ## Commit messages
 
