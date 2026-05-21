@@ -25,4 +25,5 @@ jobs:
             --exclude='.git/' \
             --exclude='.github/' \
             --exclude='private/' \
+            --exclude='server/' \
             ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_PATH }}/

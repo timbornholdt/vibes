@@ -1,0 +1,25 @@
+[Unit]
+Description=vibes-store (single-user JSON KV for junk.timbornholdt.com)
+After=network.target
+
+[Service]
+Type=simple
+User=vibes
+Group=vibes
+ExecStart=/usr/bin/python3 /opt/vibes-store/vibes-store.py
+Environment=VIBES_STORE_TOKEN_FILE=/opt/vibes-store/token
+Environment=VIBES_STORE_DATA_DIR=/opt/vibes-store/data
+Environment=VIBES_STORE_HOST=127.0.0.1
+Environment=VIBES_STORE_PORT=8787
+Restart=on-failure
+RestartSec=2
+
+# Hardening: this process only needs to read its own dir and write data/.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/vibes-store/data
+
+[Install]
+WantedBy=multi-user.target

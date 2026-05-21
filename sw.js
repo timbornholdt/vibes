@@ -1,5 +1,5 @@
 // bump VERSION on any deploy where you want to fully purge old caches.
-const VERSION = '2026-05-09-1';
+const VERSION = '2026-05-21-1';
 const HTML_CACHE = `vibes-html-${VERSION}`;
 const STATIC_CACHE = `vibes-static-${VERSION}`;
 
@@ -23,6 +23,9 @@ self.addEventListener('fetch', e => {
 
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+
+  // Never cache the data API — it's per-request, token-gated, and must hit the network.
+  if (url.pathname.startsWith('/api/')) return;
 
   const isHTML = req.mode === 'navigate' ||
     (req.headers.get('accept') || '').includes('text/html');
