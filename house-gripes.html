@@ -4,136 +4,272 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="theme-color" content="#5c94fc">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#5C3F28">
 <title>Stuff That Sucks</title>
-<link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/nes.css@2.3.0/css/nes.min.css" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  html, body { margin: 0; padding: 0; }
+  :root {
+    --paper:      #F3E9D6;
+    --paper-edge: #E2D2B4;
+    --card:       #FBF5E7;
+    --ink:        #352A1E;
+    --ink-soft:   #6F6151;
+    --sage:       #7E9070;
+    --sage-deep:  #566B4C;
+    --forest:     #3B5140;
+    --olive:      #9A9450;
+    --gold:       #C0902E;
+    --gold-soft:  #D8B45D;
+    --walnut:     #5C3F28;
+    --walnut-soft:#7A5436;
+    --taupe:      #C8B79A;
+    --rust:       #A8492E;
+    --shadow:     0 2px 6px rgba(70, 46, 20, 0.14);
+    --shadow-lg:  0 8px 24px rgba(70, 46, 20, 0.18);
+    --r: 12px;
+    --sans:  'Futura', 'Century Gothic', 'Avenir Next', 'Trebuchet MS', system-ui, sans-serif;
+    --serif: 'Palatino Linotype', Palatino, 'Iowan Old Style', 'Hoefler Text', Georgia, serif;
+  }
 
   body {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 12px;
-    line-height: 1.8;
-    background-color: #5c94fc;
+    font-family: var(--sans);
+    background-color: var(--paper);
     background-image:
-      radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.32), transparent 45%),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.10), transparent 30%);
-    background-attachment: fixed;
-    color: #212529;
+      radial-gradient(circle at 50% -5%, rgba(126, 144, 112, 0.12), transparent 55%),
+      repeating-linear-gradient(90deg, rgba(92, 63, 40, 0.025) 0 1px, transparent 1px 14px);
+    color: var(--ink);
+    min-height: 100vh;
     -webkit-font-smoothing: antialiased;
   }
 
   .page {
-    max-width: 640px;
+    max-width: 600px;
     margin: 0 auto;
-    padding: 28px 16px 80px;
+    padding: 32px 20px 80px;
   }
 
-  .nes-container { background: #fff; }
-  .items .nes-container { margin: 0; }
-
-  /* ── Mario palette overrides ── */
-  .nes-btn.is-error { background-color: #e52521; }
-  .nes-btn.is-error::after { box-shadow: inset -4px -4px #a01000; }
-  .nes-btn.is-error:hover::after { box-shadow: inset -6px -6px #a01000; }
-  .nes-btn.is-error:active:not(.is-disabled)::after { box-shadow: inset 4px 4px #a01000; }
-  .masthead { background-color: #e52521 !important; }
-
-  /* ── Masthead ── */
-  .masthead { margin-bottom: 28px; }
-
-  .masthead h1 {
-    font-size: 24px;
-    line-height: 1.5;
-    margin: 0 0 18px;
+  /* ── Masthead (teak nameplate) ── */
+  .masthead {
+    position: relative;
+    background-color: var(--walnut);
+    background-image:
+      repeating-linear-gradient(90deg, rgba(255, 248, 235, 0.04) 0 2px, transparent 2px 7px),
+      repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.06) 0 1px, transparent 1px 11px),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.12));
+    border-radius: var(--r);
+    padding: 30px 26px 26px;
+    box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+    margin-bottom: 24px;
   }
 
-  .masthead .dot { color: #f8b800; }
+  .sprig {
+    position: absolute;
+    top: 16px;
+    right: 18px;
+    width: 78px;
+    height: 78px;
+  }
+  .sprig .stem { stroke: var(--sage-deep); stroke-width: 3; fill: none; stroke-linecap: round; }
+  .sprig .leaf { fill: var(--sage); }
 
-  .tagline { font-size: 10px; line-height: 1.9; color: #fff; margin: 0; }
+  h1 {
+    font-family: var(--serif);
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 0.98;
+    letter-spacing: -0.5px;
+    color: #F4EAD6;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+    margin-bottom: 12px;
+  }
+  h1 span { color: var(--gold-soft); }
+
+  .site-sub {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold-soft);
+  }
+
+  .rule {
+    width: 48px;
+    height: 3px;
+    background: var(--gold);
+    border-radius: 3px;
+    margin: 0 0 24px;
+  }
 
   /* ── Add form ── */
-  .add-form { margin-bottom: 30px; }
-  .add-form .nes-field { margin-bottom: 18px; }
-
-  .nes-input, .nes-textarea {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 16px;
-    line-height: 1.6;
+  .add {
+    background: var(--card);
+    border: 1px solid var(--paper-edge);
+    border-radius: var(--r);
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: var(--shadow);
   }
 
-  .nes-textarea { min-height: 80px; resize: vertical; }
-
-  label {
+  .add label,
+  .gripe-edit label {
     display: block;
     font-size: 10px;
-    line-height: 1.8;
-    margin-bottom: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--sage-deep);
+    margin-bottom: 7px;
   }
+
+  .add input,
+  .add textarea,
+  .gripe-edit input,
+  .gripe-edit textarea {
+    width: 100%;
+    font-family: var(--sans);
+    font-size: 16px;
+    color: var(--ink);
+    background: #FFFDF6;
+    border: 1.5px solid #D8C7A6;
+    border-radius: 8px;
+    padding: 11px 13px;
+    margin-bottom: 14px;
+  }
+
+  .add input:focus,
+  .add textarea:focus,
+  .gripe-edit input:focus,
+  .gripe-edit textarea:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(192, 144, 46, 0.18);
+  }
+
+  .add textarea,
+  .gripe-edit textarea { resize: vertical; min-height: 54px; }
+
+  .add button {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #F4EAD6;
+    background: var(--forest);
+    border: none;
+    border-radius: 8px;
+    padding: 13px 18px;
+    width: 100%;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: background 0.15s, transform 0.08s;
+  }
+
+  .add button:hover { background: #46624c; }
+  .add button:active { transform: translateY(1px); }
 
   /* ── Section label ── */
   .section-label {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    gap: 10px;
-    font-size: 10px;
-    line-height: 1.8;
-    color: #fff;
-    text-shadow: 2px 2px 0 #1b357e;
-    margin: 0 0 16px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--ink-soft);
+    margin: 0 0 14px;
   }
 
   /* ── List ── */
-  .items { display: flex; flex-direction: column; gap: 20px; }
+  .items { display: flex; flex-direction: column; gap: 14px; }
 
-  .empty { font-size: 10px; line-height: 2; color: #fff; text-shadow: 2px 2px 0 #1b357e; padding: 4px 2px 20px; }
+  .empty {
+    color: var(--ink-soft);
+    font-size: 14px;
+    line-height: 1.7;
+    padding: 6px 2px 22px;
+  }
 
-  .gripe { cursor: pointer; }
+  .gripe {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--paper-edge);
+    border-left: 5px solid var(--sage);
+    border-radius: var(--r);
+    padding: 18px 18px 16px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: var(--shadow);
+    transition: transform 0.1s, box-shadow 0.15s, border-color 0.2s;
+  }
+
+  .gripe:hover { box-shadow: var(--shadow-lg); }
+
+  /* priority accent — gold for the worst, fading to taupe */
+  .items .gripe:nth-child(1) { border-left-color: var(--gold); }
+  .items .gripe:nth-child(2) { border-left-color: var(--olive); }
+  .items .gripe:nth-child(3) { border-left-color: var(--sage); }
+  .items .gripe:nth-child(n+4) { border-left-color: var(--taupe); }
+
+  .gripe:active { transform: translateY(1px); }
+  .gripe.bumped { animation: bump 0.45s ease; }
+
+  @keyframes bump {
+    0%   { transform: scale(1); }
+    30%  { transform: scale(1.025); box-shadow: var(--shadow-lg); }
+    100% { transform: scale(1); }
+  }
 
   .gripe-top {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 14px;
+    gap: 12px;
   }
 
-  .rank { font-size: 9px; display: inline-block; margin: 0 0 10px; }
-  .rank.r1 { color: #e52521; }
-  .rank.r2 { color: #e59400; }
-  .rank.r3 { color: #2a8a2a; }
-  .rank.rn { color: #9a7a55; }
-
-  .gripe-title { font-size: 13px; line-height: 1.6; color: #212529; margin: 0; word-break: break-word; }
+  .gripe-title {
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--ink);
+    word-break: break-word;
+  }
 
   .gripe-notes {
-    font-size: 10px;
-    line-height: 1.8;
-    color: #5a5a5a;
-    margin: 12px 0 0;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    margin-top: 7px;
     white-space: pre-wrap;
     word-break: break-word;
   }
 
   .gripe-meta {
-    font-size: 8px;
-    line-height: 1.9;
-    color: #888;
-    margin: 14px 0 0;
+    font-size: 11px;
+    letter-spacing: 0.3px;
+    color: var(--ink-soft);
+    margin-top: 11px;
     display: flex;
     flex-wrap: wrap;
     gap: 4px 14px;
   }
 
-  .gripe-meta b { color: #c84c0c; }
+  .gripe-meta b { color: var(--gold); font-weight: 700; }
 
-  .hint { font-size: 8px; line-height: 1.8; color: #4a7a2a; margin: 12px 0 0; }
+  .hint {
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--sage);
+    margin-top: 9px;
+  }
 
-  /* ── Action buttons ── */
+  /* ── Icon buttons ── */
   .gripe-actions {
     flex-shrink: 0;
     display: flex;
@@ -141,50 +277,139 @@
     gap: 8px;
   }
 
-  .gripe-actions .nes-btn { font-size: 9px; padding: 6px 8px; }
+  .edit-btn,
+  .done-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    font-family: var(--sans);
+    line-height: 1;
+    background: #FFFDF6;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.08s;
+  }
+
+  .edit-btn { border: 1.5px solid var(--gold); color: var(--gold); font-size: 16px; }
+  .edit-btn:hover { background: var(--gold); color: #FFFDF6; }
+
+  .done-btn { border: 1.5px solid var(--sage-deep); color: var(--sage-deep); font-size: 18px; }
+  .done-btn:hover { background: var(--forest); color: #F4EAD6; border-color: var(--forest); }
+
+  .edit-btn:active,
+  .done-btn:active { transform: scale(0.9); }
 
   /* ── Inline edit form ── */
-  .gripe-edit { width: 100%; }
-  .gripe-edit .nes-field { margin-bottom: 16px; }
+  .gripe.editing {
+    cursor: default;
+    border-left-color: var(--gold);
+    box-shadow: var(--shadow-lg);
+  }
 
-  .edit-row { display: flex; gap: 10px; margin-top: 4px; }
-  .edit-row .nes-btn { font-size: 10px; padding: 8px 10px; }
-  .save-btn { flex: 1; }
-  .delete-btn { width: 100%; margin-top: 14px; font-size: 10px; padding: 8px 10px; }
+  .edit-row { display: flex; gap: 8px; }
+
+  .edit-row button {
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 14px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.08s;
+  }
+
+  .edit-row button:active { transform: translateY(1px); }
+
+  .save-btn { background: var(--forest); color: #F4EAD6; flex: 1; }
+  .save-btn:hover { background: #46624c; }
+  .cancel-btn { background: #E7DAC0; color: var(--ink); }
+  .cancel-btn:hover { background: #dccba9; }
+
+  .delete-btn {
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: #FBEDE7;
+    color: var(--rust);
+    border: 1.5px solid var(--rust);
+    border-radius: 8px;
+    margin-top: 14px;
+    width: 100%;
+    padding: 11px 14px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .delete-btn.armed { background: var(--rust); color: #FBF5E7; animation: nudge 0.3s; }
+
+  @keyframes nudge {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
 
   /* ── Archive ── */
   .archive-toggle {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 10px;
-    line-height: 1.8;
+    font-family: var(--sans);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 700;
     background: none;
+    color: var(--sage-deep);
     border: none;
-    color: #fff;
-    text-shadow: 2px 2px 0 #1b357e;
     cursor: pointer;
     padding: 0;
-    margin-top: 32px;
+    margin-top: 36px;
   }
 
-  .archive-toggle:hover { color: #f8b800; }
+  .archive-toggle:hover { color: var(--forest); }
 
-  .archive { margin-top: 18px; display: none; }
+  .archive { margin-top: 16px; display: none; }
   .archive.open { display: block; }
 
   .arch-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 12px;
-    background: #fff;
-    border: 3px solid #212529;
-    padding: 12px 14px;
-    margin-bottom: 12px;
+    gap: 10px;
+    background: #EEE3CC;
+    border: 1px solid var(--paper-edge);
+    border-radius: 8px;
+    padding: 11px 14px;
+    margin-bottom: 9px;
   }
 
-  .arch-title { font-size: 10px; line-height: 1.7; color: #888; text-decoration: line-through; word-break: break-word; }
-  .arch-date { font-size: 8px; line-height: 1.8; color: #aaa; margin-top: 6px; }
-  .restore-btn { flex-shrink: 0; font-size: 9px; padding: 6px 8px; }
+  .arch-title {
+    font-family: var(--serif);
+    font-size: 14px;
+    color: var(--ink-soft);
+    text-decoration: line-through;
+    word-break: break-word;
+  }
+
+  .arch-date { font-size: 10px; color: #9c8c75; margin-top: 3px; letter-spacing: 0.5px; }
+
+  .restore-btn {
+    flex-shrink: 0;
+    font-family: var(--sans);
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 700;
+    background: #FFFDF6;
+    color: var(--gold);
+    border: 1.5px solid var(--gold);
+    border-radius: 7px;
+    padding: 7px 10px;
+    cursor: pointer;
+  }
+
+  .restore-btn:hover { background: var(--gold); color: #FFFDF6; }
 
   /* ── Celebration ── */
   #confetti {
@@ -203,46 +428,50 @@
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    padding: 20px;
     pointer-events: none;
   }
 
   #celebrate.show { display: flex; }
 
   .celebrate-word {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 13vw;
-    line-height: 1.3;
-    color: #e52521;
-    text-shadow: 5px 5px 0 #212529;
+    font-family: var(--serif);
+    font-size: 17vw;
+    font-weight: 700;
+    letter-spacing: -2px;
+    color: var(--forest);
+    text-shadow: 0 2px 0 var(--gold-soft), 0 6px 22px rgba(59, 81, 64, 0.4);
     text-align: center;
-    animation: popUp 0.45s steps(5);
+    line-height: 0.9;
+    animation: popUp 0.5s cubic-bezier(.18, 1.5, .4, 1);
   }
 
   .celebrate-sub {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 11px;
-    line-height: 1.7;
-    margin-top: 26px;
-    background: #f8b800;
-    color: #212529;
-    padding: 14px 18px;
-    box-shadow: 6px 6px 0 #212529;
+    font-family: var(--sans);
+    margin-top: 16px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: var(--gold);
+    color: var(--walnut);
+    padding: 9px 16px;
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
     text-align: center;
-    max-width: 92vw;
+    max-width: 90vw;
     word-break: break-word;
-    animation: popUp 0.45s 0.1s backwards steps(5);
+    animation: popUp 0.5s 0.1s backwards cubic-bezier(.18, 1.5, .4, 1);
   }
 
   @keyframes popUp {
-    0%   { transform: scale(0.2); opacity: 0; }
+    0%   { transform: scale(0.4); opacity: 0; }
     100% { transform: scale(1); opacity: 1; }
   }
 
   @media (max-width: 440px) {
-    .page { padding: 20px 12px 60px; }
-    .masthead h1 { font-size: 18px; }
-    .celebrate-word { font-size: 16vw; }
+    .page { padding: 24px 16px 60px; }
+    h1 { font-size: 40px; }
+    .sprig { width: 62px; height: 62px; }
   }
 </style>
 </head>
@@ -256,22 +485,25 @@
 
 <div class="page">
 
-  <header class="masthead nes-container is-dark is-rounded">
-    <h1>Stuff That<br>Sucks<span class="dot">.</span></h1>
-    <p class="tagline">This shit sucks. Go fix it.</p>
+  <header class="masthead">
+    <svg class="sprig" viewBox="0 0 100 100" aria-hidden="true">
+      <path class="stem" d="M50 96 C49 74 50 52 50 30"/>
+      <path class="leaf" d="M50 70 C36 66 24 52 18 32 C40 34 52 50 50 70 Z"/>
+      <path class="leaf" d="M50 56 C66 52 78 38 84 18 C60 20 48 38 50 56 Z"/>
+      <path class="leaf" d="M50 42 C42 30 44 14 52 4 C62 16 60 32 50 42 Z"/>
+    </svg>
+    <h1>Stuff That<br>Sucks<span>.</span></h1>
+    <div class="site-sub">This shit sucks. Go fix it.</div>
   </header>
 
-  <div class="add-form nes-container with-title is-rounded">
-    <p class="title">Add a gripe</p>
-    <div class="nes-field">
-      <label for="title">What's bugging you?</label>
-      <input id="title" class="nes-input" type="text" placeholder="corner cabinet is a mess" maxlength="120" autocomplete="off">
-    </div>
-    <div class="nes-field">
-      <label for="notes">Notes (optional)</label>
-      <textarea id="notes" class="nes-textarea" placeholder="ideas, context, what you've tried"></textarea>
-    </div>
-    <button id="add-btn" type="button" class="nes-btn is-success">Add to the list</button>
+  <div class="rule"></div>
+
+  <div class="add">
+    <label for="title">What's bugging you?</label>
+    <input id="title" type="text" placeholder="e.g. corner cabinet is impossible to organize" maxlength="120" autocomplete="off">
+    <label for="notes">Notes (optional)</label>
+    <textarea id="notes" placeholder="ideas, context, what you've tried..."></textarea>
+    <button id="add-btn">Add to the list</button>
   </div>
 
   <div class="section-label">
@@ -281,8 +513,8 @@
 
   <div class="items" id="items"></div>
   <div class="empty" id="empty">
-    Nothing here yet. Add the first thing that nags you above.<br><br>
-    Tap a card each time the annoyance strikes in real life. The more
+    Nothing here yet &mdash; add the first thing that nags you above.<br><br>
+    Tap a card each time the annoyance strikes in real life; the more
     recently &amp; often it bugs you, the higher it rises.
   </div>
 
@@ -478,69 +710,63 @@ function render() {
   emptyEl.style.display = sorted.length ? 'none' : 'block';
   countEl.textContent = sorted.length ? sorted.length + ' open' : '';
 
-  sorted.forEach((g, i) => {
+  for (const g of sorted) {
     const card = document.createElement('div');
-    card.className = 'nes-container is-rounded gripe';
+    card.className = 'gripe';
     card.dataset.id = g.id;
 
     if (g.id === editingId) {
       card.classList.add('editing');
       card.appendChild(buildEditForm(g));
       itemsEl.appendChild(card);
-      return;
+      continue;
     }
 
     const top = document.createElement('div');
     top.className = 'gripe-top';
 
-    const body = document.createElement('div');
-
-    const rank = document.createElement('span');
-    rank.className = 'rank ' + (i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : 'rn');
-    rank.textContent = '#' + (i + 1);
-    body.appendChild(rank);
-
-    const title = document.createElement('p');
+    const titleWrap = document.createElement('div');
+    const title = document.createElement('div');
     title.className = 'gripe-title';
     title.textContent = g.title;
-    body.appendChild(title);
+    titleWrap.appendChild(title);
 
     if (g.notes) {
-      const notes = document.createElement('p');
+      const notes = document.createElement('div');
       notes.className = 'gripe-notes';
       notes.textContent = g.notes;
-      body.appendChild(notes);
+      titleWrap.appendChild(notes);
     }
 
     const meta = document.createElement('div');
     meta.className = 'gripe-meta';
     const hits = g.taps.length;
     meta.innerHTML =
-      'bugged you <b>' + hits + 'x</b>' +
-      '<span>last ' + relTime(g.taps[g.taps.length - 1]) + '</span>' +
+      'bugged you <b>' + hits + '×</b>' +
+      '<span>last: ' + relTime(g.taps[g.taps.length - 1]) + '</span>' +
       '<span>added ' + fmtDate(g.created) + '</span>';
-    body.appendChild(meta);
+    titleWrap.appendChild(meta);
 
-    const hint = document.createElement('p');
+    const hint = document.createElement('div');
     hint.className = 'hint';
-    hint.textContent = 'tap when it nags you again, it rises';
-    body.appendChild(hint);
+    hint.textContent = 'tap when it nags you again ↑ rises to the top';
+    titleWrap.appendChild(hint);
 
-    top.appendChild(body);
+    top.appendChild(titleWrap);
 
     const actions = document.createElement('div');
     actions.className = 'gripe-actions';
 
     const editBtn = document.createElement('button');
-    editBtn.type = 'button';
-    editBtn.className = 'nes-btn is-warning';
-    editBtn.textContent = 'edit';
+    editBtn.className = 'edit-btn';
+    editBtn.title = 'Edit';
+    editBtn.textContent = '✎';
     editBtn.addEventListener('click', (e) => { e.stopPropagation(); editingId = g.id; render(); });
 
     const doneBtn = document.createElement('button');
-    doneBtn.type = 'button';
-    doneBtn.className = 'nes-btn is-success';
-    doneBtn.textContent = 'done';
+    doneBtn.className = 'done-btn';
+    doneBtn.title = 'Mark done';
+    doneBtn.textContent = '✓';
     doneBtn.addEventListener('click', (e) => { e.stopPropagation(); finish(g.id); });
 
     actions.appendChild(editBtn);
@@ -550,7 +776,7 @@ function render() {
     card.appendChild(top);
     card.addEventListener('click', () => bump(g.id, card));
     itemsEl.appendChild(card);
-  });
+  }
 
   renderArchive();
 }
@@ -559,52 +785,40 @@ function buildEditForm(g) {
   const form = document.createElement('div');
   form.className = 'gripe-edit';
 
-  const f1 = document.createElement('div');
-  f1.className = 'nes-field';
   const titleLabel = document.createElement('label');
   titleLabel.textContent = "What's bugging you?";
   const titleInput = document.createElement('input');
   titleInput.type = 'text';
-  titleInput.className = 'nes-input';
   titleInput.maxLength = 120;
   titleInput.value = g.title;
-  f1.appendChild(titleLabel);
-  f1.appendChild(titleInput);
 
-  const f2 = document.createElement('div');
-  f2.className = 'nes-field';
   const notesLabel = document.createElement('label');
   notesLabel.textContent = 'Notes (optional)';
   const notesInput = document.createElement('textarea');
-  notesInput.className = 'nes-textarea';
   notesInput.maxLength = 500;
   notesInput.value = g.notes || '';
-  f2.appendChild(notesLabel);
-  f2.appendChild(notesInput);
 
   const row = document.createElement('div');
   row.className = 'edit-row';
   const saveBtn = document.createElement('button');
-  saveBtn.type = 'button';
-  saveBtn.className = 'nes-btn is-success save-btn';
+  saveBtn.className = 'save-btn';
   saveBtn.textContent = 'Save';
   saveBtn.addEventListener('click', () => saveEdit(g.id, titleInput.value, notesInput.value));
   const cancelBtn = document.createElement('button');
-  cancelBtn.type = 'button';
-  cancelBtn.className = 'nes-btn';
+  cancelBtn.className = 'cancel-btn';
   cancelBtn.textContent = 'Cancel';
   cancelBtn.addEventListener('click', () => { editingId = null; render(); });
   row.appendChild(saveBtn);
   row.appendChild(cancelBtn);
 
   const delBtn = document.createElement('button');
-  delBtn.type = 'button';
-  delBtn.className = 'nes-btn is-error delete-btn';
+  delBtn.className = 'delete-btn';
   delBtn.textContent = 'Delete forever';
   let armed = false;
   delBtn.addEventListener('click', () => {
     if (!armed) {
       armed = true;
+      delBtn.classList.add('armed');
       delBtn.textContent = 'Tap again to delete';
       return;
     }
@@ -616,8 +830,10 @@ function buildEditForm(g) {
     if (e.key === 'Escape') { editingId = null; render(); }
   });
 
-  form.appendChild(f1);
-  form.appendChild(f2);
+  form.appendChild(titleLabel);
+  form.appendChild(titleInput);
+  form.appendChild(notesLabel);
+  form.appendChild(notesInput);
   form.appendChild(row);
   form.appendChild(delBtn);
 
@@ -649,7 +865,7 @@ function deleteGripe(id) {
 function renderArchive() {
   const arch = state.archive;
   archiveToggle.textContent = arch.length
-    ? (archiveEl.classList.contains('open') ? '- hide done (' + arch.length + ')' : '+ show done (' + arch.length + ')')
+    ? (archiveEl.classList.contains('open') ? '▾ hide done (' + arch.length + ')' : '▸ show done (' + arch.length + ')')
     : '';
   archiveToggle.style.display = arch.length ? 'inline-block' : 'none';
 
@@ -669,8 +885,7 @@ function renderArchive() {
     left.appendChild(d);
 
     const restore = document.createElement('button');
-    restore.type = 'button';
-    restore.className = 'nes-btn is-warning restore-btn';
+    restore.className = 'restore-btn';
     restore.textContent = 'restore';
     restore.addEventListener('click', () => restoreGripe(g.id));
 
@@ -686,10 +901,11 @@ function bump(id, card) {
   g.taps.push(Date.now());
   save();
   if (card) {
-    card.style.transform = 'scale(1.02)';
-    setTimeout(() => { card.style.transform = ''; }, 130);
+    card.classList.remove('bumped');
+    void card.offsetWidth;
+    card.classList.add('bumped');
   }
-  // small delay so the bump is visible before re-sort jumps it
+  // small delay so the bump animation is visible before re-sort jumps it
   setTimeout(render, 260);
 }
 
@@ -743,7 +959,7 @@ const celebrateEl = document.getElementById('celebrate');
 const celebrateSub = document.getElementById('celebrate-sub');
 const canvas = document.getElementById('confetti');
 const ctx = canvas.getContext('2d');
-const COLORS = ['#e52521', '#f8b800', '#43b047', '#5c94fc', '#ffffff', '#c84c0c'];
+const COLORS = ['#C0902E', '#D8B45D', '#7E9070', '#3B5140', '#7A5436', '#F4EAD6'];
 let pieces = [];
 let rafId = null;
 
@@ -760,17 +976,17 @@ function celebrate(title) {
   canvas.style.display = 'block';
 
   pieces = [];
-  const n = 200;
+  const n = 220;
   for (let i = 0; i < n; i++) {
     pieces.push({
       x: canvas.width / 2 + (Math.random() - 0.5) * 120,
       y: canvas.height / 2 + (Math.random() - 0.5) * 80,
       vx: (Math.random() - 0.5) * 18,
       vy: (Math.random() - 0.9) * 20,
-      size: 8 + Math.random() * 8,
+      size: 5 + Math.random() * 9,
       color: COLORS[(Math.random() * COLORS.length) | 0],
-      vr: (Math.random() - 0.5) * 0.3,
-      rot: 0,
+      rot: Math.random() * Math.PI,
+      vr: (Math.random() - 0.5) * 0.4,
       life: 0
     });
   }
@@ -792,14 +1008,16 @@ function animate() {
     p.vx *= 0.99;
     p.x += p.vx;
     p.y += p.vy;
+    p.rot += p.vr;
     const alpha = Math.max(0, 1 - p.life / 130);
     if (alpha > 0 && p.y < canvas.height + 40) alive = true;
+    ctx.save();
     ctx.globalAlpha = alpha;
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
     ctx.fillStyle = p.color;
-    // chunky pixel squares, snapped to a grid for an 8-bit feel
-    const px = Math.round(p.x / 4) * 4;
-    const py = Math.round(p.y / 4) * 4;
-    ctx.fillRect(px, py, p.size, p.size);
+    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+    ctx.restore();
   }
   if (alive) {
     rafId = requestAnimationFrame(animate);
