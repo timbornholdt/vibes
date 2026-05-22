@@ -261,14 +261,6 @@
 
   .gripe-meta b { color: var(--gold); font-weight: 700; }
 
-  .hint {
-    font-size: 10px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--sage);
-    margin-top: 9px;
-  }
-
   /* ── Icon buttons ── */
   .gripe-actions {
     flex-shrink: 0;
@@ -746,11 +738,6 @@ function render() {
       '<span>last: ' + relTime(g.taps[g.taps.length - 1]) + '</span>' +
       '<span>added ' + fmtDate(g.created) + '</span>';
     titleWrap.appendChild(meta);
-
-    const hint = document.createElement('div');
-    hint.className = 'hint';
-    hint.textContent = 'tap when it nags you again ↑ rises to the top';
-    titleWrap.appendChild(hint);
 
     top.appendChild(titleWrap);
 
