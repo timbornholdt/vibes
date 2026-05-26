@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="vibes">
+<meta name="theme-color" content="#2b1d12">
+<title>vibes · the stacks</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --body:    #b23a48;
+    --home:    #2f6b4f;
+    --science: #2d6a8e;
+    --music:   #5d3a8e;
+    --games:   #b5702a;
+    --gold:    #e8c878;
+  }
+
+  body {
+    font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+    color: #f3e7d3;
+    background:
+      radial-gradient(120% 80% at 50% -10%, #4a3220 0%, #2b1d12 55%, #1c130b 100%);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 36px 22px 80px; }
+
+  header { text-align: center; margin-bottom: 10px; }
+  h1 {
+    font-size: clamp(36px, 8vw, 64px);
+    font-weight: 700;
+    letter-spacing: 1px;
+    font-variant: small-caps;
+    color: var(--gold);
+    text-shadow: 0 2px 0 #00000055;
+  }
+  .sub {
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #c7a06a;
+  }
+
+  /* ── catalog search ── */
+  .catalog {
+    display: flex; justify-content: center;
+    margin: 22px 0 30px;
+  }
+  .catalog input {
+    font-size: 16px;
+    font-family: ui-monospace, monospace;
+    color: #3a2a18;
+    background: linear-gradient(180deg, #f4e9d2, #e7d6b3);
+    border: 1px solid #8a6a3a;
+    border-radius: 4px;
+    padding: 10px 14px;
+    width: min(360px, 80vw);
+    outline: none;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.25), 0 2px 0 #00000033;
+  }
+  .catalog input::placeholder { color: #8a734f; }
+
+  /* ── shelves ── */
+  .shelf { margin-bottom: 26px; }
+  .plaque {
+    display: inline-block;
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #2b1d12;
+    background: var(--gold);
+    padding: 3px 10px;
+    border-radius: 2px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  }
+  .books {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    flex-wrap: wrap;
+    min-height: 200px;
+    padding: 14px 16px 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.18), rgba(0,0,0,0));
+    border-radius: 4px 4px 0 0;
+  }
+  /* the wooden plank */
+  .plank {
+    height: 18px;
+    border-radius: 0 0 5px 5px;
+    background:
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.12) 0 2px, transparent 2px 26px),
+      linear-gradient(180deg, #6e4a28, #4a3019);
+    box-shadow: 0 8px 14px rgba(0,0,0,0.45), inset 0 2px 0 #8a5d31;
+  }
+
+  /* ── book spines ── */
+  .spine {
+    position: relative;
+    width: 46px;
+    border: 0;
+    border-radius: 3px 3px 1px 1px;
+    cursor: pointer;
+    color: var(--gold);
+    padding: 14px 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset -6px 0 10px rgba(0,0,0,0.35), inset 4px 0 6px rgba(255,255,255,0.08), 0 4px 8px rgba(0,0,0,0.4);
+    transition: transform 0.16s ease, filter 0.16s ease;
+    transform-origin: bottom center;
+  }
+  .spine:hover { transform: translateY(-14px) rotate(-1deg); filter: brightness(1.12); }
+  .spine .title {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+    max-height: 100%;
+    overflow: hidden;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.5);
+  }
+  .spine::after { /* gold band near top */
+    content: "";
+    position: absolute;
+    top: 8px; left: 6px; right: 6px;
+    height: 2px;
+    background: var(--gold);
+    opacity: 0.7;
+  }
+  .spine.body    { background: linear-gradient(90deg, #d65563, var(--body)); }
+  .spine.home    { background: linear-gradient(90deg, #3f8a66, var(--home)); }
+  .spine.science { background: linear-gradient(90deg, #3f88b0, var(--science)); }
+  .spine.music   { background: linear-gradient(90deg, #7a52b0, var(--music)); }
+  .spine.games   { background: linear-gradient(90deg, #d68f3f, var(--games)); }
+
+  .spine.lift { transform: translateY(-22px) rotate(-1deg); filter: brightness(1.2); }
+  .spine.dim  { opacity: 0.28; filter: grayscale(0.4); }
+
+  /* ── opened book modal ── */
+  .scrim {
+    position: fixed; inset: 0;
+    background: rgba(10,6,2,0.66);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 30;
+  }
+  .scrim.open { opacity: 1; pointer-events: auto; }
+  .book {
+    display: flex;
+    width: min(640px, 100%);
+    min-height: 280px;
+    border-radius: 4px 8px 8px 4px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    transform: scale(0.9) rotateX(8deg);
+    transition: transform 0.24s cubic-bezier(.22,1,.36,1);
+  }
+  .scrim.open .book { transform: scale(1) rotateX(0); }
+  .cover {
+    flex: 0 0 40%;
+    padding: 26px 22px;
+    color: var(--gold);
+    display: flex; flex-direction: column; justify-content: space-between;
+    box-shadow: inset -10px 0 24px rgba(0,0,0,0.4);
+  }
+  .cover .cat-tag {
+    font-family: ui-monospace, monospace;
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    opacity: 0.85;
+  }
+  .cover .ttl { font-size: 26px; font-weight: 700; line-height: 1.1; }
+  .cover .foot { font-family: ui-monospace, monospace; font-size: 11px; opacity: 0.8; }
+  .pages {
+    flex: 1;
+    background: linear-gradient(180deg, #f6ecd6, #ead9b6);
+    color: #3a2a18;
+    padding: 28px 26px;
+    display: flex; flex-direction: column; gap: 16px;
+    border-left: 2px solid rgba(0,0,0,0.15);
+  }
+  .pages .blurb { font-size: 16px; line-height: 1.6; }
+  .pages .open-btn {
+    margin-top: auto;
+    align-self: flex-start;
+    font-family: ui-monospace, monospace;
+    font-size: 13px; letter-spacing: 1px; text-transform: uppercase;
+    text-decoration: none;
+    color: #f6ecd6;
+    background: #3a2a18;
+    padding: 11px 20px;
+    border-radius: 4px;
+    box-shadow: 0 3px 0 #00000044;
+  }
+  .pages .open-btn:hover { background: #57402a; }
+  .close {
+    position: absolute; top: 16px; right: 18px;
+    color: #f3e7d3; background: none; border: 0;
+    font-size: 26px; cursor: pointer; line-height: 1;
+    font-family: ui-monospace, monospace;
+  }
+
+  .empty {
+    text-align: center; color: #c7a06a;
+    font-family: ui-monospace, monospace; font-size: 13px;
+    padding: 30px 0;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>The Stacks</h1>
+    <div class="sub">junk.timbornholdt.com · pull a book off the shelf</div>
+  </header>
+
+  <div class="catalog">
+    <input id="find" type="text" placeholder="card catalog — search the stacks…" autocomplete="off">
+  </div>
+
+  <div id="shelves"></div>
+  <div class="empty" id="empty" style="display:none">// nothing on the shelves matches that</div>
+
+</div>
+
+<div class="scrim" id="scrim">
+  <div class="book" id="book">
+    <button class="close" id="close" aria-label="close">✕</button>
+    <div class="cover" id="cover"></div>
+    <div class="pages" id="pages"></div>
+  </div>
+</div>
+
+<script>
+  const cats = {
+    body:    "Body",
+    home:    "Home",
+    science: "Science",
+    music:   "Music",
+    games:   "Games",
+  };
+  const catColor = { body:"#b23a48", home:"#2f6b4f", science:"#2d6a8e", music:"#5d3a8e", games:"#b5702a" };
+
+  const tools = [
+    { file: "back-routine.html",   title: "Nightly Back Routine",     cat: "body",    h: 188, desc: "Guided mid & lower-back mobility with tap-to-start hold timers and a synced daily streak." },
+    { file: "tattoo-care.html",    title: "Skull / Marshmallow Care", cat: "body",    h: 172, desc: "Tattoo aftercare timeline that auto-hides past phases so you only see today's tasks." },
+    { file: "house-gripes.html",   title: "Stuff That Sucks",         cat: "home",    h: 196, desc: "A living list of household annoyances that climb the priority list each time they bug you." },
+    { file: "patio.html",          title: "Patio",                    cat: "home",    h: 164, desc: "Visualize design options for the back patio." },
+    { file: "anatomy-lab.html",    title: "Anatomy Lab",              cat: "science", h: 184, desc: "Tap any bone, muscle, or organ to learn what it does, with system and front/back toggles." },
+    { file: "lofi-guide.html",     title: "A Field Guide to Lo-Fi",   cat: "music",   h: 178, desc: "A checkable listening path through the genre's foundations. Filter the slop, build taste." },
+    { file: "music-syllabus.html", title: "The Syllabus",             cat: "music",   h: 192, desc: "A 14-album guided listen across punk, emo, folk, lo-fi and grunge with production notes." },
+    { file: "ps2-curriculum.html", title: "PS2 Gaming Curriculum",    cat: "games",   h: 180, desc: "12 all-timers sequenced by genre. A syllabus for testing if you still like video games." },
+  ];
+
+  const shelvesEl = document.getElementById("shelves");
+  const spineEls = [];
+
+  Object.keys(cats).forEach(cat => {
+    const books = tools.filter(t => t.cat === cat);
+    if (!books.length) return;
+    const shelf = document.createElement("div");
+    shelf.className = "shelf";
+    const row = document.createElement("div");
+    row.className = "books";
+    books.forEach(t => {
+      const s = document.createElement("button");
+      s.className = "spine " + cat;
+      s.style.height = t.h + "px";
+      s.dataset.file = t.file;
+      s.innerHTML = `<span class="title">${t.title}</span>`;
+      s.addEventListener("click", () => openBook(t));
+      row.appendChild(s);
+      spineEls.push({ el: s, tool: t });
+    });
+    shelf.innerHTML = `<div class="plaque">${cats[cat]} · ${books.length}</div>`;
+    shelf.appendChild(row);
+    const plank = document.createElement("div");
+    plank.className = "plank";
+    shelf.appendChild(plank);
+    shelvesEl.appendChild(shelf);
+  });
+
+  // ── open book ──
+  const scrim = document.getElementById("scrim");
+  function openBook(t) {
+    document.getElementById("cover").style.background =
+      `linear-gradient(135deg, ${catColor[t.cat]}, ${shade(catColor[t.cat], -34)})`;
+    document.getElementById("cover").innerHTML = `
+      <div class="cat-tag">${cats[t.cat]}</div>
+      <div class="ttl">${t.title}</div>
+      <div class="foot">${t.file}</div>`;
+    document.getElementById("pages").innerHTML = `
+      <div class="blurb">${t.desc}</div>
+      <a class="open-btn" href="${t.file}">Open this tool →</a>`;
+    scrim.classList.add("open");
+  }
+  function shade(hex, pct) {
+    const n = parseInt(hex.slice(1), 16);
+    let r = (n >> 16) + pct, g = ((n >> 8) & 255) + pct, b = (n & 255) + pct;
+    r = Math.max(0, Math.min(255, r)); g = Math.max(0, Math.min(255, g)); b = Math.max(0, Math.min(255, b));
+    return "#" + ((r << 16) | (g << 8) | b).toString(16).padStart(6, "0");
+  }
+  function close() { scrim.classList.remove("open"); }
+  document.getElementById("close").addEventListener("click", close);
+  scrim.addEventListener("click", (e) => { if (e.target === scrim) close(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+
+  // ── card catalog search ──
+  const empty = document.getElementById("empty");
+  document.getElementById("find").addEventListener("input", (e) => {
+    const term = e.target.value.trim().toLowerCase();
+    let any = false;
+    spineEls.forEach(({ el, tool }) => {
+      el.classList.remove("lift", "dim");
+      if (!term) return;
+      const match = (tool.title + " " + tool.desc + " " + cats[tool.cat]).toLowerCase().includes(term);
+      el.classList.add(match ? "lift" : "dim");
+      if (match) any = true;
+    });
+    empty.style.display = term && !any ? "block" : "none";
+  });
+</script>
+</body>
+</html>
