@@ -94,6 +94,11 @@
   .find::placeholder { color: #6a6356; }
   .find:focus { border-color: #7a7263; }
 
+  @media (max-width: 560px) {
+    .find { margin-left: 0; flex: 1 1 100%; width: 100%; }
+    .cmdbar { justify-content: flex-start; }
+  }
+
   /* command hint under the rail */
   .cmdbar {
     min-height: 18px;
@@ -172,13 +177,6 @@
     transform: rotate(-3deg);
     z-index: 2;
   }
-  .num {
-    position: absolute;
-    bottom: 6px; right: 8px;
-    font-size: 11px; color: #c9b07a;
-    z-index: 2;
-  }
-
   .label {
     margin-top: 11px;
     display: flex;
@@ -268,7 +266,6 @@
             <span class="grease" style="background:${greaseColor[t.cat]}">${t.cat}</span>
             <iframe src="${t.file}" loading="lazy" scrolling="no" tabindex="-1" title="${t.title} preview"></iframe>
             <div class="tint"></div>
-            <span class="num">${String(i + 1).padStart(2, "0")}A</span>
           </div>
           <div class="label">
             <span class="title">${t.title}</span>
