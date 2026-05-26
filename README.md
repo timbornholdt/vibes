@@ -13,9 +13,22 @@ Personal project launchpad at `junk.timbornholdt.com/vibes`. A collection of one
 
 ## Adding a project
 
-1. Drop your `.html` file (or folder) in the repo root
-2. Add an `<a class="item">` block to `index.html` following the existing pattern
-3. Commit and push to `main` — deploys automatically
+1. Drop your `.html` file in the repo root
+2. Add an entry to the `tools` array in `index.html` (`file`, `title`, `cat`, `desc`)
+3. Draw an SVG icon for it and add it to the `icons` map in `index.html` — see [Icons](#icons) (required)
+4. Commit and push to `main` — deploys automatically
+
+## Icons
+
+Every page on the index gets a hand-made SVG icon representing what it does —
+**no auto-generated page thumbnails.** Add it to the `icons` object in
+`index.html`, keyed by filename. Conventions:
+
+- `0 0 96 96` viewBox, simple line art.
+- Use `stroke="currentColor"` (and `fill="currentColor"` for solid bits) so the
+  card automatically tints the icon with its category color.
+- Aim for one clear, recognizable concept per icon (e.g. a vinyl record, a skull,
+  a game controller) rather than literal screenshots.
 
 ## Deploy
 

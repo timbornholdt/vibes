@@ -144,27 +144,20 @@
   .neg {
     position: relative;
     overflow: hidden;
-    background: #000;
     aspect-ratio: 4 / 3;
     border: 1px solid #1c1a16;
+    background: radial-gradient(120% 120% at 50% 32%, #1c1a16 0%, #0a0a09 72%);
   }
-  .neg iframe {
-    position: absolute;
-    top: 0; left: 0;
-    width: 1100px;
-    height: 825px;
-    transform: scale(0.227);
-    transform-origin: top left;
-    border: 0;
-    pointer-events: none;
-    background: #fff;
-  }
-  .neg .tint {
+  .art {
     position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(20,30,40,0.05), rgba(0,0,0,0.18));
-    mix-blend-mode: multiply;
-    pointer-events: none;
+    display: flex; align-items: center; justify-content: center;
   }
+  .art svg {
+    width: 46%; height: 46%;
+    filter: drop-shadow(0 0 9px currentColor);
+    transition: transform 0.16s ease;
+  }
+  .frame:hover .art svg { transform: scale(1.08); }
   .grease {
     position: absolute;
     top: 8px; left: 8px;
@@ -236,6 +229,58 @@
     music: "var(--grease-music)", games: "var(--grease-games)",
   };
 
+  // Hand-drawn line-art icon per page. viewBox 0 0 96 96, stroke=currentColor
+  // so each card tints it with its category color. New tools need one of these.
+  const svg = (inner) =>
+    `<svg viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+  const icons = {
+    // spine + crescent moon
+    "back-routine.html": svg(`
+      <path d="M68 14a16 16 0 1 0 13 25 13 13 0 0 1-13-25z" fill="currentColor" stroke="none"/>
+      <path d="M40 24c-7 16-7 36 0 52"/>
+      <path d="M33 32h15M32 44h15M33 56h15M35 68h14"/>`),
+    // skull
+    "tattoo-care.html": svg(`
+      <path d="M26 46a22 22 0 0 1 44 0c0 9-4 13-4 19 0 4-3 6-7 6H37c-4 0-7-2-7-6 0-6-4-10-4-19z"/>
+      <circle cx="39" cy="46" r="5.5" fill="currentColor" stroke="none"/>
+      <circle cx="57" cy="46" r="5.5" fill="currentColor" stroke="none"/>
+      <path d="M48 56l-3 6h6z" fill="currentColor" stroke="none"/>
+      <path d="M42 72v5M48 72v5M54 72v5"/>`),
+    // house with an exclamation
+    "house-gripes.html": svg(`
+      <path d="M22 46 48 24l26 22"/>
+      <path d="M29 42v30h38V42"/>
+      <path d="M48 50v13"/>
+      <circle cx="48" cy="69" r="2.6" fill="currentColor" stroke="none"/>`),
+    // patio umbrella
+    "patio.html": svg(`
+      <path d="M22 42a26 16 0 0 1 52 0z" fill="currentColor" stroke="none"/>
+      <path d="M48 42v32"/>
+      <path d="M30 74h36"/>
+      <path d="M48 26v-6"/>`),
+    // anatomical heart
+    "anatomy-lab.html": svg(`
+      <path d="M48 44c-5-9-22-8-22 7 0 13 17 20 22 26 5-6 22-13 22-26 0-15-17-16-22-7z" fill="currentColor" stroke="none"/>
+      <path d="M40 30v8M52 26c0 7-5 9-5 15"/>`),
+    // cassette tape
+    "lofi-guide.html": svg(`
+      <rect x="18" y="28" width="60" height="40" rx="6"/>
+      <circle cx="38" cy="45" r="6"/>
+      <circle cx="58" cy="45" r="6"/>
+      <path d="M30 60h36"/>`),
+    // vinyl record
+    "music-syllabus.html": svg(`
+      <circle cx="48" cy="48" r="26"/>
+      <circle cx="48" cy="48" r="9"/>
+      <circle cx="48" cy="48" r="2.4" fill="currentColor" stroke="none"/>`),
+    // game controller
+    "ps2-curriculum.html": svg(`
+      <path d="M34 38h28c9 0 16 7 16 16 0 7-9 9-13 3l-3-5H36l-3 5c-4 6-13 4-13-3 0-9 7-16 14-16z"/>
+      <path d="M28 50h10M33 45v10"/>
+      <circle cx="60" cy="48" r="2.4" fill="currentColor" stroke="none"/>
+      <circle cx="67" cy="54" r="2.4" fill="currentColor" stroke="none"/>`),
+  };
+
   const sheet = document.getElementById("sheet");
   const find = document.getElementById("find");
   const cmdbar = document.getElementById("cmdbar");
@@ -262,10 +307,9 @@
     } else {
       sheet.innerHTML = visible.map((t, i) => `
         <a class="frame${term && !isRandom(term) && i === 0 ? " lead" : ""}" href="${t.file}">
-          <div class="neg">
+          <div class="neg" style="color:${greaseColor[t.cat]}">
             <span class="grease" style="background:${greaseColor[t.cat]}">${t.cat}</span>
-            <iframe src="${t.file}" loading="lazy" scrolling="no" tabindex="-1" title="${t.title} preview"></iframe>
-            <div class="tint"></div>
+            <div class="art">${icons[t.file] || ""}</div>
           </div>
           <div class="label">
             <span class="title">${t.title}</span>
