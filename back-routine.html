@@ -5,33 +5,61 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="theme-color" content="#0e1116">
+<meta name="theme-color" content="#1d1638">
 <title>Nightly Back Routine</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg:       #0e1116;
-    --panel:    #171c24;
-    --panel-2:  #1f2630;
-    --line:     #2a323e;
-    --text:     #e6e9ef;
-    --muted:    #93a0b0;
-    --amber:    #f0b35b;
-    --teal:     #5fd0c5;
-    --green:    #6fce8f;
-    --red:      #e9836b;
-    --r: 14px;
+    --bg:       #160f29;
+    --panel:    rgba(255, 255, 255, 0.055);
+    --panel-2:  rgba(255, 255, 255, 0.085);
+    --line:     rgba(201, 184, 255, 0.16);
+    --text:     #ece9ff;
+    --muted:    #a99fce;
+    --lav:      #c4b2ff;
+    --amber:    #f4d3a0;
+    --teal:     #93dbe6;
+    --green:    #a7e8c4;
+    --red:      #f1a5c4;
+    --r: 20px;
     --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   }
 
   body {
     font-family: var(--font);
-    background: var(--bg);
     color: var(--text);
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
-    line-height: 1.5;
+    line-height: 1.55;
+    background: radial-gradient(125% 95% at 50% -10%, #2c2154 0%, #1d1638 46%, #150e29 100%);
+    background-attachment: fixed;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: -25%;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(38% 32% at 22% 18%, rgba(196, 178, 255, 0.32), transparent 70%),
+      radial-gradient(40% 34% at 82% 26%, rgba(241, 165, 196, 0.26), transparent 72%),
+      radial-gradient(46% 40% at 60% 88%, rgba(147, 219, 230, 0.22), transparent 72%),
+      radial-gradient(36% 30% at 12% 78%, rgba(167, 232, 196, 0.18), transparent 72%);
+    filter: blur(16px);
+    animation: drift 30s ease-in-out infinite alternate;
+  }
+
+  @keyframes drift {
+    0%   { transform: translate3d(-2%, -1%, 0) scale(1.05) rotate(0deg); }
+    50%  { transform: translate3d(2%, 2%, 0) scale(1.12) rotate(2deg); }
+    100% { transform: translate3d(-1%, 3%, 0) scale(1.06) rotate(-2deg); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    body::before { animation: none; }
   }
 
   .page {
@@ -40,11 +68,19 @@
     padding: 28px 18px 64px;
   }
 
+  /* Glassy surfaces */
+  .streak .stat, details, .session-btn, .card, .iconbtn, .navbtn, .timer {
+    backdrop-filter: blur(16px) saturate(135%);
+    -webkit-backdrop-filter: blur(16px) saturate(135%);
+    box-shadow: 0 10px 34px rgba(18, 10, 38, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+
   h1 {
     font-size: 30px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    line-height: 1.18;
+    text-shadow: 0 0 26px rgba(196, 178, 255, 0.5);
   }
 
   .sub {
@@ -72,8 +108,11 @@
   .stat .n {
     font-size: 28px;
     font-weight: 800;
-    color: var(--amber);
     line-height: 1;
+    background: linear-gradient(135deg, var(--lav), var(--teal));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 
   .stat .l {
@@ -201,17 +240,18 @@
   }
 
   .progress {
-    height: 5px;
-    background: var(--line);
-    border-radius: 4px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
     overflow: hidden;
     margin-bottom: 20px;
   }
 
   .progress .fill {
     height: 100%;
-    background: var(--teal);
-    transition: width .2s;
+    background: linear-gradient(90deg, var(--lav), var(--teal));
+    box-shadow: 0 0 12px rgba(196, 178, 255, 0.6);
+    transition: width .3s ease;
   }
 
   .card {
@@ -290,10 +330,11 @@
 
   .timer .clock {
     font-size: 64px;
-    font-weight: 800;
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
     line-height: 1.1;
     margin: 6px 0 4px;
+    text-shadow: 0 0 30px rgba(196, 178, 255, 0.45);
   }
 
   .timer.done .clock { color: var(--green); }
@@ -324,23 +365,31 @@
   .bigbtn {
     flex: 1;
     border: none;
-    border-radius: 12px;
+    border-radius: 16px;
     padding: 18px;
     font-size: 18px;
     font-weight: 800;
     font-family: inherit;
     cursor: pointer;
-    color: #0e1116;
+    color: #221a3d;
+    transition: transform .06s, box-shadow .2s;
   }
 
   .bigbtn:active { transform: scale(0.98); }
-  .bigbtn.start { background: var(--green); }
-  .bigbtn.pause { background: var(--amber); }
+  .bigbtn.start {
+    background: linear-gradient(135deg, var(--green), var(--teal));
+    box-shadow: 0 8px 26px rgba(147, 219, 230, 0.4);
+  }
+  .bigbtn.pause {
+    background: linear-gradient(135deg, var(--amber), var(--red));
+    box-shadow: 0 8px 26px rgba(241, 165, 196, 0.4);
+  }
   .bigbtn.reset {
     flex: 0 0 auto;
     background: transparent;
     color: var(--muted);
     border: 1px solid var(--line);
+    box-shadow: none;
     font-weight: 600;
     font-size: 15px;
     padding: 18px 18px;
@@ -369,9 +418,10 @@
   .navbtn.prev { flex: 0 0 auto; }
   .navbtn.next {
     flex: 1;
-    background: var(--teal);
-    color: #0e1116;
-    border-color: var(--teal);
+    background: linear-gradient(135deg, var(--lav), var(--teal));
+    color: #221a3d;
+    border: none;
+    box-shadow: 0 8px 26px rgba(196, 178, 255, 0.4);
   }
 
   .navbtn:disabled { opacity: 0.35; cursor: default; }
