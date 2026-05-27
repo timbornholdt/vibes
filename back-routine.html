@@ -228,7 +228,6 @@
     margin-top: 8px;
   }
 
-  .warm { --accent: var(--teal); }
   .wind { --accent: var(--amber); }
   .full { --accent: var(--green); }
 
@@ -497,8 +496,8 @@
       <summary>How to use this routine</summary>
       <div class="body">
         <p><strong>Daily, ~10&ndash;12 min.</strong></p>
-        <p><strong>Workout days:</strong> do the dynamic moves as a pre-workout warm-up,
-        and the holds in the evening as a wind-down.</p>
+        <p><strong>Workout days:</strong> do the holds &amp; extension in the evening as a
+        wind-down.</p>
         <p><strong>Rest days:</strong> do the whole routine in the evening in order.</p>
         <p>Expect noticeable improvement within 2&ndash;3 weeks of daily consistency. Some
         baseline morning stiffness is normal &mdash; discs rehydrate overnight; the goal is
@@ -507,13 +506,8 @@
     </details>
 
     <div class="pick-label">Start a session</div>
-    <button class="session-btn warm" data-session="warmup">
-      <div class="t">Workout day &middot; warm-up</div>
-      <div class="d">Dynamic moves to do before training.</div>
-      <div class="meta">5 moves &middot; no timers</div>
-    </button>
     <button class="session-btn wind" data-session="evening">
-      <div class="t">Workout day &middot; wind-down</div>
+      <div class="t">Workout day</div>
       <div class="d">Holds &amp; extension for the evening.</div>
       <div class="meta">4 moves &middot; timed holds</div>
     </button>
@@ -766,8 +760,7 @@ const EXERCISES = {
 };
 
 const SESSIONS = {
-  warmup: { name: 'Warm-up', list: ['cat-cow', 'thread-needle', 'open-book', 'hip-switches', 'bird-dog'] },
-  evening: { name: 'Wind-down', list: ['childs-pose', 'hip-flexor', 'prone-press', 'knees-to-chest'] },
+  evening: { name: 'Workout day', list: ['childs-pose', 'hip-flexor', 'prone-press', 'knees-to-chest'] },
   full: { name: 'Full routine', list: ['cat-cow', 'thread-needle', 'open-book', 'childs-pose', 'hip-switches', 'hip-flexor', 'prone-press', 'bird-dog', 'knees-to-chest'] }
 };
 
