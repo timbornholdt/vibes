@@ -31,7 +31,7 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 36px 24px 80px; }
+  .wrap { max-width: 680px; margin: 0 auto; padding: 36px 24px 80px; }
 
   header { margin-bottom: 8px; }
   .kicker {
@@ -118,76 +118,69 @@
   }
   .cmdbar b { color: #d9d2c5; }
 
-  /* ── Grid ── */
+  /* ── List ── */
   .sheet {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 30px 24px;
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid #2c2820;
   }
 
   .frame {
     text-decoration: none;
     color: inherit;
-    display: block;
-    position: relative;
-    background: #0a0a09;
-    border: 1px solid #2c2820;
-    padding: 12px;
-    transition: transform 0.14s, box-shadow 0.14s, border-color 0.14s;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 11px 6px;
+    border-bottom: 1px solid #2c2820;
+    transition: background 0.12s;
   }
-  .frame:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 14px 30px rgba(0,0,0,0.5);
-  }
-  .frame.lead { border-color: #c9b07a; }
+  .frame:hover { background: rgba(255,255,255,0.035); }
+  .frame.lead { box-shadow: inset 3px 0 0 #c9b07a; background: rgba(201,176,122,0.07); }
 
-  .neg {
-    position: relative;
-    overflow: hidden;
-    aspect-ratio: 4 / 3;
-    border: 1px solid #1c1a16;
-    background: radial-gradient(120% 120% at 50% 32%, #1c1a16 0%, #0a0a09 72%);
-  }
-  .art {
-    position: absolute; inset: 0;
+  .icon-box {
+    flex-shrink: 0;
+    width: 52px; height: 52px;
     display: flex; align-items: center; justify-content: center;
+    border: 1px solid #1c1a16;
+    border-radius: 8px;
+    background: radial-gradient(120% 120% at 50% 30%, #1c1a16 0%, #0a0a09 72%);
   }
-  .art svg {
-    width: 46%; height: 46%;
-    filter: drop-shadow(0 0 9px currentColor);
+  .icon-box svg {
+    width: 60%; height: 60%;
+    filter: drop-shadow(0 0 5px currentColor);
     transition: transform 0.16s ease;
   }
-  .frame:hover .art svg { transform: scale(1.08); }
-  .grease {
-    position: absolute;
-    top: 8px; left: 8px;
-    font-size: 11px; font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    padding: 2px 7px;
-    border-radius: 1px;
-    color: #161412;
-    transform: rotate(-3deg);
-    z-index: 2;
-  }
-  .label {
-    margin-top: 11px;
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
-  }
-  .label .title {
-    font-size: 14px;
+  .frame:hover .icon-box svg { transform: scale(1.1); }
+
+  .body { min-width: 0; flex: 1; }
+  .title-row { display: flex; align-items: center; gap: 8px; }
+  .title {
+    font-size: 15px;
     font-weight: 700;
     color: #f3ecdd;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
     line-height: 1.2;
   }
-  .label .file { font-size: 10px; color: #6a6356; white-space: nowrap; }
-  .desc { font-size: 11.5px; line-height: 1.5; color: #9b9485; margin-top: 5px; }
+  .cat-chip {
+    flex-shrink: 0;
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: #161412;
+    padding: 1px 6px;
+    border-radius: 2px;
+  }
+  .desc {
+    font-size: 12px; line-height: 1.4; color: #9b9485;
+    margin-top: 3px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .chev { flex-shrink: 0; color: #4a443a; font-size: 16px; }
 
-  .none { grid-column: 1/-1; padding: 40px 0; color: #8a8275; }
+  .none { padding: 40px 0; color: #8a8275; }
 </style>
 </head>
 <body>
@@ -307,15 +300,15 @@
     } else {
       sheet.innerHTML = visible.map((t, i) => `
         <a class="frame${term && !isRandom(term) && i === 0 ? " lead" : ""}" href="${t.file}">
-          <div class="neg" style="color:${greaseColor[t.cat]}">
-            <span class="grease" style="background:${greaseColor[t.cat]}">${t.cat}</span>
-            <div class="art">${icons[t.file] || ""}</div>
+          <div class="icon-box" style="color:${greaseColor[t.cat]}">${icons[t.file] || ""}</div>
+          <div class="body">
+            <div class="title-row">
+              <span class="title">${t.title}</span>
+              <span class="cat-chip" style="background:${greaseColor[t.cat]}">${t.cat}</span>
+            </div>
+            <div class="desc">${t.desc}</div>
           </div>
-          <div class="label">
-            <span class="title">${t.title}</span>
-            <span class="file">${t.file}</span>
-          </div>
-          <div class="desc">${t.desc}</div>
+          <span class="chev">&rsaquo;</span>
         </a>`).join("");
     }
     renderHint();
