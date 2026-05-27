@@ -228,6 +228,7 @@
     margin-top: 8px;
   }
 
+  .recover { --accent: var(--lav); }
   .wind { --accent: var(--amber); }
   .full { --accent: var(--green); }
 
@@ -325,7 +326,7 @@
     margin-bottom: 4px;
   }
 
-  .field .v { font-size: 15px; }
+  .field .v { font-size: 18px; line-height: 1.5; }
 
   .card a {
     color: var(--teal);
@@ -495,26 +496,34 @@
     <details>
       <summary>How to use this routine</summary>
       <div class="body">
-        <p><strong>Daily, ~10&ndash;12 min.</strong></p>
-        <p><strong>Workout days:</strong> do the holds &amp; extension in the evening as a
-        wind-down.</p>
-        <p><strong>Rest days:</strong> do the whole routine in the evening in order.</p>
+        <p><strong>Daily, in the evening.</strong> Pick a session below based on how hard
+        your back actually worked today &mdash; the harder you loaded it, the lighter the
+        wind-down should be.</p>
         <p>Expect noticeable improvement within 2&ndash;3 weeks of daily consistency. Some
         baseline morning stiffness is normal &mdash; discs rehydrate overnight; the goal is
         to move it out, not erase it.</p>
+        <p><strong>Sound:</strong> a chime plays when each timed hold ends. If you don&rsquo;t
+        hear it, check that your phone&rsquo;s silent/mute switch is OFF &mdash; iOS mutes
+        browser audio when that switch is on, even at full volume.
+        <button class="iconbtn" id="sound-test" type="button" style="margin-top:8px;">Test the chime</button></p>
       </div>
     </details>
 
-    <div class="pick-label">Start a session</div>
+    <div class="pick-label">How much did you work your back today?</div>
+    <button class="session-btn recover" data-session="recovery">
+      <div class="t">Worked it hard</div>
+      <div class="d">Heavy deadlifts, squats, rows &mdash; or a brutal day on your feet.</div>
+      <div class="meta">Recovery wind-down &middot; 5 gentle moves &middot; no extra loading</div>
+    </button>
     <button class="session-btn wind" data-session="evening">
-      <div class="t">Workout day</div>
-      <div class="d">Holds &amp; extension for the evening.</div>
-      <div class="meta">4 moves &middot; timed holds</div>
+      <div class="t">A normal training day</div>
+      <div class="d">Some lifting, or a long day of sitting and standing.</div>
+      <div class="meta">Holds &amp; gentle extension &middot; 4 moves</div>
     </button>
     <button class="session-btn full" data-session="full">
-      <div class="t">Rest day &middot; full routine</div>
-      <div class="d">All nine moves in order, one evening session.</div>
-      <div class="meta">9 moves &middot; timed holds</div>
+      <div class="t">Took it easy / rest day</div>
+      <div class="d">Nothing taxing on the back &mdash; time for the full tune-up.</div>
+      <div class="meta">Full routine &middot; 10 moves</div>
     </button>
 
     <div class="offline-note" id="offline-note"></div>
@@ -706,6 +715,15 @@ const EXERCISES = {
     purpose: 'Side-lying support isolates true thoracic rotation; pairs with Thread the Needle. Especially good for morning stiffness.',
     video: { label: 'Dr. Brian Damhoff, PT', url: 'https://www.youtube.com/watch?v=peeW19ofFUg' }
   },
+  'foam-roller': {
+    name: 'Foam Roller Thoracic Extension', type: 'dynamic', dose: '6–8 slow extensions across 2–3 spots',
+    setup: 'Lie on your back with the foam roller across your mid-back (under the shoulder blades), running perpendicular to your spine. Knees bent, feet flat. Lace your hands behind your head to cradle it, elbows toward the ceiling.',
+    execution: 'Gently arch your mid-back back over the roller, letting your head and shoulders drop toward the floor. Come back up. Then move the roller an inch or two up (or down) and repeat at a new spot along the mid-back. The bigger roller gives a broader, more supported lever — use it.',
+    cues: 'Brace your abs lightly so the bend stays in the mid-back, not the lower back. Let your hands fully support your head so the neck relaxes. Go slow — a couple of breaths at each spot. Stay above the lower ribs; never roll the lower back.',
+    mistakes: 'Arching from the lower back instead of the mid-back; placing the roller too low (over the lumbar spine); cranking the neck; rushing.',
+    purpose: 'Targets exactly the mid-back stiffness this routine is built around. The larger roller spans more of the spine and supports the extension, making it the best use for your bigger roller.',
+    video: { label: 'The Prehab Guys (PTs)', url: 'https://library.theprehabguys.com/vimeo-video/thoracic-spine-extension-on-foam-roller/' }
+  },
   'childs-pose': {
     name: "Child's Pose with Side Reach", type: 'hold', dose: '30s center, then 30s each side',
     setup: 'Kneel and sit hips back toward heels, arms extended forward, forehead toward the mat.',
@@ -721,7 +739,8 @@ const EXERCISES = {
     execution: 'Keeping the chest tall, rotate both knees over to the other side, switching the position. Move under control.',
     cues: 'Keep the torso upright and tall. Move slowly and own the end of each switch. Let the feet and knees settle to the floor on each side.',
     mistakes: 'Rushing the switches; rounding the back; using momentum instead of control.',
-    purpose: 'Tight hips from sitting feed stiffness into the lower back; restoring hip rotation lowers the demand on the lumbar spine. Carries over to your split squats too.'
+    purpose: 'Tight hips from sitting feed stiffness into the lower back; restoring hip rotation lowers the demand on the lumbar spine. Carries over to your split squats too.',
+    video: { label: 'The Prehab Guys (PTs)', url: 'https://library.theprehabguys.com/vimeo-video/90-90-hip-switch-stretch/' }
   },
   'hip-flexor': {
     name: 'Kneeling Hip Flexor Stretch', type: 'hold', dose: '45s per side',
@@ -760,8 +779,9 @@ const EXERCISES = {
 };
 
 const SESSIONS = {
-  evening: { name: 'Workout day', list: ['childs-pose', 'hip-flexor', 'prone-press', 'knees-to-chest'] },
-  full: { name: 'Full routine', list: ['cat-cow', 'thread-needle', 'open-book', 'childs-pose', 'hip-switches', 'hip-flexor', 'prone-press', 'bird-dog', 'knees-to-chest'] }
+  recovery: { name: 'Recovery wind-down', list: ['cat-cow', 'foam-roller', 'open-book', 'childs-pose', 'knees-to-chest'] },
+  evening: { name: 'Wind-down', list: ['childs-pose', 'hip-flexor', 'prone-press', 'knees-to-chest'] },
+  full: { name: 'Full routine', list: ['cat-cow', 'thread-needle', 'open-book', 'foam-roller', 'childs-pose', 'hip-switches', 'hip-flexor', 'prone-press', 'bird-dog', 'knees-to-chest'] }
 };
 
 const TYPE_LABEL = { dynamic: 'Dynamic', hold: 'Hold', strength: 'Strength' };
@@ -813,31 +833,46 @@ function ensureAudio() {
 }
 // Unlock audio on the very first interaction anywhere (iOS/Safari autoplay rules).
 window.addEventListener('pointerdown', ensureAudio, { once: true });
+// iOS suspends the context when the tab is backgrounded; wake it on return.
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && audioCtx && audioCtx.state !== 'running') audioCtx.resume();
+});
 
-function tone(freq, start, dur, peak) {
+function playTones(specs) {
   if (!audioCtx) return;
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o.type = 'sine';
-  o.frequency.value = freq;
-  const t = audioCtx.currentTime + start;
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(peak, t + 0.02);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  o.connect(g).connect(audioCtx.destination);
-  o.start(t);
-  o.stop(t + dur + 0.03);
+  const now = audioCtx.currentTime;
+  specs.forEach(([freq, start, dur, peak]) => {
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'sine';
+    o.frequency.value = freq;
+    const t = now + start;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(t);
+    o.stop(t + dur + 0.03);
+  });
+}
+// Schedule tones safely even if the context was suspended: resume first,
+// then play, so notes aren't queued against a frozen clock and dropped.
+function play(specs) {
+  ensureAudio();
+  if (!audioCtx) return;
+  if (audioCtx.state !== 'running') audioCtx.resume().then(() => playTones(specs)).catch(() => {});
+  else playTones(specs);
 }
 function vibrate(p) { if (navigator.vibrate) { try { navigator.vibrate(p); } catch (e) {} } }
 
 // Soft tick during the last seconds of a rest countdown.
-function cueTick() { ensureAudio(); tone(740, 0, 0.06, 0.15); vibrate(35); }
+function cueTick() { play([[740, 0, 0.06, 0.18]]); vibrate(35); }
 // A segment just ended — gentle two-note "ding-dong".
-function cueSegment() { ensureAudio(); tone(720, 0, 0.18, 0.4); tone(540, 0.14, 0.22, 0.4); vibrate([140, 70, 140]); }
+function cueSegment() { play([[720, 0, 0.18, 0.5], [540, 0.14, 0.22, 0.5]]); vibrate([140, 70, 140]); }
 // Rest is over, next segment starts — brighter rising "go".
-function cueGo() { ensureAudio(); tone(560, 0, 0.12, 0.42); tone(840, 0.1, 0.2, 0.42); vibrate(180); }
+function cueGo() { play([[560, 0, 0.12, 0.5], [840, 0.1, 0.2, 0.5]]); vibrate(180); }
 // Whole exercise finished — a clear three-note rising chime.
-function cueDone() { ensureAudio(); tone(660, 0, 0.18, 0.45); tone(880, 0.16, 0.18, 0.45); tone(1180, 0.32, 0.4, 0.45); vibrate([150, 80, 150, 80, 260]); }
+function cueDone() { play([[660, 0, 0.2, 0.6], [880, 0.18, 0.2, 0.6], [1180, 0.36, 0.5, 0.6]]); vibrate([150, 80, 150, 80, 260]); }
 
 // ── Timer ──
 const REST = 5; // seconds of transition/reposition time between consecutive holds
@@ -1058,6 +1093,7 @@ $('next').addEventListener('click', nextExercise);
 $('prev').addEventListener('click', prevExercise);
 $('quit').addEventListener('click', () => { stopTimer(); show('home'); });
 $('done-home').addEventListener('click', () => show('home'));
+$('sound-test').addEventListener('click', () => { ensureAudio(); cueDone(); });
 
 // ── Starfield ──
 const STAR_BAND = 1200; // matches the `rise` keyframe distance for a seamless loop
