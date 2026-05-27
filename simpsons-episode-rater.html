@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Simpsons Episode Rater (Seasons 1-8)</title>
+<style>
+  * { box-sizing: border-box; }
+
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Comic Sans MS', 'Comic Sans', 'Chalkboard SE', cursive, sans-serif;
+    color: #1a1a1a;
+    background-color: #6db8e8;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='180'%3E%3Cg fill='%23ffffff' fill-opacity='0.92'%3E%3Cellipse cx='55' cy='45' rx='44' ry='24'/%3E%3Cellipse cx='95' cy='34' rx='34' ry='22'/%3E%3Cellipse cx='30' cy='55' rx='30' ry='18'/%3E%3Cellipse cx='195' cy='128' rx='46' ry='26'/%3E%3Cellipse cx='232' cy='118' rx='32' ry='20'/%3E%3Cellipse cx='168' cy='140' rx='30' ry='18'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 260px 180px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .page { max-width: 720px; margin: 0 auto; padding: 14px 10px 60px; }
+
+  /* ── Beveled window chrome ── */
+  .window {
+    background: #ffd90f;
+    border: 4px solid #000;
+    box-shadow: 6px 6px 0 rgba(0,0,0,0.45);
+    margin: 14px 0;
+  }
+  .window > .bar {
+    background: linear-gradient(#3a6ea5, #1f4e79);
+    color: #fff;
+    font-weight: bold;
+    padding: 5px 10px;
+    border-bottom: 4px solid #000;
+    text-shadow: 1px 1px 0 #000;
+    letter-spacing: 0.5px;
+  }
+  .window > .pad { padding: 12px; }
+
+  /* ── Logo ── */
+  .logo {
+    text-align: center;
+    padding: 20px 8px 6px;
+  }
+  .logo h1 {
+    margin: 0;
+    font-family: 'Arial Black', Impact, 'Comic Sans MS', sans-serif;
+    font-weight: 900;
+    font-style: italic;
+    text-transform: uppercase;
+    color: #e51c23;
+    line-height: 0.92;
+    letter-spacing: -1px;
+    font-size: clamp(30px, 9vw, 60px);
+    -webkit-text-stroke: 2px #000;
+    text-shadow:
+      3px 3px 0 #fff,
+      5px 5px 0 #000;
+    transform: rotate(-2deg);
+  }
+  .logo .sub {
+    display: inline-block;
+    margin-top: 8px;
+    background: #fff;
+    border: 3px solid #000;
+    padding: 3px 10px;
+    font-weight: bold;
+    color: #1f4e79;
+    transform: rotate(1deg);
+    font-size: 14px;
+  }
+
+  /* ── Retro doodads ── */
+  .construction {
+    background: repeating-linear-gradient(45deg, #ffd90f 0 14px, #000 14px 28px);
+    border: 3px solid #000;
+    padding: 4px;
+    margin: 10px 0;
+  }
+  .construction div {
+    background: #ffd90f;
+    text-align: center;
+    font-weight: bold;
+    padding: 4px;
+    color: #000;
+    font-size: 13px;
+  }
+
+  .marquee {
+    overflow: hidden;
+    white-space: nowrap;
+    background: #000;
+    color: #38ff5c;
+    border: 3px solid #1f4e79;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    padding: 5px 0;
+  }
+  .marquee span {
+    display: inline-block;
+    padding-left: 100%;
+    animation: scroll 22s linear infinite;
+  }
+  @keyframes scroll { to { transform: translateX(-100%); } }
+
+  @keyframes blink { 50% { opacity: 0; } }
+  .blink {
+    animation: blink 1s step-start infinite;
+    color: #e51c23;
+    font-weight: bold;
+  }
+  .new-badge {
+    display: inline-block;
+    background: #e51c23;
+    color: #fff;
+    font-size: 9px;
+    font-weight: bold;
+    padding: 1px 4px;
+    border-radius: 3px;
+    vertical-align: middle;
+    animation: blink 1.2s step-start infinite;
+  }
+
+  .counter {
+    text-align: center;
+    font-size: 12px;
+    color: #1f4e79;
+    margin: 8px 0;
+  }
+  .odometer {
+    display: inline-block;
+    background: #000;
+    color: #38ff5c;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    letter-spacing: 3px;
+    padding: 3px 8px;
+    border: 2px inset #888;
+    font-size: 16px;
+  }
+
+  /* ── Buttons ── */
+  button {
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    background: #e6e6e6;
+    border: 3px outset #f4f4f4;
+    color: #000;
+    padding: 5px 10px;
+    font-weight: bold;
+  }
+  button:active { border-style: inset; }
+  button.tab {
+    margin: 2px;
+    background: #c9d9ec;
+    border: 3px outset #e8f0fa;
+  }
+  button.tab.on {
+    background: #e51c23;
+    color: #fff;
+    border: 3px inset #ff7a7f;
+  }
+  .tabrow { text-align: center; }
+
+  input[type=text] {
+    font-family: inherit;
+    font-size: 16px;
+    padding: 6px 8px;
+    border: 3px inset #ccc;
+    width: 100%;
+    max-width: 280px;
+  }
+  label { font-weight: bold; font-size: 13px; }
+
+  /* ── Episode cards ── */
+  .ep {
+    background: #fffbe6;
+    border: 3px ridge #c9a800;
+    margin: 10px 0;
+    padding: 10px;
+  }
+  .ep h3 {
+    margin: 0 0 4px;
+    font-size: 16px;
+    color: #1f4e79;
+  }
+  .ep .code {
+    background: #e51c23;
+    color: #fff;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-right: 6px;
+    white-space: nowrap;
+  }
+  .ep .aired { font-size: 11px; color: #555; }
+  .ep .synopsis { font-size: 13px; line-height: 1.45; margin: 6px 0 8px; }
+
+  .donuts { font-size: 24px; line-height: 1.3; user-select: none; }
+  .donuts .d {
+    cursor: pointer;
+    filter: grayscale(1) opacity(0.4);
+    transition: transform 0.08s;
+    display: inline-block;
+  }
+  .donuts .d.lit { filter: none; }
+  .donuts .d:hover { transform: scale(1.25); }
+
+  .ratingline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    align-items: center;
+    margin-top: 6px;
+    font-size: 13px;
+  }
+  .ratingline .yours { font-weight: bold; color: #c9a800; }
+  .ratingline .yours.set { color: #1f7a1f; }
+  .ratingline .agg { color: #1f4e79; }
+  .clear {
+    background: none;
+    border: none;
+    color: #e51c23;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 0;
+    font-weight: bold;
+  }
+
+  /* ── Stats ── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 8px;
+    margin: 8px 0;
+  }
+  .stat-box {
+    background: #fff;
+    border: 3px ridge #1f4e79;
+    text-align: center;
+    padding: 8px;
+  }
+  .stat-box b { display: block; font-size: 26px; color: #e51c23; }
+  .stat-box small { font-size: 11px; color: #333; }
+
+  table.lb { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; }
+  table.lb th, table.lb td { border: 1px solid #888; padding: 4px 6px; text-align: left; }
+  table.lb th { background: #1f4e79; color: #fff; }
+  table.lb td.num { text-align: right; font-weight: bold; }
+
+  .seasonbar {
+    background: #1f4e79;
+    color: #fff;
+    padding: 6px 10px;
+    font-weight: bold;
+    margin: 14px 0 4px;
+    border: 3px outset #4a82bd;
+  }
+
+  .progressbar {
+    background: #fff;
+    border: 3px inset #ccc;
+    height: 22px;
+    margin: 6px 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .progressbar .fill {
+    background: repeating-linear-gradient(45deg, #38c172 0 10px, #2fa862 10px 20px);
+    height: 100%;
+    width: 0;
+    transition: width 0.3s;
+  }
+  .progressbar .lbl {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    color: #000;
+  }
+
+  .note { font-size: 12px; color: #333; line-height: 1.5; }
+  .footer {
+    text-align: center;
+    font-size: 12px;
+    color: #1f4e79;
+    margin-top: 18px;
+    line-height: 1.7;
+  }
+  .footer a { color: #e51c23; }
+  hr.fancy {
+    border: none;
+    border-top: 3px double #1f4e79;
+    margin: 12px 0;
+  }
+  .btnrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="logo">
+    <h1>The Simpsons<br>Episode Rater</h1>
+    <div class="sub">~ Seasons 1 thru 8 ~ The Golden Age ~</div>
+  </div>
+
+  <div class="marquee"><span>&#9733; WELCOME TO MY HOMEPAGE &#9733; Rate every episode from the classic years &#9733; Your scores are saved right here in your browser &#9733; Mmm... donuts &#9733; D'OH! &#9733; Don't forget to export your ratings and send 'em to a friend! &#9733;</span></div>
+
+  <div class="construction"><div>&#128679; THIS SITE IS UNDER CONSTRUCTION &#128679; PLEASE EXCUSE OUR MESS &#128679;</div></div>
+
+  <div class="counter">
+    You are visitor number<br>
+    <span class="odometer" id="counter">000000</span>
+  </div>
+
+  <div class="window">
+    <div class="bar">&#128221; YOUR RATER PROFILE</div>
+    <div class="pad">
+      <label for="name">Sign your name (so your exported ratings have your name on 'em):</label><br>
+      <input type="text" id="name" placeholder="e.g. Bartman" maxlength="40" autocomplete="off">
+      <div class="progressbar" style="margin-top:10px;">
+        <div class="fill" id="progFill"></div>
+        <div class="lbl" id="progLbl">0 of 178 rated</div>
+      </div>
+      <div class="note">Click the donuts to rate each episode 1&ndash;10. Ten donuts = a perfect episode. Everything saves automatically and survives across visits.</div>
+    </div>
+  </div>
+
+  <div class="window">
+    <div class="bar">&#128190; SHARE &amp; AGGREGATE</div>
+    <div class="pad">
+      <div class="note" style="margin-bottom:8px;">No accounts, no server &mdash; everything stays in your browser. To pool scores with friends: each person <b>exports</b> their ratings to a file, then someone <b>imports</b> everybody's files here to see the combined averages.</div>
+      <div class="btnrow">
+        <button id="exportBtn">&#11015; Export my ratings</button>
+        <button id="importBtn">&#11014; Import a friend's file</button>
+        <input type="file" id="importFile" accept="application/json,.json" multiple style="display:none">
+      </div>
+      <div class="note" id="importStatus"></div>
+    </div>
+  </div>
+
+  <div class="tabrow" id="tabs"></div>
+
+  <div id="view"></div>
+
+  <div class="footer">
+    <hr class="fancy">
+    <span class="blink">&#9733; NEW! &#9733;</span> Now with all 178 classic episodes!<br>
+    Best viewed in Netscape Navigator 4.0 at 800&times;600<br>
+    <a href="javascript:void(0)" onclick="alert('Thanks for signing my guestbook! Cowabunga!');return false;">Sign my guestbook</a> |
+    <a href="index.html">&laquo; back to vibes</a><br>
+    Synopses written from memory of these episodes (SNPP couldn't be reached from the build environment).<br>
+    &copy; 1998 ~ Made with &#10084;&#65039; and a 56k modem
+  </div>
+
+</div>
+
+<script type="module">
+const SELF_KEY = 'simpsons-rater-v1';
+const IMPORTS_KEY = 'simpsons-imports-v1';
+const VISITS_KEY = 'simpsons-visits-v1';
+const SCHEMA = 'simpsons-episode-rater@1';
+
+// Episode data. Backtick-delimited so apostrophes/quotes need no escaping.
+// "@<season>|<years>" starts a season; other lines are "<num>|<title>|<aired>|<synopsis>".
+const RAW = `
+@1|1989–1990
+1|Simpsons Roasting on an Open Fire|Dec 17, 1989|Broke at Christmas, Homer takes a mall-Santa job and bets on a losing greyhound — then adopts him as Santa's Little Helper.
+2|Bart the Genius|Jan 14, 1990|Bart swaps tests with Martin and is misdiagnosed as a genius, landing him in a school for gifted kids.
+3|Homer's Odyssey|Jan 21, 1990|Fired from the plant and despondent, Homer reinvents himself as a crusading safety advocate.
+4|There's No Disgrace Like Home|Jan 28, 1990|Mortified by his family's behavior, Homer pawns the TV to pay for group therapy.
+5|Bart the General|Feb 4, 1990|Bart raises an army of neighborhood kids and recruits Grampa to take down bully Nelson Muntz.
+6|Moaning Lisa|Feb 11, 1990|A deeply sad Lisa finds kinship and comfort jamming with jazzman Bleeding Gums Murphy.
+7|The Call of the Simpsons|Feb 18, 1990|A disastrous camping trip leaves Homer wandering the woods and mistaken for Bigfoot.
+8|The Telltale Head|Feb 25, 1990|To impress some older kids, Bart saws the head off the statue of town founder Jebediah Springfield.
+9|Life on the Fast Lane|Mar 18, 1990|Neglected by Homer, Marge is tempted by a smooth-talking French bowling instructor named Jacques.
+10|Homer's Night Out|Mar 25, 1990|Bart snaps a photo of Homer dancing with a belly dancer, and the picture spreads all over town.
+11|The Crepes of Wrath|Apr 15, 1990|Sent to France as an exchange student, Bart is worked like a slave by a pair of crooked vintners.
+12|Krusty Gets Busted|Apr 29, 1990|When Krusty is framed for armed robbery, Bart sets out to clear his hero's name.
+13|Some Enchanted Evening|May 13, 1990|Homer and Marge's romantic night out leaves the kids with a babysitter who turns out to be a wanted crook.
+@2|1990–1991
+1|Bart Gets an "F"|Oct 11, 1990|Facing being held back a grade, Bart frantically studies and prays to pass a history test.
+2|Simpson and Delilah|Oct 18, 1990|A miracle hair-growth tonic transforms Homer into a rising executive at the plant.
+3|Treehouse of Horror|Oct 25, 1990|The first Halloween anthology: a haunted house, an alien abduction, and a reading of "The Raven."
+4|Two Cars in Every Garage and Three Eyes on Every Fish|Nov 1, 1990|Mr. Burns runs for governor after a three-eyed fish surfaces near his plant.
+5|Dancin' Homer|Nov 8, 1990|Homer becomes a beloved baseball mascot and gets called up to the big leagues.
+6|Dead Putting Society|Nov 15, 1990|A feud between Homer and Ned spills into a high-stakes miniature golf duel between Bart and Todd.
+7|Bart vs. Thanksgiving|Nov 22, 1990|Bart runs away after wrecking Lisa's centerpiece and ruining Thanksgiving dinner.
+8|Bart the Daredevil|Dec 6, 1990|Inspired by a daredevil, Bart resolves to jump Springfield Gorge on his skateboard.
+9|Itchy & Scratchy & Marge|Dec 20, 1990|After Maggie attacks Homer, Marge launches a crusade against cartoon violence.
+10|Bart Gets Hit by a Car|Jan 10, 1991|Mr. Burns's car clips Bart, and shyster lawyer Lionel Hutz pushes a fraudulent lawsuit.
+11|One Fish, Two Fish, Blowfish, Blue Fish|Jan 24, 1991|Told he has 24 hours to live after eating bad fugu, Homer tries to make the most of his last day.
+12|The Way We Was|Jan 31, 1991|Marge and Homer reminisce about how they fell in love back in high school.
+13|Homer vs. Lisa and the 8th Commandment|Feb 7, 1991|Homer's illegal cable hookup puts his conscience at war with Lisa's morals.
+14|Principal Charming|Feb 14, 1991|Tasked with finding Selma a husband, Homer instead sets up Skinner with Patty.
+15|Oh Brother, Where Art Thou?|Feb 21, 1991|Homer discovers a long-lost half-brother who runs a struggling car company.
+16|Bart's Dog Gets an "F"|Mar 7, 1991|Santa's Little Helper faces banishment unless he can pass obedience school.
+17|Old Money|Mar 28, 1991|After inheriting a fortune from a girlfriend, Grampa agonizes over the perfect way to spend it.
+18|Brush with Greatness|Apr 11, 1991|Marge's buried painting talent resurfaces when she's commissioned to paint Mr. Burns.
+19|Lisa's Substitute|Apr 25, 1991|An inspiring substitute, Mr. Bergstrom, gives Lisa the encouragement she's craving.
+20|The War of the Simpsons|May 2, 1991|On a marriage-counseling retreat, Homer becomes obsessed with catching a legendary catfish.
+21|Three Men and a Comic Book|May 9, 1991|Bart, Milhouse, and Martin pool their money for a rare comic, then turn on each other.
+22|Blood Feud|Jul 11, 1991|After Bart's blood saves Mr. Burns's life, the family stews when no thanks arrive.
+@3|1991–1992
+1|Stark Raving Dad|Sep 19, 1991|Committed to a mental institution, Homer befriends a large man who believes he is Michael Jackson.
+2|Mr. Lisa Goes to Washington|Sep 26, 1991|Lisa's patriotic essay wins a trip to D.C., where she witnesses real political corruption.
+3|When Flanders Failed|Oct 3, 1991|Homer's gleeful schadenfreude grows as Ned's new store, the Leftorium, heads for ruin.
+4|Bart the Murderer|Oct 10, 1991|Bart falls in with mobsters and becomes the prime suspect when Principal Skinner vanishes.
+5|Homer Defined|Oct 17, 1991|Homer averts a meltdown purely by luck and is hailed a hero, inspiring a brand-new verb.
+6|Like Father, Like Clown|Oct 24, 1991|The kids help Krusty reconcile with his estranged rabbi father.
+7|Treehouse of Horror II|Oct 31, 1991|Three nightmares: a wish-granting monkey's paw, Bart's mind-reading terror, and Mr. Burns's robotic heart.
+8|Lisa's Pony|Nov 7, 1991|To win back Lisa's affection, Homer buys her a pony and takes a grueling second job to pay for it.
+9|Saturdays of Thunder|Nov 14, 1991|Realizing he barely knows Bart, Homer helps him build a soapbox derby racer.
+10|Flaming Moe's|Nov 21, 1991|Moe steals Homer's secret cocktail recipe and turns his dive bar into the hottest spot in town.
+11|Burns Verkaufen der Kraftwerk|Dec 5, 1991|Mr. Burns sells the plant to German investors, putting Homer's job in jeopardy.
+12|I Married Marge|Dec 26, 1991|Homer recounts the unplanned pregnancy and shotgun wedding that launched the family.
+13|Radio Bart|Jan 9, 1992|Bart fakes a boy trapped in a well with a radio, and the hoax balloons out of his control.
+14|Lisa the Greek|Jan 23, 1992|Lisa bonds with Homer by picking winning football games for his betting.
+15|Homer Alone|Feb 6, 1992|Pushed to a breakdown, an overworked Marge takes a vacation and leaves Homer with the kids.
+16|Bart the Lover|Feb 13, 1992|Bart answers Mrs. Krabappel's lonely-hearts ad as a made-up dream suitor named Woodrow.
+17|Homer at the Bat|Feb 20, 1992|Mr. Burns stacks the plant's softball team with secretly recruited major-league ringers.
+18|Separate Vocations|Feb 27, 1992|Aptitude tests make Bart a power-tripping hall monitor and turn Lisa into a rebel.
+19|Dog of Death|Mar 12, 1992|The family sacrifices to save a sick Santa's Little Helper, who then runs off and is trained by Mr. Burns.
+20|Colonel Homer|Mar 26, 1992|Homer manages an aspiring country singer named Lurleen, straining his marriage.
+21|Black Widower|Apr 9, 1992|Sideshow Bob marries Selma in a scheme to murder her for her money.
+22|The Otto Show|Apr 23, 1992|After losing his license, bus driver Otto moves in with the Simpsons.
+23|Bart's Friend Falls in Love|May 7, 1992|Milhouse falls for a new girl, leaving Bart feeling jealous and abandoned.
+24|Brother, Can You Spare Two Dimes?|Aug 27, 1992|Homer's inventor half-brother arrives seeking revenge — then a shot at redemption.
+@4|1992–1993
+1|Kamp Krusty|Sep 24, 1992|Bart and Lisa endure a miserable, mismanaged Krusty-branded summer camp until the campers revolt.
+2|A Streetcar Named Marge|Oct 1, 1992|Marge lands the lead in a musical version of "A Streetcar Named Desire."
+3|Homer the Heretic|Oct 8, 1992|Homer quits church to invent his own laid-back religion, with near-fatal results.
+4|Lisa the Beauty Queen|Oct 15, 1992|To boost her self-esteem, Lisa enters the Little Miss Springfield pageant.
+5|Treehouse of Horror III|Oct 29, 1992|Three tales: King Homer, a murderous Krusty doll, and a zombie outbreak.
+6|Itchy & Scratchy: The Movie|Nov 3, 1992|Homer struggles to discipline Bart, refusing to let him see the new cartoon movie.
+7|Marge Gets a Job|Nov 5, 1992|Marge takes a job at the plant and draws the unwanted romantic attention of Mr. Burns.
+8|New Kid on the Block|Nov 12, 1992|Bart develops a serious crush on the older girl who moves in next door.
+9|Mr. Plow|Nov 19, 1992|Homer launches a hit snow-plow business, then faces off against Barney's rival operation.
+10|Lisa's First Word|Dec 3, 1992|The family recalls Lisa's babyhood and her hard-won, Homer-deflating first word.
+11|Homer's Triple Bypass|Dec 17, 1992|Homer needs heart surgery and can only afford the dubious skills of Dr. Nick.
+12|Marge vs. the Monorail|Jan 14, 1993|A slick con man sells Springfield a shoddy monorail, with Homer as its hapless conductor.
+13|Selma's Choice|Jan 21, 1993|Selma's yearning for a baby intensifies while she babysits a sugar-crazed Bart and Lisa.
+14|Brother from the Same Planet|Feb 4, 1993|Neglected by Homer, Bart signs up for a Big Brother mentor to get back at him.
+15|I Love Lisa|Feb 11, 1993|Lisa's pity Valentine gives Ralph Wiggum an unshakable, doomed crush.
+16|Duffless|Feb 18, 1993|After a DUI arrest, Homer takes Marge's dare to give up beer for a whole month.
+17|Last Exit to Springfield|Mar 11, 1993|Homer accidentally leads the power-plant union on strike to save their dental plan.
+18|So It's Come to This: A Simpsons Clip Show|Mar 25, 1993|Homer recovers from an April Fools' champagne-fountain prank gone wrong, in clip-show form.
+19|The Front|Apr 15, 1993|Bart and Lisa secretly write Itchy & Scratchy cartoons under Grampa's name.
+20|Whacking Day|Apr 29, 1993|Lisa sets out to stop Springfield's brutal annual snake-clubbing holiday.
+21|Marge in Chains|May 6, 1993|An exhausted Marge is jailed for shoplifting, and Springfield falls apart without her.
+22|Krusty Gets Kancelled|May 13, 1993|Out-rated by a ventriloquist dummy, Krusty mounts a star-studded comeback special.
+@5|1993–1994
+1|Homer's Barbershop Quartet|Sep 30, 1993|Homer recounts the rise and fall of his chart-topping barbershop group, the Be Sharps.
+2|Cape Feare|Oct 7, 1993|A paroled Sideshow Bob stalks Bart, forcing the family into witness protection on a houseboat.
+3|Homer Goes to College|Oct 14, 1993|Ordered to pass college to keep his job, Homer treats it like a frat movie and befriends three nerds.
+4|Rosebud|Oct 21, 1993|Mr. Burns pines for his lost childhood teddy bear, Bobo, which now belongs to Maggie.
+5|Treehouse of Horror IV|Oct 28, 1993|Homer sells his soul for a donut, plus a gremlin on the bus and vampire Mr. Burns.
+6|Marge on the Lam|Nov 4, 1993|A girls' night out with her new neighbor turns into a Thelma-and-Louise-style chase.
+7|Bart's Inner Child|Nov 11, 1993|A self-help guru's advice to "be like Bart" throws all of Springfield into chaos.
+8|Boy-Scoutz 'n the Hood|Nov 18, 1993|Bart accidentally joins the Junior Campers and ends up lost at sea with Homer and Flanders.
+9|The Last Temptation of Homer|Dec 9, 1993|Homer is tempted by a kind, attractive new coworker named Mindy.
+10|$pringfield (Or, How I Learned to Stop Worrying and Love Legalized Gambling)|Dec 16, 1993|Mr. Burns opens a casino where Homer deals blackjack as the town's gambling fever takes hold.
+11|Homer the Vigilante|Jan 6, 1994|Homer leads a bumbling neighborhood watch against a cat burglar plaguing the town.
+12|Bart Gets Famous|Feb 3, 1994|Bart becomes an overnight, one-catchphrase celebrity on Krusty's show.
+13|Homer and Apu|Feb 10, 1994|After getting Apu fired for selling spoiled meat, Homer helps him win back his job.
+14|Lisa vs. Malibu Stacy|Feb 17, 1994|Outraged by a sexist talking doll, Lisa creates her own empowering alternative.
+15|Deep Space Homer|Feb 24, 1994|NASA recruits a blue-collar everyman and blasts Homer into orbit.
+16|Homer Loves Flanders|Mar 17, 1994|Ned's relentless kindness wins Homer over — to Ned's mounting horror.
+17|Bart Gets an Elephant|Mar 31, 1994|Bart wins a radio contest and chooses a full-grown elephant named Stampy as his prize.
+18|Burns' Heir|Apr 14, 1994|Mr. Burns names Bart his heir and lures the boy away from his family.
+19|Sweet Seymour Skinner's Baadasssss Song|Apr 28, 1994|A Bart prank gets Skinner fired, and the boy is surprised to miss his old nemesis.
+20|The Boy Who Knew Too Much|May 5, 1994|Playing hooky, Bart becomes the only witness who can clear an innocent man.
+21|Lady Bouvier's Lover|May 12, 1994|Grampa and Mr. Burns compete for the heart of Marge's mother.
+22|Secrets of a Successful Marriage|May 19, 1994|Homer teaches an adult-ed class and keeps it interesting by spilling family secrets.
+@6|1994–1995
+1|Bart of Darkness|Sep 4, 1994|Laid up with a broken leg, a bored Bart uses a telescope and suspects he's witnessed a murder.
+2|Lisa's Rival|Sep 11, 1994|Lisa feels threatened by a gifted, overachieving new student named Allison.
+3|Another Simpsons Clip Show|Sep 25, 1994|Marge themes a clip show around the many loves and romances of Springfield.
+4|Itchy & Scratchy Land|Oct 2, 1994|The family visits a violent cartoon theme park where the robot characters run amok.
+5|Sideshow Bob Roberts|Oct 9, 1994|Sideshow Bob is sprung from prison to run for mayor against Diamond Joe Quimby.
+6|Treehouse of Horror V|Oct 30, 1994|A "Shining" spoof, a time-traveling toaster, and gourmet cafeteria cannibalism.
+7|Bart's Girlfriend|Nov 6, 1994|Bart falls for Reverend Lovejoy's wild, troublemaking daughter, Jessica.
+8|Lisa on Ice|Nov 13, 1994|Sibling rivalry boils over when Lisa and Bart end up as opposing peewee hockey goalies.
+9|Homer Badman|Nov 27, 1994|Homer is branded a pervert by the media after grabbing a gummy candy off a babysitter.
+10|Grampa vs. Sexual Inadequacy|Dec 4, 1994|Grampa and Homer bond while selling a mysterious folk-remedy aphrodisiac.
+11|Fear of Flying|Dec 18, 1994|Banned from Moe's, Homer must help Marge confront her fear of flying and buried trauma.
+12|Homer the Great|Jan 8, 1995|Homer joins the ancient secret society of the Stonecutters and rises to power.
+13|And Maggie Makes Three|Jan 22, 1995|Homer recalls how Maggie's surprise arrival upended his plans — and stole his heart.
+14|Bart's Comet|Feb 5, 1995|Bart discovers a comet hurtling straight toward Springfield.
+15|Homie the Clown|Feb 12, 1995|A broke Krusty franchises clown college, and a Homer look-alike runs afoul of the mob.
+16|Bart vs. Australia|Feb 19, 1995|A prank phone call to Australia sparks a full-blown international incident.
+17|Homer vs. Patty and Selma|Feb 26, 1995|Broke and desperate, Homer must grovel to his despised sisters-in-law for a loan.
+18|A Star Is Burns|Mar 5, 1995|A visiting film critic helps judge Springfield's film festival, where Mr. Burns competes.
+19|Lisa's Wedding|Mar 19, 1995|A fortune teller shows Lisa her future engagement to a snobbish young Englishman.
+20|Two Dozen and One Greyhounds|Apr 9, 1995|Santa's Little Helper fathers 25 puppies that a sweater-craving Mr. Burns covets.
+21|The PTA Disbands|Apr 16, 1995|A teachers' strike throws Springfield Elementary into total anarchy.
+22|'Round Springfield|Apr 30, 1995|A hospitalized Bart and a grieving Lisa cope with the death of mentor Bleeding Gums Murphy.
+23|The Springfield Connection|May 7, 1995|Marge becomes a police officer and clashes with crime — and her own family.
+24|Lemon of Troy|May 14, 1995|Bart leads Springfield's kids on a raid to reclaim a beloved lemon tree stolen by Shelbyville.
+25|Who Shot Mr. Burns? (Part One)|May 21, 1995|After a spree of villainy, Mr. Burns is found shot, leaving the whole town as suspects.
+@7|1995–1996
+1|Who Shot Mr. Burns? (Part Two)|Sep 17, 1995|Springfield hunts the shooter, and the culprit turns out to be a genuine surprise.
+2|Radioactive Man|Sep 24, 1995|A Radioactive Man movie shoots in Springfield, with Milhouse cast as sidekick Fallout Boy.
+3|Home Sweet Homediddly-Dum-Doodily|Oct 1, 1995|After a mix-up, the kids are taken from the Simpsons and placed in foster care with the Flanders.
+4|Bart Sells His Soul|Oct 8, 1995|Bart sells his soul to Milhouse for five dollars and begins to feel its eerie absence.
+5|Lisa the Vegetarian|Oct 15, 1995|Lisa swears off meat and clashes with her family, with help from Apu and the McCartneys.
+6|Treehouse of Horror VI|Oct 29, 1995|Giant ad mascots attack, Groundskeeper Willie haunts dreams, and Homer enters the third dimension.
+7|King-Size Homer|Nov 5, 1995|Homer deliberately balloons to 300 pounds to qualify for disability and work from home.
+8|Mother Simpson|Nov 19, 1995|Homer is reunited with his long-lost activist mother, who has been a fugitive for decades.
+9|Sideshow Bob's Last Gleaming|Nov 26, 1995|Sideshow Bob threatens to detonate a nuclear bomb unless Springfield abolishes television.
+10|The Simpsons 138th Episode Spectacular|Dec 3, 1995|Troy McClure hosts a clip show of rare cuts, bloopers, and behind-the-scenes oddities.
+11|Marge Be Not Proud|Dec 17, 1995|Caught shoplifting a video game, Bart fears he's lost Marge's love forever.
+12|Team Homer|Jan 6, 1996|Homer's beloved bowling team is threatened by Mr. Burns and a town-wide muumuu mandate.
+13|Two Bad Neighbors|Jan 14, 1996|Former president George H. W. Bush moves in across the street and feuds with Bart.
+14|Scenes from the Class Struggle in Springfield|Feb 4, 1996|Marge angles to get the family accepted into an exclusive country club.
+15|Bart the Fink|Feb 11, 1996|Bart accidentally exposes Krusty's tax fraud, leading the clown to fake his own death.
+16|Lisa the Iconoclast|Feb 18, 1996|Lisa uncovers proof that revered town founder Jebediah Springfield was a murderous fraud.
+17|Homer the Smithers|Feb 25, 1996|A vacationing Smithers trains the hopelessly incompetent Homer as his temporary replacement.
+18|The Day the Violence Died|Mar 17, 1996|Bart befriends the cheated, destitute true creator of Itchy & Scratchy.
+19|A Fish Called Selma|Mar 24, 1996|Washed-up actor Troy McClure marries Selma to rehab his image and revive his career.
+20|Bart on the Road|Mar 31, 1996|Armed with a fake ID and a rental car, Bart and his friends take a secret road trip.
+21|22 Short Films About Springfield|Apr 14, 1996|Interwoven vignettes follow the townspeople through a single eventful day.
+22|Raging Abe Simpson and His Grumbling Grandson in 'The Curse of the Flying Hellfish'|Apr 28, 1996|Grampa and Mr. Burns, old war buddies, clash over a cache of looted WWII paintings.
+23|Much Apu About Nothing|May 5, 1996|Facing deportation amid an anti-immigrant panic, Apu studies to become a U.S. citizen.
+24|Homerpalooza|May 19, 1996|Homer becomes a freak-show act on a touring alternative-rock festival.
+25|Summer of 4 Ft. 2|May 19, 1996|On a beach vacation, Lisa reinvents herself to finally make some cool friends.
+@8|1996–1997
+1|Treehouse of Horror VII|Oct 27, 1996|Bart's long-hidden evil twin, an alien-replaced presidential election, and Lisa's tiny civilization.
+2|You Only Move Twice|Nov 3, 1996|Homer lands his dream job working for a charming supervillain bent on world domination.
+3|The Homer They Fall|Nov 10, 1996|Homer becomes a boxer who wins fights simply by absorbing endless punishment.
+4|Burns, Baby Burns|Nov 17, 1996|Mr. Burns reconnects with his estranged, dim-witted illegitimate son, Larry.
+5|Bart After Dark|Nov 24, 1996|Doing chores as punishment, Bart ends up working at a burlesque house and scandalizes the town.
+6|A Milhouse Divided|Dec 1, 1996|The bitter divorce of Milhouse's parents prompts Homer to surprise Marge.
+7|Lisa's Date with Density|Dec 15, 1996|Lisa develops an unexpected crush on schoolyard bully Nelson Muntz.
+8|Hurricane Neddy|Dec 29, 1996|A hurricane and the town's botched goodwill finally push the saintly Ned to his breaking point.
+9|El Viaje Misterioso de Nuestro Jomer (The Mysterious Voyage of Homer)|Jan 5, 1997|A blast of insanity-pepper chili sends Homer on a coyote-guided spiritual journey.
+10|The Springfield Files|Jan 12, 1997|Agents Mulder and Scully investigate Homer's sighting of a glowing alien in the woods.
+11|The Twisted World of Marge Simpson|Jan 19, 1997|Marge starts a pretzel franchise and runs headlong into the local mob.
+12|Mountain of Madness|Feb 2, 1997|A plant team-building exercise strands Homer and Mr. Burns together in a snowbound cabin.
+13|Simpsoncalifragilisticexpiala(Annoyed Grunt)cious|Feb 7, 1997|A magical nanny floats in to set the chaotic Simpson household right.
+14|The Itchy & Scratchy & Poochie Show|Feb 9, 1997|A flagging cartoon adds a hip new dog, Poochie, voiced by Homer.
+15|Homer's Phobia|Feb 16, 1997|Homer panics that a gay shopkeeper friend is influencing Bart.
+16|Brother from Another Series|Feb 23, 1997|Sideshow Bob is paroled into the care of his even-more-resentful brother, Cecil.
+17|My Sister, My Sitter|Mar 2, 1997|Babysitter Lisa loses control of the night when Bart is injured on her watch.
+18|Homer vs. the Eighteenth Amendment|Mar 16, 1997|Prohibition returns to Springfield and Homer becomes a masked bootlegger called the Beer Baron.
+19|Grade School Confidential|Apr 6, 1997|Bart is sworn to keep the blossoming secret romance between Skinner and Mrs. Krabappel.
+20|The Canine Mutiny|Apr 13, 1997|Bart buys a brilliant dog on fraudulent credit, then must give up Santa's Little Helper.
+21|The Old Man and the Lisa|Apr 20, 1997|A bankrupt Mr. Burns enlists Lisa to help rebuild his fortune through recycling.
+22|In Marge We Trust|Apr 27, 1997|Marge becomes the church's beloved listening ear, sidelining Reverend Lovejoy.
+23|Homer's Enemy|May 4, 1997|Hardworking new hire Frank Grimes is slowly driven mad by Homer's impossibly charmed life.
+24|The Simpsons Spin-Off Showcase|May 11, 1997|Troy McClure presents three groan-worthy mock spin-off pilots starring Simpsons characters.
+25|The Secret War of Lisa Simpson|May 18, 1997|Lisa thrives at a strict military academy while Bart struggles to keep up.
+`;
+
+function parseData(raw) {
+  const out = [];
+  let cur = null;
+  for (const line of raw.split('\n')) {
+    const t = line.trim();
+    if (!t) continue;
+    if (t[0] === '@') {
+      const [s, year] = t.slice(1).split('|');
+      cur = { season: Number(s), year, eps: [] };
+      out.push(cur);
+    } else if (cur) {
+      const parts = t.split('|');
+      cur.eps.push([Number(parts[0]), parts[1], parts[2], parts[3]]);
+    }
+  }
+  return out;
+}
+
+const DATA = parseData(RAW);
+const TOTAL = DATA.reduce((n, s) => n + s.eps.length, 0);
+
+function readJSON(key, fallback) {
+  try { const raw = localStorage.getItem(key); return raw == null ? fallback : JSON.parse(raw); }
+  catch (e) { return fallback; }
+}
+function writeJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+
+function makeId() { return 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+let self = readJSON(SELF_KEY, null);
+if (!self || typeof self !== 'object') self = { id: makeId(), name: '', ratings: {} };
+if (!self.id) self.id = makeId();
+if (!self.ratings) self.ratings = {};
+
+let imports = readJSON(IMPORTS_KEY, {});
+if (!imports || typeof imports !== 'object') imports = {};
+
+function saveSelf() { writeJSON(SELF_KEY, self); }
+function saveImports() { writeJSON(IMPORTS_KEY, imports); }
+
+// Visitor counter (just for fun, persists locally).
+let visits = Number(readJSON(VISITS_KEY, 0)) || 0;
+visits += 1;
+writeJSON(VISITS_KEY, visits);
+const shown = 13427 + visits; // a respectable head start
+document.getElementById('counter').textContent = String(shown).padStart(6, '0');
+
+// All raters = self + imports.
+function allRaters() {
+  const list = [{ name: self.name || 'You', ratings: self.ratings, isSelf: true }];
+  for (const id in imports) {
+    if (id === self.id) continue; // don't double-count if you imported your own file
+    list.push({ name: imports[id].name || 'Anon', ratings: imports[id].ratings || {} });
+  }
+  return list;
+}
+
+function aggregateFor(epId) {
+  let sum = 0, count = 0;
+  for (const r of allRaters()) {
+    const v = r.ratings[epId];
+    if (typeof v === 'number') { sum += v; count += 1; }
+  }
+  return count ? { avg: sum / count, count } : { avg: null, count: 0 };
+}
+
+const nameInput = document.getElementById('name');
+nameInput.value = self.name || '';
+nameInput.addEventListener('input', () => { self.name = nameInput.value.trim(); saveSelf(); });
+
+const tabsEl = document.getElementById('tabs');
+const viewEl = document.getElementById('view');
+let activeTab = 1;
+
+function buildTabs() {
+  let html = '';
+  for (const s of DATA) html += `<button class="tab" data-tab="${s.season}">S${s.season}</button>`;
+  html += `<button class="tab" data-tab="stats">&#128202; Ratings</button>`;
+  tabsEl.innerHTML = html;
+  tabsEl.addEventListener('click', (e) => {
+    const b = e.target.closest('.tab');
+    if (!b) return;
+    const t = b.dataset.tab;
+    activeTab = (t === 'stats') ? 'stats' : Number(t);
+    render();
+    window.scrollTo({ top: tabsEl.offsetTop - 8, behavior: 'smooth' });
+  });
+}
+
+function setRating(epId, val) {
+  if (self.ratings[epId] === val) delete self.ratings[epId];
+  else self.ratings[epId] = val;
+  saveSelf();
+  render();
+}
+
+function donutRow(epId) {
+  const mine = self.ratings[epId];
+  let html = '<span class="donuts" data-ep="' + epId + '">';
+  for (let i = 1; i <= 10; i++) {
+    const lit = (typeof mine === 'number' && i <= mine) ? ' lit' : '';
+    html += `<span class="d${lit}" data-val="${i}" title="${i}/10">🍩</span>`;
+  }
+  html += '</span>';
+  return html;
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function episodeCard(s, ep) {
+  const [num, title, aired, syn] = ep;
+  const epId = s.season + '-' + num;
+  const mine = self.ratings[epId];
+  const agg = aggregateFor(epId);
+  const yoursTxt = (typeof mine === 'number')
+    ? `<span class="yours set">Your score: ${mine}/10</span> <button class="clear" data-clear="${epId}">clear</button>`
+    : `<span class="yours">Not rated yet</span>`;
+  const aggTxt = agg.count
+    ? `<span class="agg">Group avg: <b>${agg.avg.toFixed(1)}</b>/10 (${agg.count} rater${agg.count === 1 ? '' : 's'})</span>`
+    : '';
+  return `
+    <div class="ep">
+      <h3><span class="code">S${s.season}E${num}</span>${escapeHtml(title)}</h3>
+      <div class="aired">First aired ${escapeHtml(aired)}</div>
+      <div class="synopsis">${escapeHtml(syn)}</div>
+      ${donutRow(epId)}
+      <div class="ratingline">${yoursTxt} ${aggTxt}</div>
+    </div>`;
+}
+
+function renderSeason(seasonNum) {
+  const s = DATA.find(d => d.season === seasonNum);
+  let rated = 0;
+  for (const ep of s.eps) if (typeof self.ratings[s.season + '-' + ep[0]] === 'number') rated++;
+  let html = `<div class="seasonbar">Season ${s.season} &middot; ${s.year} &middot; ${s.eps.length} episodes &middot; you've rated ${rated}</div>`;
+  html += s.eps.map(ep => episodeCard(s, ep)).join('');
+  viewEl.innerHTML = html;
+  viewEl.querySelectorAll('.donuts').forEach(row => {
+    row.addEventListener('click', (e) => {
+      const d = e.target.closest('.d');
+      if (!d) return;
+      setRating(row.dataset.ep, Number(d.dataset.val));
+    });
+  });
+  viewEl.querySelectorAll('[data-clear]').forEach(btn => {
+    btn.addEventListener('click', () => setRating(btn.dataset.clear, self.ratings[btn.dataset.clear]));
+  });
+}
+
+function renderStats() {
+  const raters = allRaters();
+  const myCount = Object.keys(self.ratings).filter(k => typeof self.ratings[k] === 'number').length;
+
+  const rows = [];
+  let groupSum = 0, groupN = 0;
+  const seasonAgg = {};
+  for (const s of DATA) {
+    seasonAgg[s.season] = { sum: 0, n: 0 };
+    for (const ep of s.eps) {
+      const epId = s.season + '-' + ep[0];
+      const a = aggregateFor(epId);
+      if (a.count) {
+        rows.push({ label: `S${s.season}E${ep[0]} — ${ep[1]}`, avg: a.avg, count: a.count });
+        groupSum += a.avg; groupN += 1;
+        seasonAgg[s.season].sum += a.avg; seasonAgg[s.season].n += 1;
+      }
+    }
+  }
+
+  const overall = groupN ? (groupSum / groupN) : null;
+  rows.sort((a, b) => b.avg - a.avg || b.count - a.count);
+  const top = rows.slice(0, 10);
+  const bottom = rows.slice().reverse().slice(0, 10);
+
+  let html = '<div class="window"><div class="bar">&#128202; THE RATINGS SO FAR</div><div class="pad">';
+  html += `<div class="progressbar"><div class="fill" style="width:${(myCount / TOTAL * 100).toFixed(1)}%"></div><div class="lbl">You've rated ${myCount} of ${TOTAL}</div></div>`;
+
+  html += '<div class="stat-grid">';
+  html += `<div class="stat-box"><b>${myCount}</b><small>episodes you rated</small></div>`;
+  html += `<div class="stat-box"><b>${raters.length}</b><small>rater${raters.length === 1 ? '' : 's'} in the pool</small></div>`;
+  html += `<div class="stat-box"><b>${overall == null ? '—' : overall.toFixed(1)}</b><small>overall group avg</small></div>`;
+  html += '</div>';
+
+  html += '<hr class="fancy"><b>Average score by season</b><table class="lb"><tr><th>Season</th><th>Episodes scored</th><th>Avg</th></tr>';
+  for (const s of DATA) {
+    const sa = seasonAgg[s.season];
+    html += `<tr><td>Season ${s.season}</td><td>${sa.n}</td><td class="num">${sa.n ? (sa.sum / sa.n).toFixed(2) : '—'}</td></tr>`;
+  }
+  html += '</table>';
+
+  if (top.length) {
+    html += '<hr class="fancy"><b>&#127942; Top rated</b><table class="lb"><tr><th>Episode</th><th>Avg</th><th>#</th></tr>';
+    for (const r of top) html += `<tr><td>${escapeHtml(r.label)}</td><td class="num">${r.avg.toFixed(1)}</td><td class="num">${r.count}</td></tr>`;
+    html += '</table>';
+
+    html += '<hr class="fancy"><b>&#128169; Lowest rated</b><table class="lb"><tr><th>Episode</th><th>Avg</th><th>#</th></tr>';
+    for (const r of bottom) html += `<tr><td>${escapeHtml(r.label)}</td><td class="num">${r.avg.toFixed(1)}</td><td class="num">${r.count}</td></tr>`;
+    html += '</table>';
+  } else {
+    html += '<hr class="fancy"><div class="note">No ratings yet. Click some donuts on the season tabs to get started!</div>';
+  }
+
+  const ids = Object.keys(imports).filter(id => id !== self.id);
+  if (ids.length) {
+    html += '<hr class="fancy"><b>Imported raters</b><div class="note">';
+    html += ids.map(id => `${escapeHtml(imports[id].name || 'Anon')} (${Object.keys(imports[id].ratings || {}).length} ratings) <button class="clear" data-rmimport="${id}">remove</button>`).join('<br>');
+    html += '</div>';
+  }
+
+  html += '</div></div>';
+  viewEl.innerHTML = html;
+
+  viewEl.querySelectorAll('[data-rmimport]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      delete imports[btn.dataset.rmimport];
+      saveImports();
+      render();
+    });
+  });
+}
+
+function render() {
+  tabsEl.querySelectorAll('.tab').forEach(b => {
+    const t = b.dataset.tab;
+    const on = (t === 'stats' && activeTab === 'stats') || Number(t) === activeTab;
+    b.classList.toggle('on', on);
+  });
+  if (activeTab === 'stats') renderStats();
+  else renderSeason(activeTab);
+  updateProgress();
+}
+
+function updateProgress() {
+  const myCount = Object.keys(self.ratings).filter(k => typeof self.ratings[k] === 'number').length;
+  document.getElementById('progFill').style.width = (myCount / TOTAL * 100).toFixed(1) + '%';
+  document.getElementById('progLbl').textContent = `${myCount} of ${TOTAL} rated`;
+}
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  self.name = nameInput.value.trim();
+  saveSelf();
+  const payload = {
+    schema: SCHEMA,
+    raterId: self.id,
+    name: self.name || 'Anonymous',
+    exportedAt: new Date().toISOString(),
+    ratings: self.ratings,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const safe = (self.name || 'anon').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'anon';
+  a.href = url;
+  a.download = `simpsons-ratings-${safe}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+const importFile = document.getElementById('importFile');
+document.getElementById('importBtn').addEventListener('click', () => importFile.click());
+
+importFile.addEventListener('change', async () => {
+  const status = document.getElementById('importStatus');
+  const files = Array.from(importFile.files || []);
+  if (!files.length) return;
+  let ok = 0, bad = 0;
+  for (const f of files) {
+    try {
+      const obj = JSON.parse(await f.text());
+      if (obj && obj.schema === SCHEMA && obj.ratings && typeof obj.ratings === 'object') {
+        const id = obj.raterId || makeId();
+        imports[id] = { name: obj.name || 'Anon', ratings: obj.ratings, importedAt: Date.now() };
+        ok++;
+      } else { bad++; }
+    } catch (e) { bad++; }
+  }
+  saveImports();
+  importFile.value = '';
+  status.innerHTML = `Imported ${ok} file${ok === 1 ? '' : 's'}.` + (bad ? ` ${bad} couldn't be read (wrong format).` : '');
+  activeTab = 'stats';
+  render();
+});
+
+buildTabs();
+render();
+</script>
+</body>
+</html>
