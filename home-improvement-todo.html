@@ -649,6 +649,19 @@ let collapsed = false;
 // Cache locally + push to the server (last-write-wins), via the shared gate.
 function save() { VibesSync.save(KEY, tasks); }
 
+// Drop malformed records and coerce missing fields so one bad item (from a
+// corrupted cache or a stale/foreign server payload) can't break the list.
+function sanitize(list) {
+  if (!Array.isArray(list)) return null;
+  const clean = list.filter(t => t && typeof t === 'object' && typeof t.id === 'string' && typeof t.text === 'string');
+  clean.forEach((t, i) => {
+    t.completedAt = (typeof t.completedAt === 'number') ? t.completedAt : null;
+    t.createdAt = (typeof t.createdAt === 'number') ? t.createdAt : Date.now();
+    if (typeof t.order !== 'number') t.order = i;
+  });
+  return clean;
+}
+
 const active = () => tasks.filter(t => t.completedAt == null).sort((a, b) => a.order - b.order);
 const done   = () => tasks.filter(t => t.completedAt != null).sort((a, b) => b.completedAt - a.completedAt);
 const byId   = (id) => tasks.find(t => t.id === id);
@@ -785,21 +798,26 @@ addInput.addEventListener('keydown', (e) => {
 });
 
 // ── Complete ──
+const completing = new Set(); // ids whose complete-animation is in flight
+
 function completeTask(id, rowEl) {
   const t = byId(id);
-  if (!t) return;
+  if (!t || completing.has(id)) return; // ignore repeat taps during the animation
   const finish = () => {
+    completing.delete(id);
     t.completedAt = Date.now();
     renumber();
     save();
     render();
   };
   if (rowEl) {
+    completing.add(id);
+    const check = rowEl.querySelector('.check');
+    if (check) check.disabled = true;
     rowEl.style.maxHeight = rowEl.offsetHeight + 'px';
     // force reflow so the transition from a real height runs
     void rowEl.offsetHeight;
     rowEl.classList.add('completing');
-    const check = rowEl.querySelector('.check');
     if (check) { check.style.background = 'var(--accent)'; check.style.borderColor = 'var(--accent)';
       const svg = check.querySelector('svg'); if (svg) { svg.style.opacity = 1; svg.style.transform = 'scale(1)'; } }
     let done2 = false;
@@ -876,16 +894,34 @@ window.addEventListener('resize', closeMenu);
 const editOverlay = document.getElementById('edit-overlay');
 const editText = document.getElementById('edit-text');
 let editId = null;
+let focusBackId = null; // task whose ⋮ should regain focus when a modal closes
+
+function anyModalOpen() {
+  return editOverlay.classList.contains('open') || delOverlay.classList.contains('open');
+}
+function setScrollLock(on) { document.body.style.overflow = on ? 'hidden' : ''; }
+function afterModalClose() {
+  if (anyModalOpen()) return;
+  setScrollLock(false);
+  const id = focusBackId; focusBackId = null;
+  if (id) {
+    const row = [...activeList.querySelectorAll('.row')].find(r => r.dataset.id === id);
+    const k = row && row.querySelector('.kebab');
+    if (k) k.focus();
+  }
+}
 
 function openEdit(id) {
   const t = byId(id);
   if (!t) return;
   editId = id;
+  focusBackId = id;
   editText.value = t.text;
+  setScrollLock(true);
   editOverlay.classList.add('open');
   setTimeout(() => { editText.focus(); editText.setSelectionRange(editText.value.length, editText.value.length); }, 60);
 }
-function closeEdit() { editOverlay.classList.remove('open'); editId = null; }
+function closeEdit() { editOverlay.classList.remove('open'); editId = null; afterModalClose(); }
 function saveEdit() {
   const t = byId(editId);
   const v = editText.value.trim();
@@ -908,10 +944,12 @@ function openDelete(id) {
   const t = byId(id);
   if (!t) return;
   delId = id;
+  focusBackId = id; // no-op once the row is gone; afterModalClose guards on existence
   delPreview.textContent = '“' + (t.text.length > 90 ? t.text.slice(0, 90) + '…' : t.text) + '”';
+  setScrollLock(true);
   delOverlay.classList.add('open');
 }
-function closeDelete() { delOverlay.classList.remove('open'); delId = null; }
+function closeDelete() { delOverlay.classList.remove('open'); delId = null; afterModalClose(); }
 function confirmDelete() {
   const i = tasks.findIndex(t => t.id === delId);
   if (i >= 0) { tasks.splice(i, 1); renumber(); save(); render(); }
@@ -984,9 +1022,10 @@ function startDrag(row, e) {
   if (rows.length < 2) return;
   const fromIndex = rows.indexOf(row);
   const rects = rows.map(r => r.getBoundingClientRect());
-  const slotH = rows.length > 1
-    ? Math.abs(rects[Math.min(fromIndex + 1, rows.length - 1)].top - rects[Math.max(fromIndex - 1, 0)].top) / (Math.min(fromIndex + 1, rows.length - 1) - Math.max(fromIndex - 1, 0))
-    : rects[fromIndex].height;
+  // Shift other rows by the *dragged* row's own slot (its height + the list's
+  // 10px flex gap), so the gap that opens matches its real footprint even when
+  // rows differ in height (the "Now" row and multi-line tasks are taller).
+  const slotH = rects[fromIndex].height + 10;
 
   drag = { row, rows, rects, fromIndex, toIndex: fromIndex, startY: e.clientY, slotH };
   row.classList.add('dragging');
@@ -1054,10 +1093,12 @@ if ('serviceWorker' in navigator) {
 // Gate on the token, hydrate from the server (or seed on first run), then render.
 (async function init() {
   const r = await VibesSync.unlock(KEY);
-  if (r.value && Array.isArray(r.value) && r.value.length) {
-    tasks = r.value;
+  const clean = sanitize(r.value);
+  if (clean && clean.length) {
+    tasks = clean;
+    renumber(); // normalize order indices from whatever was stored
   } else {
-    // first unlock on an empty server — seed and push it up
+    // first unlock on an empty server (or unusable payload) — seed and push it up
     tasks = seed();
     save();
   }
