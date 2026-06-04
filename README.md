@@ -30,6 +30,41 @@ Every page on the index gets a hand-made SVG icon representing what it does —
 - Aim for one clear, recognizable concept per icon (e.g. a vinyl record, a skull,
   a game controller) rather than literal screenshots.
 
+## Sync across devices (VibesSync)
+
+For tools that need their data on phone + laptop. Backed by `server/vibes-store.py`
+(single-user `/api/store/<key>` JSON KV, one shared bearer token). See
+`server/README.md` for the backend. Used by `house-gripes.html`,
+`tattoo-care.html`, `home-improvement-todo.html`.
+
+How to add it to a tool:
+
+1. **Copy the `VibesSync` IIFE verbatim** from any gated tool (search
+   `vibes-sync:`) into a plain `<script>` *before* your main script. Don't
+   re-style or fork it — it's a shared block; keep it identical so the token
+   gate stays consistent.
+2. Pick a versioned key: `const KEY = '<tool>-v1';` (must be unique per tool).
+3. Gate + hydrate on load, then render:
+   ```js
+   (async function init() {
+     const r = await VibesSync.unlock(KEY); // shows lock screen until a valid token
+     state = (r.value != null) ? r.value : defaultState(); // r.value is null on first run
+     render();
+   })();
+   ```
+4. Persist on every change: `function save() { VibesSync.save(KEY, state); }`
+   (fire-and-forget; caches locally then PUTs).
+
+Behavior: `unlock` prompts for the token once per device (stored as
+`vibes-token` in `localStorage`, shared across all gated tools), loads from the
+server, and falls back to local cache when offline. `save` is last-write-wins.
+`r.value` is whatever you last saved (any JSON-able value); it's `null` only
+when the server has nothing yet — seed there and `save()` to push it up.
+
+Notes: gating hides nothing already shipped — the source is public, so don't
+store secrets. `KEY` must match the server's value key. Bumping `-v1`→`-v2`
+abandons old data (no migration).
+
 ## Deploy
 
 GitHub Actions → rsync over SSH on every push to `main`.
