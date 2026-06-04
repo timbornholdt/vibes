@@ -467,8 +467,142 @@
   </div>
 </div>
 
+<script>
+/* vibes-sync: shared token gate + JSON sync for gated tools.
+   The same block is inlined into each gated tool (files must be self-contained). */
+window.VibesSync = (function () {
+  const TOKEN_KEY = 'vibes-token';
+  const BASE = '/api/store/';
+  let token = localStorage.getItem(TOKEN_KEY) || '';
+  let gateEl, gateInput, gateErr, resolver;
+
+  function injectStyle() {
+    if (document.getElementById('vibes-gate-style')) return;
+    const s = document.createElement('style');
+    s.id = 'vibes-gate-style';
+    s.textContent =
+      '.vibes-gate{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;' +
+      'justify-content:center;background:#0a0a0a;padding:24px;' +
+      "font-family:'JetBrains Mono','Fira Mono',ui-monospace,monospace;}" +
+      '.vibes-gate-box{width:100%;max-width:340px;display:flex;flex-direction:column;gap:12px;}' +
+      '.vibes-gate-title{color:#FFE600;font-size:28px;font-weight:900;text-transform:uppercase;letter-spacing:-1px;}' +
+      '.vibes-gate-sub{color:#888;font-size:12px;line-height:1.5;}' +
+      '.vibes-gate-input{font-size:16px;padding:12px;background:#161616;border:1px solid #2a2a2a;color:#ececec;border-radius:6px;width:100%;}' +
+      '.vibes-gate-input:focus{outline:none;border-color:#FF2D78;}' +
+      '.vibes-gate-btn{font-size:16px;padding:12px;background:#FF2D78;color:#000;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-family:inherit;text-transform:uppercase;letter-spacing:1px;}' +
+      '.vibes-gate-err{color:#FF2D78;font-size:12px;min-height:16px;}';
+    document.head.appendChild(s);
+  }
+
+  function buildGate() {
+    injectStyle();
+    gateEl = document.createElement('div');
+    gateEl.className = 'vibes-gate';
+    const box = document.createElement('div');
+    box.className = 'vibes-gate-box';
+    box.innerHTML =
+      '<div class="vibes-gate-title">Locked</div>' +
+      '<div class="vibes-gate-sub">This one is private. Paste your access token to continue.</div>' +
+      '<input class="vibes-gate-input" type="password" autocomplete="current-password" placeholder="access token">' +
+      '<button class="vibes-gate-btn" type="button">Unlock</button>' +
+      '<div class="vibes-gate-err"></div>';
+    gateEl.appendChild(box);
+    document.body.appendChild(gateEl);
+    gateInput = box.querySelector('.vibes-gate-input');
+    gateErr = box.querySelector('.vibes-gate-err');
+    const btn = box.querySelector('.vibes-gate-btn');
+    const submit = () => {
+      const v = gateInput.value.trim();
+      if (!v) { gateInput.focus(); return; }
+      const r = resolver; resolver = null;
+      if (r) r(v);
+    };
+    btn.addEventListener('click', submit);
+    gateInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submit(); } });
+  }
+
+  function showGate(msg) {
+    if (!gateEl) buildGate();
+    gateEl.style.display = 'flex';
+    gateErr.textContent = msg || '';
+    gateInput.value = '';
+    setTimeout(() => gateInput.focus(), 50);
+    return new Promise(res => { resolver = res; });
+  }
+  function hideGate() { if (gateEl) gateEl.style.display = 'none'; }
+
+  function headers(extra) {
+    return Object.assign({ 'Authorization': 'Bearer ' + token }, extra || {});
+  }
+
+  async function remoteGet(key) {
+    const res = await fetch(BASE + key, { headers: headers(), cache: 'no-store' });
+    if (res.status === 401) { const e = new Error('unauthorized'); e.code = 401; throw e; }
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error('GET ' + res.status);
+    return res.json();
+  }
+
+  async function remotePut(key, payload) {
+    const res = await fetch(BASE + key, {
+      method: 'PUT',
+      headers: headers({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(payload)
+    });
+    if (res.status === 401) { const e = new Error('unauthorized'); e.code = 401; throw e; }
+    if (!res.ok) throw new Error('PUT ' + res.status);
+    return res.json().catch(() => ({}));
+  }
+
+  function readCache(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw == null) return null;
+      return { value: JSON.parse(raw), updatedAt: Number(localStorage.getItem(key + ':updatedAt')) || 0 };
+    } catch (e) { return null; }
+  }
+  function writeCache(key, value, updatedAt) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      localStorage.setItem(key + ':updatedAt', String(updatedAt));
+    } catch (e) {}
+  }
+
+  // Gate the page on <key>. Resolves to { value, updatedAt, offline }.
+  // value is null when the server has nothing stored yet.
+  async function unlock(key) {
+    for (;;) {
+      if (!token) token = await showGate();
+      try {
+        const remote = await remoteGet(key);
+        localStorage.setItem(TOKEN_KEY, token);
+        hideGate();
+        if (remote) { writeCache(key, remote.value, remote.updatedAt); return { value: remote.value, updatedAt: remote.updatedAt, offline: false }; }
+        return { value: null, updatedAt: 0, offline: false };
+      } catch (e) {
+        if (e.code === 401) { localStorage.removeItem(TOKEN_KEY); token = await showGate('That token did not work.'); continue; }
+        const cached = readCache(key);
+        if (token && cached) { hideGate(); return { value: cached.value, updatedAt: cached.updatedAt, offline: true }; }
+        token = await showGate("Can't reach the server. Check your connection and try again.");
+        continue;
+      }
+    }
+  }
+
+  // Cache locally + push to the server. Last-write-wins.
+  async function save(key, value) {
+    const updatedAt = Date.now();
+    writeCache(key, value, updatedAt);
+    try { await remotePut(key, { value: value, updatedAt: updatedAt }); return { synced: true }; }
+    catch (e) { return { synced: false, error: e }; }
+  }
+
+  return { unlock: unlock, save: save };
+})();
+</script>
+
 <script type="module">
-const STORE_KEY = 'home-improvement-todo:v1';
+const KEY = 'home-improvement-todo-v1';
 
 const SEED_ACTIVE = [
   `Hose-test the drain pipe — run a hose in the inlet, walk to the outlet, watch for steady outflow and any pooling/bellies along the trench.`,
@@ -508,24 +642,12 @@ function seed() {
   return tasks;
 }
 
-let tasks;
-try {
-  const raw = localStorage.getItem(STORE_KEY);
-  tasks = raw ? JSON.parse(raw) : seed();
-} catch (e) {
-  tasks = seed();
-}
-if (!Array.isArray(tasks) || !tasks.length) tasks = seed();
-
+// Loaded after the token gate resolves in init(); see bottom of script.
+let tasks = [];
 let collapsed = false;
 
-function save() {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(tasks)); } catch (e) {}
-}
-
-// persist the seed (or migrated data) immediately so a refresh before any
-// edit doesn't re-seed with fresh ids
-save();
+// Cache locally + push to the server (last-write-wins), via the shared gate.
+function save() { VibesSync.save(KEY, tasks); }
 
 const active = () => tasks.filter(t => t.completedAt == null).sort((a, b) => a.order - b.order);
 const done   = () => tasks.filter(t => t.completedAt != null).sort((a, b) => b.completedAt - a.completedAt);
@@ -924,12 +1046,23 @@ function endDrag() {
   render();
 }
 
-render();
-
 // register service worker if present (matches repo's offline setup)
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
+
+// Gate on the token, hydrate from the server (or seed on first run), then render.
+(async function init() {
+  const r = await VibesSync.unlock(KEY);
+  if (r.value && Array.isArray(r.value) && r.value.length) {
+    tasks = r.value;
+  } else {
+    // first unlock on an empty server — seed and push it up
+    tasks = seed();
+    save();
+  }
+  render();
+})();
 </script>
 </body>
 </html>
