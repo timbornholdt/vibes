@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f766e">
+<title>Patio Project To-Do</title>
+<style>
+  * { box-sizing: border-box; }
+
+  :root {
+    --bg:        #f4f5f7;
+    --card:      #ffffff;
+    --ink:       #1c2126;
+    --muted:     #6b7480;
+    --line:      #e4e7eb;
+    --accent:    #0f766e;
+    --accent-2:  #115e59;
+    --now-bg:    #fffbeb;
+    --now-edge:  #f59e0b;
+    --now-badge: #b45309;
+    --danger:    #dc2626;
+    --shadow:    0 1px 2px rgba(16,24,40,0.06), 0 1px 3px rgba(16,24,40,0.04);
+    --shadow-lg: 0 12px 28px rgba(16,24,40,0.18);
+    --radius:    14px;
+  }
+
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.4;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .wrap { max-width: 620px; margin: 0 auto; }
+
+  /* ── Sticky add bar ── */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: rgba(244,245,247,0.92);
+    backdrop-filter: saturate(180%) blur(10px);
+    -webkit-backdrop-filter: saturate(180%) blur(10px);
+    padding: calc(env(safe-area-inset-top) + 12px) 16px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar h1 {
+    margin: 0 0 10px;
+    font-size: 20px;
+    letter-spacing: -0.01em;
+    font-weight: 800;
+  }
+  .topbar h1 span { color: var(--accent); }
+
+  .addrow { display: flex; gap: 8px; }
+  .addrow input {
+    flex: 1;
+    min-width: 0;
+    font-size: 16px;
+    font-family: inherit;
+    color: var(--ink);
+    background: var(--card);
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    padding: 13px 14px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .addrow input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(15,118,110,0.14);
+  }
+  .addrow input::placeholder { color: #9aa3ad; }
+
+  .btn {
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.08s, background 0.15s, opacity 0.15s;
+  }
+  .btn:active { transform: scale(0.96); }
+
+  .btn-add {
+    flex: 0 0 auto;
+    background: var(--accent);
+    color: #fff;
+    padding: 13px 20px;
+    box-shadow: var(--shadow);
+  }
+  .btn-add:active { background: var(--accent-2); }
+
+  /* ── Sections ── */
+  .section { padding: 18px 16px 0; }
+  .section-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .section-head h2 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+  .count {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    background: #e9edf1;
+    border-radius: 999px;
+    padding: 2px 9px;
+    min-width: 24px;
+    text-align: center;
+  }
+
+  /* collapsible completed header is a button */
+  .collapse-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    color: inherit;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .chevron {
+    transition: transform 0.2s ease;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .collapsed .chevron { transform: rotate(-90deg); }
+
+  .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+
+  .empty {
+    color: var(--muted);
+    font-size: 14px;
+    padding: 14px 4px 4px;
+  }
+
+  /* ── Task rows ── */
+  .row {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 12px 8px 12px 4px;
+    box-shadow: var(--shadow);
+    touch-action: pan-y;
+  }
+  .row.now {
+    background: var(--now-bg);
+    border-color: #fde68a;
+    box-shadow: inset 4px 0 0 var(--now-edge), var(--shadow);
+  }
+  .row.dragging {
+    z-index: 20;
+    box-shadow: var(--shadow-lg);
+    border-color: var(--accent);
+    opacity: 0.97;
+  }
+  .row.shift { transition: transform 0.18s cubic-bezier(.2,.7,.3,1); }
+
+  .handle {
+    flex: 0 0 auto;
+    width: 34px;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #c2c9d1;
+    cursor: grab;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .handle:active { cursor: grabbing; }
+  .handle svg { width: 18px; height: 18px; pointer-events: none; }
+
+  .check {
+    flex: 0 0 auto;
+    margin-top: 1px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid #cbd2da;
+    background: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.15s, background 0.15s;
+    padding: 0;
+  }
+  .row.now .check { border-color: var(--now-badge); }
+  .check svg { width: 15px; height: 15px; stroke: #fff; opacity: 0; transform: scale(0.5); transition: opacity 0.15s, transform 0.15s; }
+  .check:active { transform: scale(0.9); }
+
+  .text {
+    flex: 1;
+    min-width: 0;
+    font-size: 15.5px;
+    padding: 1px 2px 0 4px;
+    word-break: break-word;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #fff;
+    background: var(--now-badge);
+    border-radius: 999px;
+    padding: 2px 7px;
+    margin-right: 6px;
+    vertical-align: 1px;
+  }
+
+  .kebab {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 30px;
+    border: none;
+    background: none;
+    color: #9aa3ad;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 8px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .kebab:active { background: #eef1f4; }
+
+  /* completed rows */
+  .row.done { background: #fbfcfd; padding: 11px 10px; }
+  .done .text { color: var(--muted); }
+  .done .when {
+    display: block;
+    font-size: 12px;
+    color: #9aa3ad;
+    margin-top: 3px;
+  }
+  .undo {
+    flex: 0 0 auto;
+    align-self: center;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    background: #e7f1f0;
+    border: none;
+    border-radius: 9px;
+    padding: 7px 12px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .undo:active { background: #d4e6e4; }
+
+  .clear-row { padding: 12px 4px 4px; }
+  .btn-clear {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 14px;
+    border-radius: 10px;
+  }
+  .btn-clear:active { background: #eef1f4; }
+
+  footer { padding: 28px 16px calc(env(safe-area-inset-bottom) + 28px); text-align: center; color: #aab2bb; font-size: 12px; }
+
+  /* ── Animations ── */
+  @keyframes pop-in {
+    0%   { opacity: 0; transform: translateY(-10px) scale(0.98); }
+    100% { opacity: 1; transform: none; }
+  }
+  .row.added { animation: pop-in 0.28s cubic-bezier(.2,.8,.3,1); }
+
+  .row.completing {
+    overflow: hidden;
+    transition: transform 0.3s ease, opacity 0.3s ease, max-height 0.3s ease,
+                margin 0.3s ease, padding 0.3s ease, border-width 0.3s ease;
+    transform: translateX(36px);
+    opacity: 0;
+    max-height: 0 !important;
+    margin-top: -10px;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-width: 0;
+  }
+
+  /* ── Floating kebab menu ── */
+  .menu {
+    position: fixed;
+    z-index: 60;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    padding: 6px;
+    min-width: 160px;
+    display: none;
+    animation: pop-in 0.14s ease;
+  }
+  .menu.open { display: block; }
+  .menu button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--ink);
+    padding: 11px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+  }
+  .menu button:active { background: #eef1f4; }
+  .menu button.danger { color: var(--danger); }
+
+  /* ── Modal / overlay ── */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgba(15,23,32,0.34);
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .overlay.open { display: flex; }
+  @media (min-width: 480px) { .overlay { align-items: center; } }
+
+  .modal {
+    background: var(--card);
+    width: 100%;
+    max-width: 460px;
+    border-radius: 18px 18px 0 0;
+    padding: 20px 18px calc(env(safe-area-inset-bottom) + 18px);
+    box-shadow: var(--shadow-lg);
+    animation: sheet-up 0.22s cubic-bezier(.2,.8,.3,1);
+  }
+  @media (min-width: 480px) { .modal { border-radius: 18px; } }
+  @keyframes sheet-up { from { transform: translateY(24px); opacity: 0.6; } to { transform: none; opacity: 1; } }
+
+  .modal h3 { margin: 0 0 12px; font-size: 17px; }
+  .modal p { margin: 0 0 16px; color: var(--muted); font-size: 14.5px; }
+  .modal textarea {
+    width: 100%;
+    font-size: 16px;
+    font-family: inherit;
+    color: var(--ink);
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    padding: 12px;
+    resize: vertical;
+    min-height: 92px;
+    outline: none;
+  }
+  .modal textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(15,118,110,0.14); }
+  .modal-actions { display: flex; gap: 10px; margin-top: 16px; }
+  .modal-actions .btn { flex: 1; padding: 13px; }
+  .btn-ghost { background: #eef1f4; color: var(--ink); }
+  .btn-ghost:active { background: #e2e7ec; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:active { background: var(--accent-2); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:active { filter: brightness(0.92); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <h1>Patio Project <span>To-Do</span></h1>
+    <div class="addrow">
+      <input id="add-input" type="text" placeholder="Add a task…" autocomplete="off"
+             autocapitalize="sentences" enterkeyhint="done" aria-label="Add a task">
+      <button class="btn btn-add" id="add-btn">Add</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <h2>Active</h2>
+      <span class="count" id="active-count">0</span>
+    </div>
+    <ul class="list" id="active-list"></ul>
+    <p class="empty" id="active-empty" style="display:none">Nothing active. Add a task above. 🎉</p>
+  </div>
+
+  <div class="section" id="completed-section">
+    <div class="section-head">
+      <button class="collapse-btn" id="collapse-btn" aria-expanded="true">
+        <span class="chevron">▼</span>
+        <h2>Completed</h2>
+        <span class="count" id="done-count">0</span>
+      </button>
+    </div>
+    <div id="completed-body">
+      <ul class="list" id="done-list"></ul>
+      <p class="empty" id="done-empty" style="display:none">No completed tasks yet.</p>
+      <div class="clear-row" id="clear-row" style="display:none">
+        <button class="btn btn-clear" id="clear-btn">Clear completed</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>Saved on this device · drag the ⠿ handle to reorder</footer>
+</div>
+
+<!-- floating kebab menu -->
+<div class="menu" id="menu" role="menu">
+  <button id="menu-edit" role="menuitem">✏️&nbsp; Edit</button>
+  <button id="menu-delete" class="danger" role="menuitem">🗑️&nbsp; Delete</button>
+</div>
+
+<!-- edit modal -->
+<div class="overlay" id="edit-overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Edit task">
+    <h3>Edit task</h3>
+    <textarea id="edit-text"></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="edit-cancel">Cancel</button>
+      <button class="btn btn-primary" id="edit-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- delete confirm modal -->
+<div class="overlay" id="del-overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Delete task">
+    <h3>Delete this task?</h3>
+    <p id="del-preview"></p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="del-cancel">Cancel</button>
+      <button class="btn btn-danger" id="del-confirm">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+const STORE_KEY = 'home-improvement-todo:v1';
+
+const SEED_ACTIVE = [
+  `Hose-test the drain pipe — run a hose in the inlet, walk to the outlet, watch for steady outflow and any pooling/bellies along the trench.`,
+  `Finish bagging & disposing the old (cat-contaminated) sand — doubled 3-mil contractor bags, a few per pickup. Call Highland Sanitation (651-437-0001) to confirm cart weight limit.`,
+  `Perc-test the garden-bed strip — dig a ~1 ft hole, fill with water, time how fast it drains (confirms the bed can absorb runoff as drainage backup).`,
+  `Order ~1.5 cu yd concrete sand — ASTM C33 "concrete sand," NOT mason/leveling sand. Call Rock Hard Landscape Supply (Farmington) or Holcim (Rosemount); arrange delivery or trailer pickup.`,
+  `Menards run — 1" EMT conduit x4 (screed rails), 3-mil contractor bags, paver edging + 10" spikes, straight 8 ft aluminum screed board, rubber mallet, 4 ft level, mason line + line level, stakes, marking spray paint, diamond masonry blade, knee pads, gloves, stiff push broom.`,
+  `Rent a plate compactor (+ a rotary laser with detector for grading — the cross-line laser washes out outdoors).`,
+  `Measure paver joint width + thickness, then buy matching polymeric sand.`,
+  `Strip remaining sand & regrade the base to 1/4" per ft slope away from the house. Compact in passes: grade slightly high, compact, recheck, fill lows, recompact.`,
+  `Set screed rails in ~6-8 ft lanes running downhill; screed a 1" concrete-sand bed lane by lane.`,
+  `Lay pavers lane by lane from the low edge, leapfrogging the rails; cut edge pieces as needed.`,
+  `Install edge restraint on the non-wall sides; sweep in polymeric sand and set per directions.`,
+  `Plant the garden gap between the pavers and the retaining wall.`,
+];
+
+// listed oldest→newest so the most recent shows at the top of Completed
+const SEED_DONE = [
+  `Confirmed the old paver base is still intact underneath (dug a test hole).`,
+  `Measured drainage fall: 3.25" over 14 ft (~1/4" per foot) — slope is good.`,
+  `Decided to scrap the contaminated sand and buy fresh concrete sand.`,
+];
+
+const uid = () =>
+  (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now() + '-' + Math.random().toString(36).slice(2));
+
+function seed() {
+  const now = Date.now();
+  const tasks = [];
+  SEED_ACTIVE.forEach((text, i) => {
+    tasks.push({ id: uid(), text, createdAt: now - (SEED_ACTIVE.length - i) * 1000, completedAt: null, order: i });
+  });
+  SEED_DONE.forEach((text, i) => {
+    // stagger by an hour each, oldest first, so newest sits on top
+    tasks.push({ id: uid(), text, createdAt: now - (SEED_DONE.length - i) * 3600000 - 60000, completedAt: now - (SEED_DONE.length - i) * 3600000, order: 0 });
+  });
+  return tasks;
+}
+
+let tasks;
+try {
+  const raw = localStorage.getItem(STORE_KEY);
+  tasks = raw ? JSON.parse(raw) : seed();
+} catch (e) {
+  tasks = seed();
+}
+if (!Array.isArray(tasks) || !tasks.length) tasks = seed();
+
+let collapsed = false;
+
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(tasks)); } catch (e) {}
+}
+
+// persist the seed (or migrated data) immediately so a refresh before any
+// edit doesn't re-seed with fresh ids
+save();
+
+const active = () => tasks.filter(t => t.completedAt == null).sort((a, b) => a.order - b.order);
+const done   = () => tasks.filter(t => t.completedAt != null).sort((a, b) => b.completedAt - a.completedAt);
+const byId   = (id) => tasks.find(t => t.id === id);
+
+function renumber() {
+  active().forEach((t, i) => { t.order = i; });
+}
+
+function fmtWhen(ts) {
+  const d = new Date(ts);
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  const yest = new Date(now); yest.setDate(now.getDate() - 1);
+  const isYest = d.toDateString() === yest.toDateString();
+  const date = sameDay ? 'Today' : isYest ? 'Yesterday'
+    : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: d.getFullYear() === now.getFullYear() ? undefined : 'numeric' });
+  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return `${date} · ${time}`;
+}
+
+// ── DOM refs ──
+const activeList   = document.getElementById('active-list');
+const doneList     = document.getElementById('done-list');
+const activeEmpty  = document.getElementById('active-empty');
+const doneEmpty    = document.getElementById('done-empty');
+const activeCount  = document.getElementById('active-count');
+const doneCount    = document.getElementById('done-count');
+const clearRow     = document.getElementById('clear-row');
+const completedBody = document.getElementById('completed-body');
+const completedSec  = document.getElementById('completed-section');
+
+const HANDLE_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
+const CHECK_SVG  = '<svg viewBox="0 0 24 24" fill="none" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>';
+
+function activeRow(t, index) {
+  const li = document.createElement('li');
+  li.className = 'row' + (index === 0 ? ' now' : '');
+  li.dataset.id = t.id;
+
+  const handle = document.createElement('div');
+  handle.className = 'handle';
+  handle.innerHTML = HANDLE_SVG;
+  handle.setAttribute('aria-label', 'Drag to reorder');
+
+  const check = document.createElement('button');
+  check.className = 'check';
+  check.innerHTML = CHECK_SVG;
+  check.setAttribute('aria-label', 'Mark complete');
+
+  const text = document.createElement('div');
+  text.className = 'text';
+  if (index === 0) {
+    const b = document.createElement('span');
+    b.className = 'badge';
+    b.textContent = 'Now';
+    text.appendChild(b);
+  }
+  text.appendChild(document.createTextNode(t.text));
+
+  const kebab = document.createElement('button');
+  kebab.className = 'kebab';
+  kebab.innerHTML = '⋮';
+  kebab.setAttribute('aria-label', 'More actions');
+
+  li.append(handle, check, text, kebab);
+  return li;
+}
+
+function doneRow(t) {
+  const li = document.createElement('li');
+  li.className = 'row done';
+  li.dataset.id = t.id;
+
+  const text = document.createElement('div');
+  text.className = 'text';
+  text.appendChild(document.createTextNode(t.text));
+  const when = document.createElement('span');
+  when.className = 'when';
+  when.textContent = fmtWhen(t.completedAt);
+  text.appendChild(when);
+
+  const undo = document.createElement('button');
+  undo.className = 'undo';
+  undo.textContent = 'Undo';
+
+  li.append(text, undo);
+  return li;
+}
+
+let pendingAddId = null; // animate the freshly added row
+
+function render() {
+  const act = active();
+  const dn = done();
+
+  activeList.innerHTML = '';
+  act.forEach((t, i) => {
+    const row = activeRow(t, i);
+    if (t.id === pendingAddId) row.classList.add('added');
+    activeList.appendChild(row);
+  });
+  activeEmpty.style.display = act.length ? 'none' : 'block';
+  activeCount.textContent = act.length;
+  pendingAddId = null;
+
+  doneList.innerHTML = '';
+  dn.forEach(t => doneList.appendChild(doneRow(t)));
+  doneEmpty.style.display = dn.length ? 'none' : 'block';
+  doneCount.textContent = dn.length;
+  clearRow.style.display = dn.length ? 'block' : 'none';
+}
+
+// ── Add ──
+const addInput = document.getElementById('add-input');
+const addBtn = document.getElementById('add-btn');
+
+function addTask() {
+  const text = addInput.value.trim();
+  if (!text) return;
+  const minOrder = active().reduce((m, t) => Math.min(m, t.order), 0);
+  const task = { id: uid(), text, createdAt: Date.now(), completedAt: null, order: minOrder - 1 };
+  tasks.push(task);
+  renumber();
+  pendingAddId = task.id;
+  save();
+  render();
+  addInput.value = '';
+  addInput.focus();
+}
+
+addBtn.addEventListener('click', addTask);
+addInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); addTask(); }
+});
+
+// ── Complete ──
+function completeTask(id, rowEl) {
+  const t = byId(id);
+  if (!t) return;
+  const finish = () => {
+    t.completedAt = Date.now();
+    renumber();
+    save();
+    render();
+  };
+  if (rowEl) {
+    rowEl.style.maxHeight = rowEl.offsetHeight + 'px';
+    // force reflow so the transition from a real height runs
+    void rowEl.offsetHeight;
+    rowEl.classList.add('completing');
+    const check = rowEl.querySelector('.check');
+    if (check) { check.style.background = 'var(--accent)'; check.style.borderColor = 'var(--accent)';
+      const svg = check.querySelector('svg'); if (svg) { svg.style.opacity = 1; svg.style.transform = 'scale(1)'; } }
+    let done2 = false;
+    const go = () => { if (done2) return; done2 = true; finish(); };
+    rowEl.addEventListener('transitionend', go, { once: true });
+    setTimeout(go, 360);
+  } else {
+    finish();
+  }
+}
+
+// ── Undo ──
+function undoTask(id) {
+  const t = byId(id);
+  if (!t) return;
+  const maxOrder = active().reduce((m, x) => Math.max(m, x.order), -1);
+  t.completedAt = null;
+  t.order = maxOrder + 1;
+  renumber();
+  save();
+  render();
+}
+
+// ── Active list click handling (complete / undo / kebab) ──
+activeList.addEventListener('click', (e) => {
+  const row = e.target.closest('.row');
+  if (!row) return;
+  const id = row.dataset.id;
+  if (e.target.closest('.check')) { completeTask(id, row); return; }
+  if (e.target.closest('.kebab')) { openMenu(id, e.target.closest('.kebab')); return; }
+});
+
+doneList.addEventListener('click', (e) => {
+  const row = e.target.closest('.row');
+  if (!row) return;
+  if (e.target.closest('.undo')) undoTask(row.dataset.id);
+});
+
+// ── Kebab / long-press menu ──
+const menu = document.getElementById('menu');
+let menuTargetId = null;
+
+function openMenu(id, anchorEl) {
+  menuTargetId = id;
+  menu.classList.add('open');
+  const mw = menu.offsetWidth, mh = menu.offsetHeight;
+  let x, y;
+  if (anchorEl) {
+    const r = anchorEl.getBoundingClientRect();
+    x = r.right - mw;
+    y = r.bottom + 6;
+  } else {
+    x = (window.innerWidth - mw) / 2;
+    y = window.innerHeight / 2 - mh / 2;
+  }
+  x = Math.max(8, Math.min(x, window.innerWidth - mw - 8));
+  if (y + mh > window.innerHeight - 8) y = window.innerHeight - mh - 8;
+  y = Math.max(8, y);
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+}
+function closeMenu() { menu.classList.remove('open'); menuTargetId = null; }
+
+document.getElementById('menu-edit').addEventListener('click', () => { const id = menuTargetId; closeMenu(); openEdit(id); });
+document.getElementById('menu-delete').addEventListener('click', () => { const id = menuTargetId; closeMenu(); openDelete(id); });
+
+document.addEventListener('pointerdown', (e) => {
+  if (menu.classList.contains('open') && !menu.contains(e.target)) closeMenu();
+}, true);
+window.addEventListener('scroll', () => { if (menu.classList.contains('open')) closeMenu(); }, true);
+window.addEventListener('resize', closeMenu);
+
+// ── Edit modal ──
+const editOverlay = document.getElementById('edit-overlay');
+const editText = document.getElementById('edit-text');
+let editId = null;
+
+function openEdit(id) {
+  const t = byId(id);
+  if (!t) return;
+  editId = id;
+  editText.value = t.text;
+  editOverlay.classList.add('open');
+  setTimeout(() => { editText.focus(); editText.setSelectionRange(editText.value.length, editText.value.length); }, 60);
+}
+function closeEdit() { editOverlay.classList.remove('open'); editId = null; }
+function saveEdit() {
+  const t = byId(editId);
+  const v = editText.value.trim();
+  if (t && v) { t.text = v; save(); render(); }
+  closeEdit();
+}
+document.getElementById('edit-cancel').addEventListener('click', closeEdit);
+document.getElementById('edit-save').addEventListener('click', saveEdit);
+editOverlay.addEventListener('click', (e) => { if (e.target === editOverlay) closeEdit(); });
+editText.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); saveEdit(); }
+});
+
+// ── Delete confirm ──
+const delOverlay = document.getElementById('del-overlay');
+const delPreview = document.getElementById('del-preview');
+let delId = null;
+
+function openDelete(id) {
+  const t = byId(id);
+  if (!t) return;
+  delId = id;
+  delPreview.textContent = '“' + (t.text.length > 90 ? t.text.slice(0, 90) + '…' : t.text) + '”';
+  delOverlay.classList.add('open');
+}
+function closeDelete() { delOverlay.classList.remove('open'); delId = null; }
+function confirmDelete() {
+  const i = tasks.findIndex(t => t.id === delId);
+  if (i >= 0) { tasks.splice(i, 1); renumber(); save(); render(); }
+  closeDelete();
+}
+document.getElementById('del-cancel').addEventListener('click', closeDelete);
+document.getElementById('del-confirm').addEventListener('click', confirmDelete);
+delOverlay.addEventListener('click', (e) => { if (e.target === delOverlay) closeDelete(); });
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { closeEdit(); closeDelete(); closeMenu(); }
+});
+
+// ── Collapse completed ──
+const collapseBtn = document.getElementById('collapse-btn');
+collapseBtn.addEventListener('click', () => {
+  collapsed = !collapsed;
+  completedBody.style.display = collapsed ? 'none' : 'block';
+  completedSec.classList.toggle('collapsed', collapsed);
+  collapseBtn.setAttribute('aria-expanded', String(!collapsed));
+});
+
+// ── Clear completed ──
+document.getElementById('clear-btn').addEventListener('click', () => {
+  if (!done().length) return;
+  tasks = tasks.filter(t => t.completedAt == null);
+  save();
+  render();
+});
+
+// ── Drag-to-reorder (pointer events, touch-friendly) + long-press ──
+let drag = null;
+let pressTimer = null;
+let pressTarget = null;
+
+activeList.addEventListener('pointerdown', (e) => {
+  const row = e.target.closest('.row');
+  if (!row) return;
+
+  // Long-press anywhere on the row (but not on interactive controls) opens the menu
+  if (!e.target.closest('.handle') && !e.target.closest('.check') && !e.target.closest('.kebab')) {
+    const startX = e.clientX, startY = e.clientY;
+    pressTarget = { id: row.dataset.id, row };
+    pressTimer = setTimeout(() => {
+      pressTimer = null;
+      if (navigator.vibrate) navigator.vibrate(8);
+      openMenu(row.dataset.id, null);
+    }, 480);
+    const cancel = (ev) => {
+      if (ev.type === 'pointermove' && Math.hypot(ev.clientX - startX, ev.clientY - startY) < 10) return;
+      clearTimeout(pressTimer); pressTimer = null;
+      window.removeEventListener('pointermove', cancel, true);
+      window.removeEventListener('pointerup', cancel, true);
+      window.removeEventListener('pointercancel', cancel, true);
+    };
+    window.addEventListener('pointermove', cancel, true);
+    window.addEventListener('pointerup', cancel, true);
+    window.addEventListener('pointercancel', cancel, true);
+  }
+
+  // Drag only starts from the handle
+  const handle = e.target.closest('.handle');
+  if (!handle) return;
+  e.preventDefault();
+  startDrag(row, e);
+});
+
+function startDrag(row, e) {
+  const rows = [...activeList.querySelectorAll('.row')];
+  if (rows.length < 2) return;
+  const fromIndex = rows.indexOf(row);
+  const rects = rows.map(r => r.getBoundingClientRect());
+  const slotH = rows.length > 1
+    ? Math.abs(rects[Math.min(fromIndex + 1, rows.length - 1)].top - rects[Math.max(fromIndex - 1, 0)].top) / (Math.min(fromIndex + 1, rows.length - 1) - Math.max(fromIndex - 1, 0))
+    : rects[fromIndex].height;
+
+  drag = { row, rows, rects, fromIndex, toIndex: fromIndex, startY: e.clientY, slotH };
+  row.classList.add('dragging');
+  row.setPointerCapture?.(e.pointerId);
+  rows.forEach((r, i) => { if (i !== fromIndex) r.classList.add('shift'); });
+
+  const move = (ev) => onDragMove(ev);
+  const up = (ev) => {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    window.removeEventListener('pointercancel', up);
+    endDrag();
+  };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+  window.addEventListener('pointercancel', up);
+}
+
+function onDragMove(e) {
+  if (!drag) return;
+  const dy = e.clientY - drag.startY;
+  drag.row.style.transform = `translateY(${dy}px)`;
+
+  const draggedCenter = drag.rects[drag.fromIndex].top + drag.rects[drag.fromIndex].height / 2 + dy;
+  let toIndex = 0;
+  drag.rects.forEach((r, i) => {
+    if (i === drag.fromIndex) return;
+    if (r.top + r.height / 2 < draggedCenter) toIndex++;
+  });
+  drag.toIndex = toIndex;
+
+  // shift the other rows to open a gap at toIndex
+  drag.rows.forEach((r, i) => {
+    if (i === drag.fromIndex) return;
+    let shift = 0;
+    if (drag.fromIndex < toIndex && i > drag.fromIndex && i <= toIndex) shift = -drag.slotH;
+    else if (drag.fromIndex > toIndex && i >= toIndex && i < drag.fromIndex) shift = drag.slotH;
+    r.style.transform = shift ? `translateY(${shift}px)` : '';
+  });
+}
+
+function endDrag() {
+  if (!drag) return;
+  const { row, rows, fromIndex, toIndex } = drag;
+  const act = active();
+  const moved = act[fromIndex];
+  if (moved && fromIndex !== toIndex) {
+    act.splice(fromIndex, 1);
+    act.splice(toIndex, 0, moved);
+    act.forEach((t, i) => { t.order = i; });
+    save();
+  }
+  // cleanup
+  rows.forEach(r => { r.style.transform = ''; r.classList.remove('shift'); });
+  row.classList.remove('dragging');
+  drag = null;
+  render();
+}
+
+render();
+
+// register service worker if present (matches repo's offline setup)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
