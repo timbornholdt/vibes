@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paver Patio Planner</title>
+<style>
+  * { box-sizing: border-box; margin: 0; min-width: 0; }
+  /* ---------- tokens ---------- */
+  :root {
+    --concrete: #e2e0db;      /* page background — cured slab */
+    --concrete-deep: #cfcdc6; /* panel borders */
+    --paver: #b7b3aa;         /* paver fill */
+    --ink: #26241f;           /* text */
+    --ink-soft: #6b675e;      /* secondary text */
+    --paint: #e04f00;         /* marking-paint orange — accents, dims */
+    --bed: #7d8a5c;           /* garden bed */
+    --bed-soft: #aab491;
+    --card: #efede8;
+    --mono: "SF Mono", "Cascadia Mono", "Consolas", "Menlo", monospace;
+    --sans: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --cond: "Avenir Next Condensed", "Arial Narrow", "Segoe UI", sans-serif;
+  }
+  html, body { overflow-x: hidden; max-width: 100%; }
+  body {
+    background: var(--concrete);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.45;
+    padding: 20px 16px 60px;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; }
+
+  header { margin-bottom: 18px; border-bottom: 3px solid var(--ink); padding-bottom: 10px; }
+  header h1 {
+    font-family: var(--cond);
+    font-weight: 700;
+    font-size: clamp(26px, 5vw, 40px);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  header h1 .accent { color: var(--paint); }
+  header p { color: var(--ink-soft); font-size: 14px; margin-top: 2px; }
+
+  .layout { display: grid; grid-template-columns: 300px 1fr; gap: 18px; }
+  @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
+
+  /* ---------- controls ---------- */
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--concrete-deep);
+    padding: 14px;
+  }
+  .panel h2 {
+    font-family: var(--cond);
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    border-bottom: 1px solid var(--concrete-deep);
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+  }
+  .field { margin-bottom: 10px; }
+  .field label { display: block; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 3px; }
+  .field input[type="number"] {
+    width: 100%;
+    font-family: var(--mono);
+    font-size: 16px;
+    padding: 6px 8px;
+    border: 1px solid var(--concrete-deep);
+    background: #fff;
+    color: var(--ink);
+  }
+  .field input:focus-visible, .stepper button:focus-visible, input[type="range"]:focus-visible {
+    outline: 2px solid var(--paint);
+    outline-offset: 1px;
+  }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  .stepper { display: flex; align-items: stretch; gap: 0; }
+  .stepper button {
+    width: 38px;
+    font-size: 18px;
+    font-family: var(--mono);
+    border: 1px solid var(--concrete-deep);
+    background: #fff;
+    cursor: pointer;
+    color: var(--ink);
+  }
+  .stepper button:hover { background: var(--paint); color: #fff; border-color: var(--paint); }
+  .stepper .count {
+    flex: 1;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 17px;
+    padding: 6px 0;
+    border-top: 1px solid var(--concrete-deep);
+    border-bottom: 1px solid var(--concrete-deep);
+    background: #fff;
+  }
+
+  input[type="range"] { width: 100%; accent-color: var(--paint); }
+
+  .warn {
+    background: var(--paint);
+    color: #fff;
+    font-size: 13px;
+    padding: 7px 9px;
+    margin-top: 8px;
+    display: none;
+  }
+  .warn.show { display: block; }
+
+  /* ---------- plan + results ---------- */
+  .plan-card { background: var(--card); border: 1px solid var(--concrete-deep); padding: 14px; }
+  #plan { width: 100%; height: auto; display: block; }
+
+  .dims {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .dim { border-left: 3px solid var(--paint); padding: 4px 0 4px 10px; }
+  .dim .value { overflow-wrap: anywhere; }
+  .dim .label { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--ink-soft); }
+  .dim .value { font-family: var(--mono); font-size: 17px; font-weight: 600; }
+  .dim .sub { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); }
+
+  .materials { margin-top: 18px; }
+  .materials table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .materials td, .materials th {
+    text-align: left;
+    padding: 7px 6px;
+    border-bottom: 1px solid var(--concrete-deep);
+  }
+  .materials th {
+    font-family: var(--cond);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+  .materials td.qty { font-family: var(--mono); font-weight: 600; white-space: nowrap; }
+  .materials td.note { color: var(--ink-soft); font-size: 12.5px; }
+  @media (max-width: 480px) {
+    .materials td.qty { white-space: normal; overflow-wrap: anywhere; }
+    .materials td.note { display: none; } /* notes hidden on narrow phones; qty stays readable */
+    body { padding: 14px 10px 50px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Paver patio <span class="accent">planner</span></h1>
+    <p>Wall opening → garden bed → whole-paver field. Beds absorb the remainder so you never cut a block.</p>
+  </header>
+
+  <div class="layout">
+    <!-- ============ CONTROLS ============ -->
+    <div>
+      <div class="panel">
+        <h2>Wall opening</h2>
+        <div class="row2">
+          <div class="field"><label for="areaL">Length (ft)</label><input id="areaL" type="number" step="0.25" value="25"></div>
+          <div class="field"><label for="areaW">Width (ft)</label><input id="areaW" type="number" step="0.25" value="14"></div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:12px">
+        <h2>Paver</h2>
+        <div class="row2">
+          <div class="field"><label for="pavL">Length (in)</label><input id="pavL" type="number" step="0.0625" value="15.625"></div>
+          <div class="field"><label for="pavW">Width (in)</label><input id="pavW" type="number" step="0.0625" value="15.625"></div>
+        </div>
+        <div class="field"><label for="joint">Joint width (in) — 0 for tight-laid</label><input id="joint" type="number" step="0.0625" value="0" min="0"></div>
+      </div>
+
+      <div class="panel" style="margin-top:12px">
+        <h2>Field size (whole pavers)</h2>
+        <div class="field">
+          <label>Columns (along length)</label>
+          <div class="stepper">
+            <button type="button" data-step="cols:-1" aria-label="Fewer columns">−</button>
+            <div class="count" id="colsVal">17</div>
+            <button type="button" data-step="cols:1" aria-label="More columns">+</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Rows (along width)</label>
+          <div class="stepper">
+            <button type="button" data-step="rows:-1" aria-label="Fewer rows">−</button>
+            <div class="count" id="rowsVal">8</div>
+            <button type="button" data-step="rows:1" aria-label="More rows">+</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="splitL">Bed split, length axis: <span id="splitLLabel">50 / 50</span></label>
+          <input id="splitL" type="range" min="0" max="100" value="50">
+        </div>
+        <div class="field">
+          <label>Width axis: house side has no bed — full remainder goes to the far long side.</label>
+        </div>
+        <div class="warn" id="warnFit">Field exceeds the wall opening on at least one axis. Remove a column or row.</div>
+        <div class="warn" id="warnBed">A bed side is under 12" — tight for planting. Intentional?</div>
+      </div>
+
+      <div class="panel" style="margin-top:12px">
+        <h2>Base &amp; bedding</h2>
+        <div class="field"><label for="extArea">New base area — extension only (sq ft)</label><input id="extArea" type="number" step="1" value="0" min="0"></div>
+        <div class="field"><label for="baseDepth">Base depth, compacted (in)</label><input id="baseDepth" type="number" step="0.5" value="5" min="0"></div>
+        <div class="field"><label for="sandDepth">Sand bed depth (in)</label><input id="sandDepth" type="number" step="0.25" value="1" min="0"></div>
+        <div class="field"><label for="waste">Paver waste (%)</label><input id="waste" type="number" step="1" value="5" min="0"></div>
+      </div>
+    </div>
+
+    <!-- ============ PLAN + RESULTS ============ -->
+    <div>
+      <div class="plan-card">
+        <svg id="plan" viewBox="0 0 800 520" role="img" aria-label="Top-down plan of patio layout"></svg>
+        <div class="dims" id="dims"></div>
+      </div>
+
+      <div class="panel materials">
+        <h2>Materials</h2>
+        <table>
+          <thead><tr><th>Item</th><th>Qty</th><th>Notes</th></tr></thead>
+          <tbody id="matBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+/* ---------- state ---------- */
+const state = { cols: 17, rows: 8 };
+
+/* ---------- helpers ---------- */
+const $ = (id) => document.getElementById(id);
+const num = (id) => parseFloat($(id).value) || 0;
+
+/** inches → `ft' in-frac"` string, nearest 1/16 */
+function ftIn(inches) {
+  if (inches < 0) return "−" + ftIn(-inches);
+  const ft = Math.floor(inches / 12);
+  let rem = inches - ft * 12;
+  let whole = Math.floor(rem);
+  let sixteenths = Math.round((rem - whole) * 16);
+  if (sixteenths === 16) { whole += 1; sixteenths = 0; }
+  if (whole === 12) return ftIn((ft + 1) * 12);
+  let frac = "";
+  if (sixteenths) {
+    let n = sixteenths, d = 16;
+    while (n % 2 === 0) { n /= 2; d /= 2; }
+    frac = `‑${n}/${d}`;          // non-breaking hyphen
+  }
+  const inPart = (whole || frac || !ft) ? `${whole}${frac}"` : "";
+  return ft ? `${ft}' ${inPart}`.trim() : inPart;
+}
+
+const round1 = (x) => Math.round(x * 10) / 10;
+
+/* ---------- core math ---------- */
+function compute() {
+  const areaL = num("areaL") * 12, areaW = num("areaW") * 12; // inches
+  const pavL = num("pavL"), pavW = num("pavW"), joint = num("joint");
+  const { cols, rows } = state;
+
+  const fieldL = cols * pavL + Math.max(0, cols - 1) * joint;
+  const fieldW = rows * pavW + Math.max(0, rows - 1) * joint;
+
+  const bedL = areaL - fieldL; // total leftover, length axis
+  const bedW = areaW - fieldW;
+
+  const sL = num("splitL") / 100;
+
+  return {
+    areaL, areaW, pavL, pavW, joint, cols, rows, fieldL, fieldW, bedL, bedW,
+    bedLeft: bedL * sL, bedRight: bedL * (1 - sL),
+    bedTop: 0, bedBottom: bedW,   // house side (top) has no bed
+    count: cols * rows,
+    fieldSqFt: (fieldL / 12) * (fieldW / 12),
+  };
+}
+
+/* ---------- rendering ---------- */
+function render() {
+  const c = compute();
+
+  $("colsVal").textContent = c.cols;
+  $("rowsVal").textContent = c.rows;
+  $("splitLLabel").textContent = `${$("splitL").value} / ${100 - $("splitL").value}`;
+
+  const overfit = c.bedL < 0 || c.bedW < 0;
+  $("warnFit").classList.toggle("show", overfit);
+  const sides = [c.bedLeft, c.bedRight, c.bedBottom];
+  const thinBed = !overfit && sides.some((s) => s > 0.01 && s < 12);
+  $("warnBed").classList.toggle("show", thinBed);
+
+  renderDims(c);
+  renderMaterials(c);
+  renderPlan(c);
+}
+
+function renderDims(c) {
+  const items = [
+    ["Patio field", `${ftIn(c.fieldL)} × ${ftIn(c.fieldW)}`, `${round1(c.fieldSqFt)} sq ft`],
+    ["Pavers", `${c.cols} × ${c.rows} = ${c.count}`, "before waste"],
+    ["Bed — length axis", `${ftIn(c.bedLeft)} + ${ftIn(c.bedRight)}`, `total ${ftIn(c.bedL)}`],
+    ["Bed — far long side", ftIn(c.bedBottom), "house side: none"],
+  ];
+  $("dims").innerHTML = items.map(([label, value, sub]) =>
+    `<div class="dim"><div class="label">${label}</div><div class="value">${value}</div><div class="sub">${sub}</div></div>`
+  ).join("");
+}
+
+function renderMaterials(c) {
+  const waste = num("waste") / 100;
+  const pavers = Math.ceil(c.count * (1 + waste));
+
+  const sandCuFt = c.fieldSqFt * (num("sandDepth") / 12);
+  const sandCuYd = sandCuFt / 27;
+
+  // compacted gravel: order ~20% extra loose volume to hit compacted depth
+  const baseCuFt = num("extArea") * (num("baseDepth") / 12) * 1.2;
+  const baseCuYd = baseCuFt / 27;
+  const baseTons = baseCuYd * 1.4; // ~1.4 t/yd³ for crushed stone, rough
+
+  const perim = (c.fieldL + 2 * c.fieldW) / 12; // 3 sides; house confines the 4th
+  const jointSandBags = Math.ceil(c.fieldSqFt / 60); // ~60 sq ft per 50 lb bag, tight joints
+
+  const rows = [
+    ["Pavers", `${pavers}`, `${c.count} + ${Math.round(waste * 100)}% waste`],
+    ["Bedding sand", `${round1(sandCuFt)} cu ft (${round1(sandCuYd * 100) / 100} yd³)`, `${Math.ceil(sandCuFt / 0.5)} × 0.5 cu ft bags`],
+    ["Base gravel (extension)", num("extArea") > 0 ? `${round1(baseCuFt)} cu ft ≈ ${round1(baseTons * 10) / 10} tons` : "—", "incl. 20% compaction; ¾″-minus, 2″ lifts"],
+    ["Edge restraint", `${Math.ceil(perim)} lin ft`, "spike every 8–12″"],
+    ["Joint sand", `${jointSandBags} bag(s)`, "polymeric, ~60 sq ft / 50 lb bag"],
+  ];
+  $("matBody").innerHTML = rows.map(([item, qty, note]) =>
+    `<tr><td>${item}</td><td class="qty">${qty}</td><td class="note">${note}</td></tr>`
+  ).join("");
+}
+
+/* SVG site plan with dimension lines */
+function renderPlan(c) {
+  const svg = $("plan");
+  const W = 800, H = 520, M = 70; // margin for dim lines
+  const scale = Math.min((W - 2 * M) / c.areaL, (H - 2 * M) / c.areaW);
+  const ax = (W - c.areaL * scale) / 2, ay = (H - c.areaW * scale) / 2;
+  const aw = c.areaL * scale, ah = c.areaW * scale;
+
+  const fx = ax + Math.max(0, c.bedLeft) * scale;
+  const fy = ay + Math.max(0, c.bedTop) * scale;
+  const fw = c.fieldL * scale, fh = c.fieldW * scale;
+
+  let s = "";
+
+  // garden bed (whole opening), then patio field on top
+  s += `<rect x="${ax}" y="${ay}" width="${aw}" height="${ah}" fill="var(--bed-soft)"/>`;
+
+  // paver grid
+  s += `<g>`;
+  for (let i = 0; i < c.cols; i++) {
+    for (let j = 0; j < c.rows; j++) {
+      const x = fx + i * (c.pavL + c.joint) * scale;
+      const y = fy + j * (c.pavW + c.joint) * scale;
+      s += `<rect x="${x}" y="${y}" width="${c.pavL * scale}" height="${c.pavW * scale}" fill="var(--paver)" stroke="var(--concrete)" stroke-width="1"/>`;
+    }
+  }
+  s += `</g>`;
+
+  // retaining wall outline (3 sides) + house edge (top, dashed)
+  s += `<path d="M ${ax} ${ay} L ${ax} ${ay + ah} L ${ax + aw} ${ay + ah} L ${ax + aw} ${ay}" fill="none" stroke="var(--ink)" stroke-width="5"/>`;
+  s += `<line x1="${ax}" y1="${ay}" x2="${ax + aw}" y2="${ay}" stroke="var(--ink)" stroke-width="5" stroke-dasharray="14 7"/>`;
+  s += `<text x="${ax + aw / 2}" y="${ay + 18}" text-anchor="middle" font-family="var(--cond)" font-size="13" letter-spacing="2" fill="var(--ink)">HOUSE</text>`;
+
+  // dimension lines (marking-paint orange)
+  s += dimLine(ax, ay - 28, ax + aw, ay - 28, ftIn(c.areaL), "h");           // opening length
+  s += dimLine(ax - 28, ay, ax - 28, ay + ah, ftIn(c.areaW), "v");           // opening width
+  s += dimLine(fx, fy + fh + 28, fx + fw, fy + fh + 28, ftIn(c.fieldL), "h"); // field length
+  s += dimLine(fx + fw + 28, fy, fx + fw + 28, fy + fh, ftIn(c.fieldW), "v"); // field width
+
+  svg.innerHTML = s;
+
+  function dimLine(x1, y1, x2, y2, label, dir) {
+    const tick = 5;
+    let t = `<g stroke="var(--paint)" stroke-width="1.5" fill="var(--paint)" font-family="var(--mono)" font-size="13">`;
+    t += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+    if (dir === "h") {
+      t += `<line x1="${x1}" y1="${y1 - tick}" x2="${x1}" y2="${y1 + tick}"/><line x1="${x2}" y1="${y2 - tick}" x2="${x2}" y2="${y2 + tick}"/>`;
+      t += `<text x="${(x1 + x2) / 2}" y="${y1 - 7}" text-anchor="middle" stroke="none">${label}</text>`;
+    } else {
+      t += `<line x1="${x1 - tick}" y1="${y1}" x2="${x1 + tick}" y2="${y1}"/><line x1="${x2 - tick}" y1="${y2}" x2="${x2 + tick}" y2="${y2}"/>`;
+      t += `<text x="${x1 - 7}" y="${(y1 + y2) / 2}" text-anchor="middle" stroke="none" transform="rotate(-90 ${x1 - 7} ${(y1 + y2) / 2})">${label}</text>`;
+    }
+    return t + `</g>`;
+  }
+}
+
+/* ---------- wiring ---------- */
+document.querySelectorAll("[data-step]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const [key, d] = btn.dataset.step.split(":");
+    state[key] = Math.max(1, state[key] + parseInt(d, 10));
+    render();
+  });
+});
+document.querySelectorAll("input").forEach((el) => el.addEventListener("input", render));
+
+render();
+</script>
+</body>
+</html>
