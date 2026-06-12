@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d0c0b">
+<title>Wheel of Lunch</title>
+<style>
+  * { box-sizing: border-box; }
+
+  :root {
+    --gold: #ffcf3f;
+    --hot:  #ff3b6b;
+    --teal: #2ee6c8;
+  }
+
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+    background:
+      radial-gradient(120% 90% at 50% -10%, #241b2e 0%, #0d0c0b 65%),
+      #0d0c0b;
+    color: #f3ecdd;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    padding: 22px 16px 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  header { text-align: center; margin-bottom: 18px; }
+  .kicker {
+    font-size: 11px; letter-spacing: 6px; text-transform: uppercase;
+    color: #b99cff;
+  }
+  h1 {
+    font-family: 'Arial Black', 'Arial', sans-serif;
+    font-weight: 900;
+    font-size: clamp(34px, 10vw, 72px);
+    letter-spacing: 1px;
+    line-height: 0.9;
+    margin: 4px 0 0;
+    text-transform: uppercase;
+    background: linear-gradient(180deg, #fff3c4 0%, var(--gold) 45%, #ff8a3d 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(120,60,0,0.35);
+    filter: drop-shadow(0 3px 0 rgba(0,0,0,0.45)) drop-shadow(0 0 18px rgba(255,160,40,0.35));
+  }
+
+  /* ── The television set ── */
+  .tv {
+    position: relative;
+    width: min(94vw, 480px);
+    padding: 26px 26px 30px;
+    border-radius: 26px / 22px;
+    background:
+      linear-gradient(180deg, #3a2b22 0%, #2a1f19 60%, #1c1410 100%);
+    box-shadow:
+      inset 0 2px 0 rgba(255,255,255,0.08),
+      inset 0 -10px 26px rgba(0,0,0,0.6),
+      0 24px 50px rgba(0,0,0,0.6);
+  }
+  /* faux wood-grain on the bezel */
+  .tv::before {
+    content: "";
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    background:
+      repeating-linear-gradient(92deg,
+        rgba(255,180,120,0.05) 0 3px,
+        rgba(0,0,0,0.06) 3px 7px);
+    pointer-events: none;
+    opacity: 0.5;
+  }
+
+  /* curved glass screen */
+  .tube {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 16% / 16%;
+    overflow: hidden;
+    background: #05060a;
+    box-shadow:
+      inset 0 0 0 5px #07060a,
+      inset 0 0 0 8px #1a1a20,
+      inset 0 0 60px 10px rgba(0,0,0,0.9);
+    isolation: isolate;
+  }
+  .tube canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+    /* the slight blur + bloom sells the soft analog tube */
+    filter: saturate(1.35) contrast(1.08) brightness(1.05) blur(0.4px);
+    transform: scale(1.04);
+  }
+
+  /* scanlines */
+  .fx-scan {
+    position: absolute; inset: 0; z-index: 5; pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg, rgba(0,0,0,0.42) 0 1px, rgba(0,0,0,0) 1px 3px);
+    mix-blend-mode: multiply;
+    opacity: 0.85;
+  }
+  /* RGB aperture grille */
+  .fx-rgb {
+    position: absolute; inset: 0; z-index: 5; pointer-events: none;
+    background: repeating-linear-gradient(
+      90deg,
+      rgba(255,0,0,0.06) 0 1px,
+      rgba(0,255,0,0.06) 1px 2px,
+      rgba(0,0,255,0.06) 2px 3px);
+    mix-blend-mode: screen;
+  }
+  /* vignette + corner darkening for the bulge */
+  .fx-vig {
+    position: absolute; inset: 0; z-index: 6; pointer-events: none;
+    background: radial-gradient(110% 110% at 50% 50%,
+      rgba(0,0,0,0) 55%, rgba(0,0,0,0.55) 100%);
+  }
+  /* glass glare */
+  .fx-glare {
+    position: absolute; inset: 0; z-index: 7; pointer-events: none;
+    background: radial-gradient(70% 50% at 30% 18%,
+      rgba(255,255,255,0.16) 0%, rgba(255,255,255,0) 60%);
+  }
+  /* slow rolling sync bar */
+  .fx-roll {
+    position: absolute; left: 0; right: 0; height: 26%; z-index: 6;
+    pointer-events: none;
+    background: linear-gradient(180deg,
+      rgba(255,255,255,0) 0%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0) 100%);
+    animation: roll 7s linear infinite;
+  }
+  @keyframes roll { from { top: -30%; } to { top: 110%; } }
+
+  /* whole-screen flicker */
+  .fx-flicker {
+    position: absolute; inset: 0; z-index: 7; pointer-events: none;
+    background: rgba(180,200,255,0.03);
+    animation: flicker 0.13s steps(2) infinite;
+  }
+  @keyframes flicker { 0%,100% { opacity: 0.25; } 50% { opacity: 0.55; } }
+
+  /* channel static burst */
+  .fx-static {
+    position: absolute; inset: 0; z-index: 9; pointer-events: none;
+    opacity: 0; background-size: cover; background-position: center;
+    mix-blend-mode: screen;
+  }
+  .fx-static.on { opacity: 0.9; }
+
+  /* CRT power-on sweep */
+  .fx-power {
+    position: absolute; inset: 0; z-index: 12; pointer-events: none;
+    background: #000;
+  }
+  .fx-power.go { animation: poweron 0.9s ease-out forwards; }
+  @keyframes poweron {
+    0%   { background:#000; clip-path: inset(50% 0 50% 0); }
+    8%   { background:#fff; clip-path: inset(49.6% 0 49.6% 0); }
+    24%  { background:#cfe8ff; clip-path: inset(48% 0 48% 0); }
+    55%  { background:rgba(180,220,255,0.5); clip-path: inset(0 0 0 0); }
+    100% { background:rgba(180,220,255,0); clip-path: inset(0 0 0 0); }
+  }
+
+  /* broadcast lower-third chyron */
+  .chyron {
+    position: absolute; left: 0; right: 0; bottom: 7%; z-index: 8;
+    padding: 0 7%;
+    transform: translateY(140%);
+    transition: transform 0.45s cubic-bezier(.2,1.3,.4,1);
+    pointer-events: none;
+  }
+  .chyron.show { transform: translateY(0); }
+  .chyron-inner {
+    border-left: 6px solid var(--gold);
+    background: linear-gradient(90deg, rgba(20,12,40,0.94), rgba(40,10,60,0.82));
+    box-shadow: 0 4px 14px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.08);
+    padding: 8px 12px 10px;
+    text-shadow: 0 1px 2px #000;
+  }
+  .chyron-label {
+    font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--gold); font-weight: 700;
+  }
+  .chyron-meal {
+    font-family: 'Arial Black', Arial, sans-serif;
+    font-size: clamp(17px, 5.4vw, 26px); font-weight: 900;
+    line-height: 1.02; margin: 2px 0 3px; text-transform: uppercase;
+    color: #fff;
+  }
+  .chyron-ing { font-size: clamp(11px, 3.2vw, 13px); color: #d9d2ff; line-height: 1.3; }
+  .chyron-tag {
+    display: inline-block; margin-top: 5px;
+    font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: #0d0c0b; background: var(--teal); font-weight: 700;
+    padding: 1px 6px; border-radius: 2px;
+  }
+
+  /* speaker grille + brand under screen */
+  .deck {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 16px; gap: 12px;
+  }
+  .grille {
+    flex: 1; height: 26px; border-radius: 5px;
+    background: repeating-linear-gradient(90deg,
+      #14100c 0 3px, #2c241c 3px 6px);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.7);
+  }
+  .brand {
+    font-family: 'Arial Black', Arial, sans-serif;
+    font-size: 12px; letter-spacing: 2px; color: #c9b07a;
+    text-shadow: 0 1px 0 #000;
+  }
+  .mute {
+    flex-shrink: 0;
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 2px solid #5a4a38;
+    background: radial-gradient(120% 120% at 40% 30%, #4a3a2c, #1c1410);
+    color: #ffcf3f; font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 3px 6px rgba(0,0,0,0.5);
+  }
+  .mute:active { transform: translateY(1px); }
+
+  /* ── The big spin button ── */
+  .spin {
+    margin-top: 26px;
+    font-family: 'Arial Black', Arial, sans-serif;
+    font-size: clamp(22px, 7vw, 34px); font-weight: 900;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: #5a1500;
+    padding: 18px 46px;
+    border: none; border-radius: 16px;
+    cursor: pointer;
+    background:
+      linear-gradient(180deg, #fff0b0 0%, var(--gold) 40%, #ff8a1e 100%);
+    box-shadow:
+      inset 0 2px 0 rgba(255,255,255,0.7),
+      0 7px 0 #a85a00,
+      0 9px 18px rgba(0,0,0,0.5);
+    transition: transform 0.05s, box-shadow 0.05s;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+  }
+  .spin:active {
+    transform: translateY(6px);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.7), 0 1px 0 #a85a00, 0 2px 6px rgba(0,0,0,0.5);
+  }
+  .spin:disabled { filter: grayscale(0.5) brightness(0.85); cursor: default; }
+
+  .hint {
+    margin-top: 14px; font-size: 12px; letter-spacing: 1px;
+    color: #8a8275; text-align: center; max-width: 420px; line-height: 1.5;
+  }
+  .hint b { color: #c9b07a; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="kicker">it's time to play</div>
+    <h1>Wheel<br>of Lunch</h1>
+  </header>
+
+  <div class="tv">
+    <div class="tube" id="tube">
+      <canvas id="wheel"></canvas>
+      <div class="fx-rgb"></div>
+      <div class="fx-scan"></div>
+      <div class="fx-roll"></div>
+      <div class="fx-vig"></div>
+      <div class="fx-glare"></div>
+      <div class="fx-flicker"></div>
+      <div class="fx-static" id="static"></div>
+      <div class="chyron" id="chyron">
+        <div class="chyron-inner">
+          <div class="chyron-label">Today's Lunch</div>
+          <div class="chyron-meal" id="cMeal"></div>
+          <div class="chyron-ing" id="cIng"></div>
+          <span class="chyron-tag" id="cTag"></span>
+        </div>
+      </div>
+      <div class="fx-power" id="power"></div>
+    </div>
+
+    <div class="deck">
+      <div class="brand">TUBETRON&nbsp;2600</div>
+      <div class="grille"></div>
+      <button class="mute" id="mute" title="Toggle sound">🔊</button>
+    </div>
+  </div>
+
+  <button class="spin" id="spin">Spin!</button>
+  <p class="hint">Give it a spin — the dinger picks a <b>balanced, high-protein lunch</b>. Most are no-cook; a few need a microwave or a pot of boiling water. Spin again if you don't like your fate.</p>
+
+<script type="module">
+// ── The menu: balanced, high-protein, mostly no-cook lunches ──
+const MEALS = [
+  { short: "Yogurt\nBowl",      name: "Greek Yogurt Power Bowl",   ing: "Greek yogurt · berries · granola · almonds · honey",            tag: "No-cook" },
+  { short: "Tuna +\nBeans",     name: "Tuna White-Bean Toss",      ing: "Canned tuna · cannellini beans · arugula · olive oil · lemon",  tag: "No-cook" },
+  { short: "Turkey\nWrap",      name: "Turkey Hummus Wrap",        ing: "Whole-wheat tortilla · turkey · hummus · spinach · carrot",     tag: "No-cook" },
+  { short: "Cottage\nPlate",    name: "Cottage Cheese Crunch Plate", ing: "Cottage cheese · cherry tomato · cucumber · rye crackers",    tag: "No-cook" },
+  { short: "Egg +\nAvo",        name: "Egg & Avocado Smash Toast", ing: "Boiled eggs · avocado · whole-grain bread · chili flakes",      tag: "Boil eggs" },
+  { short: "Caesar\nBowl",      name: "Rotisserie Caesar Bowl",    ing: "Rotisserie chicken · romaine · parmesan · croutons · yogurt caesar", tag: "No-cook" },
+  { short: "Salmon\nBagel",     name: "Smoked Salmon Bagel",       ing: "Whole-grain bagel · smoked salmon · cream cheese · capers · red onion", tag: "No-cook" },
+  { short: "Burrito\nBowl",     name: "Chicken Burrito Bowl",      ing: "Microwave rice · black beans · chicken · salsa · avocado",      tag: "Microwave" },
+  { short: "Caprese\nPlate",    name: "Caprese & Prosciutto Plate", ing: "Fresh mozzarella · tomato · basil · prosciutto · baguette",    tag: "No-cook" },
+  { short: "Peanut\nNoodles",   name: "Peanut Tofu Noodle Box",    ing: "Soba noodles · baked tofu · peanut sauce · edamame · cabbage",  tag: "Boil noodles" },
+  { short: "Shrimp\nBowl",      name: "Shrimp Avocado Quinoa Bowl", ing: "Cooked shrimp · avocado · quinoa pouch · corn · lime",         tag: "Microwave" },
+  { short: "Lentil\nBowl",      name: "Loaded Lentil Feta Bowl",   ing: "Microwave lentils · feta · cucumber · tomato · olive oil · pita", tag: "Microwave" },
+];
+
+// vivid game-show palette, alternating around the wheel
+const COLORS = [
+  "#ff3b6b", "#ffcf3f", "#2ee6c8", "#7c5cff",
+  "#ff7a1e", "#3fa9ff", "#ff5ec7", "#a6e22e",
+  "#ff4d4d", "#ffd23f", "#19c6ff", "#c08bff",
+];
+
+const N = MEALS.length;
+const SEG = (Math.PI * 2) / N;
+const POINTER = -Math.PI / 2;            // pointer sits at the top of the tube
+
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+const tube = document.getElementById("tube");
+
+let rotation = 0;
+let spinning = false;
+let frame = 0;
+let pointerKick = 0;       // little flick of the peg on each tick
+let lastSeg = -1;          // which slice is under the pointer (for ticking)
+let winFlash = 0;          // counts down a celebratory flash
+
+function fit() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const size = tube.clientWidth;
+  canvas.width = size * dpr;
+  canvas.height = size * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener("resize", fit);
+
+function segAtPointer(rot) {
+  let local = ((POINTER - rot) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+  return Math.floor(local / SEG) % N;
+}
+
+function draw() {
+  const size = tube.clientWidth;
+  const cx = size / 2, cy = size / 2;
+  const R = size * 0.42;
+
+  ctx.clearRect(0, 0, size, size);
+  // dark tube background glow
+  const bg = ctx.createRadialGradient(cx, cy, R * 0.2, cx, cy, R * 1.5);
+  bg.addColorStop(0, "#1a1230");
+  bg.addColorStop(1, "#05060a");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, size, size);
+
+  // ── slices ──
+  for (let i = 0; i < N; i++) {
+    const a0 = i * SEG + rotation;
+    const a1 = a0 + SEG;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, R, a0, a1);
+    ctx.closePath();
+    const col = COLORS[i % COLORS.length];
+    ctx.fillStyle = col;
+    ctx.fill();
+    // subtle radial shading
+    ctx.fillStyle = "rgba(0,0,0,0.16)";
+    ctx.beginPath(); ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, R, a0 + SEG * 0.5, a1);
+    ctx.closePath(); ctx.fill();
+    // divider
+    ctx.strokeStyle = "rgba(0,0,0,0.35)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(a0) * R, cy + Math.sin(a0) * R); ctx.stroke();
+
+    // label
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(a0 + SEG / 2);
+    ctx.fillStyle = "rgba(15,10,5,0.92)";
+    ctx.font = `900 ${Math.max(11, size * 0.034)}px 'Arial Black', Arial, sans-serif`;
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    const lines = MEALS[i].short.split("\n");
+    const lh = size * 0.038;
+    lines.forEach((ln, k) => {
+      ctx.fillText(ln.toUpperCase(), R - size * 0.04, (k - (lines.length - 1) / 2) * lh);
+    });
+    ctx.restore();
+  }
+
+  // outer rim
+  ctx.lineWidth = size * 0.018;
+  ctx.strokeStyle = "#3a2b22";
+  ctx.beginPath(); ctx.arc(cx, cy, R + ctx.lineWidth / 2, 0, Math.PI * 2); ctx.stroke();
+
+  // ── chasing rim bulbs ──
+  const bulbs = N * 2;
+  for (let i = 0; i < bulbs; i++) {
+    const a = (i / bulbs) * Math.PI * 2;
+    const bx = cx + Math.cos(a) * (R + size * 0.012);
+    const by = cy + Math.sin(a) * (R + size * 0.012);
+    let on;
+    if (winFlash > 0) on = Math.floor(frame / 4) % 2 === 0;      // all-flash on win
+    else on = (i + Math.floor(frame / (spinning ? 4 : 14))) % 2 === 0;
+    ctx.beginPath();
+    ctx.arc(bx, by, size * 0.013, 0, Math.PI * 2);
+    ctx.fillStyle = on ? "#fff6c0" : "#6b5a2a";
+    if (on) { ctx.shadowColor = "#ffe87a"; ctx.shadowBlur = size * 0.03; }
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  // ── hub ──
+  ctx.beginPath();
+  ctx.arc(cx, cy, size * 0.085, 0, Math.PI * 2);
+  const hub = ctx.createRadialGradient(cx, cy - size * 0.03, 2, cx, cy, size * 0.09);
+  hub.addColorStop(0, "#fff3c4"); hub.addColorStop(1, "#c98a1e");
+  ctx.fillStyle = hub; ctx.fill();
+  ctx.lineWidth = 2; ctx.strokeStyle = "#5a3a10"; ctx.stroke();
+  ctx.fillStyle = "#5a1500";
+  ctx.font = `900 ${size * 0.05}px 'Arial Black', Arial`;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("EAT", cx, cy + size * 0.002);
+
+  // ── pointer peg at top ──
+  ctx.save();
+  ctx.translate(cx, cy - R - size * 0.005);
+  ctx.rotate(pointerKick);
+  ctx.beginPath();
+  ctx.moveTo(0, size * 0.06);
+  ctx.lineTo(-size * 0.035, -size * 0.02);
+  ctx.lineTo(size * 0.035, -size * 0.02);
+  ctx.closePath();
+  ctx.fillStyle = "#fff";
+  ctx.strokeStyle = "#222"; ctx.lineWidth = 2;
+  ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 6;
+  ctx.fill(); ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+function loop() {
+  frame++;
+  if (pointerKick !== 0) pointerKick *= 0.7;
+  if (Math.abs(pointerKick) < 0.001) pointerKick = 0;
+  if (winFlash > 0) winFlash--;
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// ── audio (Web Audio, synthesized, no files) ──
+let actx = null, master = null;
+let muted = localStorage.getItem("wol-muted") === "1";
+let noiseBuf = null;
+
+function ensureAudio() {
+  if (actx) return;
+  actx = new (window.AudioContext || window.webkitAudioContext)();
+  master = actx.createGain();
+  master.gain.value = muted ? 0 : 0.9;
+  master.connect(actx.destination);
+  // a reusable white-noise buffer for static / cheers
+  const len = actx.sampleRate * 1.2;
+  noiseBuf = actx.createBuffer(1, len, actx.sampleRate);
+  const d = noiseBuf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+}
+
+function tick(speed) {
+  if (!actx || muted) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = "square";
+  o.frequency.value = 900 + Math.random() * 250 + speed * 600;
+  g.gain.setValueAtTime(0.0001, actx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.12, actx.currentTime + 0.005);
+  g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + 0.06);
+  o.connect(g); g.connect(master);
+  o.start(); o.stop(actx.currentTime + 0.07);
+}
+
+function whoosh() {
+  if (!actx || muted) return;
+  const src = actx.createBufferSource(); src.buffer = noiseBuf;
+  const f = actx.createBiquadFilter(); f.type = "bandpass";
+  f.frequency.setValueAtTime(300, actx.currentTime);
+  f.frequency.exponentialRampToValueAtTime(2600, actx.currentTime + 0.5);
+  const g = actx.createGain();
+  g.gain.setValueAtTime(0.0001, actx.currentTime);
+  g.gain.linearRampToValueAtTime(0.25, actx.currentTime + 0.1);
+  g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + 0.6);
+  src.connect(f); f.connect(g); g.connect(master);
+  src.start(); src.stop(actx.currentTime + 0.6);
+}
+
+function fanfare() {
+  if (!actx || muted) return;
+  const t0 = actx.currentTime;
+  const notes = [523.25, 659.25, 783.99, 1046.5]; // C E G C
+  notes.forEach((fr, i) => {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = "triangle";
+    o.frequency.value = fr;
+    const t = t0 + i * 0.11;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.28, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+    o.connect(g); g.connect(master);
+    o.start(t); o.stop(t + 0.55);
+    // bright sparkle octave
+    const o2 = actx.createOscillator(), g2 = actx.createGain();
+    o2.type = "square"; o2.frequency.value = fr * 2;
+    g2.gain.setValueAtTime(0.0001, t);
+    g2.gain.exponentialRampToValueAtTime(0.06, t + 0.02);
+    g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+    o2.connect(g2); g2.connect(master);
+    o2.start(t); o2.stop(t + 0.32);
+  });
+  // crowd-cheer swell
+  const src = actx.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+  const f = actx.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = 1100; f.Q.value = 0.6;
+  const g = actx.createGain();
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.linearRampToValueAtTime(0.14, t0 + 0.25);
+  g.gain.linearRampToValueAtTime(0.10, t0 + 1.0);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.8);
+  src.connect(f); f.connect(g); g.connect(master);
+  src.start(t0); src.stop(t0 + 1.8);
+}
+
+// static visual: paint noise onto the static layer
+const staticEl = document.getElementById("static");
+function staticBurst(ms) {
+  const c = document.createElement("canvas");
+  c.width = 90; c.height = 90;
+  const cc = c.getContext("2d");
+  const img = cc.createImageData(90, 90);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const v = Math.random() * 255;
+    img.data[i] = img.data[i+1] = img.data[i+2] = v; img.data[i+3] = 255;
+  }
+  cc.putImageData(img, 0, 0);
+  staticEl.style.backgroundImage = `url(${c.toDataURL()})`;
+  staticEl.classList.add("on");
+  if (actx && !muted) {
+    const src = actx.createBufferSource(); src.buffer = noiseBuf;
+    const g = actx.createGain(); g.gain.value = 0.18;
+    src.connect(g); g.connect(master);
+    src.start(); src.stop(actx.currentTime + ms / 1000);
+  }
+  setTimeout(() => staticEl.classList.remove("on"), ms);
+}
+
+// ── spin! ──
+const spinBtn = document.getElementById("spin");
+const chyron = document.getElementById("chyron");
+
+function easeOutQuart(t) { return 1 - Math.pow(1 - t, 4); }
+
+function spin() {
+  if (spinning) return;
+  ensureAudio();
+  if (actx.state === "suspended") actx.resume();
+  spinning = true;
+  spinBtn.disabled = true;
+  chyron.classList.remove("show");
+  staticBurst(420);
+  setTimeout(whoosh, 380);
+
+  const target = Math.floor(Math.random() * N);
+  const jitter = (Math.random() - 0.5) * SEG * 0.7;
+  const targetBase = POINTER - (target * SEG + SEG / 2) - jitter;
+  const turns = 5 + Math.floor(Math.random() * 3);
+  const start = rotation;
+  let delta = ((targetBase - start) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+  const end = start + turns * Math.PI * 2 + delta;
+
+  const dur = 5200 + Math.random() * 900;
+  const t0 = performance.now();
+  lastSeg = segAtPointer(rotation);
+
+  function step(now) {
+    const t = Math.min((now - t0) / dur, 1);
+    rotation = start + (end - start) * easeOutQuart(t);
+    const seg = segAtPointer(rotation);
+    if (seg !== lastSeg) {
+      pointerKick = -0.28;
+      tick(1 - t);
+      lastSeg = seg;
+    }
+    if (t < 1) {
+      requestAnimationFrame(step);
+    } else {
+      rotation = end;
+      finish(target);
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+function finish(idx) {
+  spinning = false;
+  spinBtn.disabled = false;
+  winFlash = 90;
+  const m = MEALS[idx];
+  document.getElementById("cMeal").textContent = m.name;
+  document.getElementById("cIng").textContent = m.ing;
+  document.getElementById("cTag").textContent = m.tag;
+  chyron.classList.add("show");
+  fanfare();
+}
+
+spinBtn.addEventListener("click", spin);
+
+// mute toggle
+const muteBtn = document.getElementById("mute");
+function paintMute() { muteBtn.textContent = muted ? "🔇" : "🔊"; }
+paintMute();
+muteBtn.addEventListener("click", () => {
+  muted = !muted;
+  localStorage.setItem("wol-muted", muted ? "1" : "0");
+  if (master) master.gain.value = muted ? 0 : 0.9;
+  paintMute();
+});
+
+// boot
+fit();
+requestAnimationFrame(loop);
+window.addEventListener("load", () => {
+  document.getElementById("power").classList.add("go");
+});
+</script>
+</body>
+</html>
