@@ -52,12 +52,12 @@
   body.wall #bar { display: none; }
 
   #brand {
-    font-size: 18px;
-    letter-spacing: 1px;
-    text-transform: lowercase;
-    white-space: nowrap;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    line-height: 0;
   }
-  #brand b { color: var(--accent); }
+  #brand svg { display: block; }
 
   #sourceSelect {
     flex: 1 1 auto;
@@ -88,28 +88,28 @@
   }
   .iconbtn:hover, .iconbtn.on { border-color: var(--accent); color: var(--accent); }
 
-  /* ── Thin status line under the bar ── */
+  /* ── Status toast (floats at the bottom, auto-hides) ── */
   #status {
     position: fixed;
-    top: calc(var(--bar-h) + env(safe-area-inset-top, 0px));
-    left: 0; right: 0;
-    z-index: 90;
-    padding: 4px 12px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    left: 12px; right: 12px;
+    z-index: 120;
+    padding: 9px 13px;
     font-size: 12px;
     letter-spacing: 0.4px;
-    color: var(--dim);
-    background: rgba(13,12,11,0.85);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    color: var(--ink);
+    background: rgba(13,12,11,0.94);
+    border: 1px solid var(--line2);
+    border-radius: 5px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.55);
+    white-space: normal;
     display: none;
   }
   #status.show { display: block; }
-  #status.ok  { color: var(--ok); }
-  #status.bad { color: var(--bad); white-space: normal; }
+  #status.ok  { color: var(--ok); border-color: rgba(110,231,135,0.4); }
+  #status.bad { color: var(--bad); border-color: rgba(255,122,107,0.5); }
   #status .spin { display: inline-block; animation: spin 0.9s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  body.wall #status { display: none; }
 
   /* ── Settings panel (drops down from the gear) ── */
   #panel {
@@ -179,19 +179,16 @@
   details.notes p { margin: 8px 0; }
 
   /* ── Webamp stage ── */
-  /* Webamp pins its main window to {0,0}; we offset+center the container so the
-     player sits centered, just below the bar — never under the chrome. */
+  /* Webamp pins its main window to {0,0}; we anchor the container's top-left
+     just below the bar and scale it (in JS) to fill the viewport width. */
   #webamp {
     position: fixed !important;
-    top: calc(var(--bar-h) + env(safe-area-inset-top, 0px) + 34px);
-    left: 8px;               /* flush-left with a gutter — never clips on phones */
+    top: calc(var(--bar-h) + env(safe-area-inset-top, 0px));
+    left: 0;
+    transform-origin: top left;
     z-index: 1;
   }
-  /* Center only where there's guaranteed room (iPad-class widths). */
-  @media (min-width: 520px) {
-    #webamp { left: calc(50% - 138px); }
-  }
-  body.wall #webamp { top: calc(env(safe-area-inset-top, 0px) + 10px); }
+  body.wall #webamp { top: env(safe-area-inset-top, 0px); }
 
   /* Floating reveal button in wall mode */
   #reveal {
@@ -210,7 +207,24 @@
 <body>
 
 <div id="bar">
-  <span id="brand">tim<b>amp</b></span>
+  <span id="brand" title="timamp">
+    <svg width="30" height="30" viewBox="0 0 40 40" aria-label="timamp">
+      <!-- headphone band over the top -->
+      <path d="M7.5 22 A12.5 12.5 0 0 1 32.5 22" fill="none" stroke="#2b2b2b" stroke-width="3" stroke-linecap="round"/>
+      <!-- face -->
+      <circle cx="20" cy="22" r="11.5" fill="#ffd23f" stroke="#c8941a" stroke-width="1.5"/>
+      <!-- eyes -->
+      <circle cx="15.6" cy="20.5" r="1.7" fill="#2b2200"/>
+      <circle cx="24.4" cy="20.5" r="1.7" fill="#2b2200"/>
+      <!-- smile -->
+      <path d="M14 25.2 Q20 30 26 25.2" fill="none" stroke="#2b2200" stroke-width="1.9" stroke-linecap="round"/>
+      <!-- ear cups -->
+      <rect x="4.5" y="18" width="6.5" height="9.5" rx="3" fill="#2b2b2b"/>
+      <rect x="29" y="18" width="6.5" height="9.5" rx="3" fill="#2b2b2b"/>
+      <rect x="6.2" y="20" width="3.1" height="5.5" rx="1.5" fill="#c08bff"/>
+      <rect x="30.7" y="20" width="3.1" height="5.5" rx="1.5" fill="#c08bff"/>
+    </svg>
+  </span>
   <select id="sourceSelect"><option value="">— pick a source —</option></select>
   <button class="iconbtn" id="gearBtn" title="Settings">⚙</button>
   <button class="iconbtn" id="wallBtn" title="Wall mode (fullscreen)">⛶</button>
@@ -311,12 +325,24 @@ let base = '';
 let token = '';
 let webamp = null;
 
+let statusTimer = null;
 function setStatus(msg, kind = '') {
+  clearTimeout(statusTimer);
   els.status.className = (kind ? kind + ' ' : '') + 'show';
   els.status.innerHTML = msg;
+  if (kind === 'ok') statusTimer = setTimeout(clearStatus, 4500); // success fades; errors/busy stay
 }
-function clearStatus() { els.status.className = ''; els.status.innerHTML = ''; }
+function clearStatus() { clearTimeout(statusTimer); els.status.className = ''; els.status.innerHTML = ''; }
 function busy(msg) { setStatus('<span class="spin">◔</span> ' + msg); }
+
+// Scale the Webamp cluster (native 275px wide) to fill the viewport edge-to-edge.
+function fitWebamp() {
+  const node = $('webamp');
+  if (!webamp || !node) return;
+  node.style.transform = 'scale(' + (window.innerWidth / 275) + ')';
+}
+window.addEventListener('resize', fitWebamp);
+window.addEventListener('orientationchange', () => setTimeout(fitWebamp, 250));
 
 function openPanel() { els.panel.classList.remove('hidden'); els.gearBtn.classList.add('on'); }
 function closePanel() { els.panel.classList.add('hidden'); els.gearBtn.classList.remove('on'); }
@@ -509,6 +535,8 @@ async function ensureWebamp() {
   if (skin) opts.initialSkin = { url: skin };
   webamp = new Webamp(opts);
   await webamp.renderWhenReady($('webamp'));
+  fitWebamp();
+  setTimeout(fitWebamp, 300); // re-fit once Webamp settles its layout
 }
 
 // ── Connect / disconnect ─────────────────────────────────────────────────
