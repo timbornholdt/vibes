@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patio Paver Visualizer</title>
+<style>
+  * { box-sizing: border-box; }
+
+  :root {
+    --grey:   #B4B4B4;
+    --red:    #A29090;
+    --grout:  #2b2723;
+    --bg:     #15130f;
+    --panel:  #211d18;
+    --ink:    #ece4d6;
+    --muted:  #9a9184;
+    --line:   #3a342c;
+    --accent: #c9b07a;
+  }
+
+  html, body { margin: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.4;
+    padding: 24px 16px 64px;
+  }
+
+  .wrap { max-width: 760px; margin: 0 auto; }
+
+  header { margin-bottom: 18px; }
+  h1 {
+    font-size: clamp(26px, 6vw, 38px);
+    margin: 0 0 4px;
+    letter-spacing: -0.5px;
+  }
+  .sub { color: var(--muted); font-size: 14px; }
+
+  /* ── Controls ── */
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: flex-end;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .group { display: flex; flex-direction: column; gap: 6px; }
+  .group > label {
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .swatches { display: flex; gap: 8px; }
+  .swatch {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px 7px 8px;
+    border: 2px solid var(--line);
+    border-radius: 9px;
+    background: #1a1611;
+    color: var(--ink);
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color .12s, transform .06s;
+  }
+  .swatch:active { transform: translateY(1px); }
+  .swatch .dot {
+    width: 22px; height: 22px;
+    border-radius: 5px;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
+  }
+  .swatch[data-v="0"] .dot { background: var(--grey); }
+  .swatch[data-v="1"] .dot { background: var(--red); }
+  .swatch.on { border-color: var(--accent); }
+
+  select, .btn {
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--ink);
+    background: #1a1611;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    padding: 9px 12px;
+    cursor: pointer;
+  }
+  select { min-width: 190px; }
+  .btn:hover, select:hover { border-color: #5e564a; }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: var(--accent); color: #1a1611; border-color: var(--accent); font-weight: 600; }
+  .btnrow { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  /* ── Counts ── */
+  .counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin: 4px 2px 14px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .counts .tally { display: flex; align-items: center; gap: 7px; color: var(--ink); }
+  .counts .dot { width: 14px; height: 14px; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.25); }
+  .counts .dot.g { background: var(--grey); }
+  .counts .dot.r { background: var(--red); }
+  .counts .sep { color: var(--line); }
+
+  /* ── Grid ── */
+  .stage {
+    background: var(--grout);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px;
+    overflow: hidden;
+  }
+  #grid {
+    display: grid;
+    gap: 4px;
+    width: 100%;
+    margin: 0 auto;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .cell {
+    aspect-ratio: 1 / 1;
+    border-radius: 3px;
+    background: var(--grey);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.18),
+                inset 0 -2px 3px rgba(0,0,0,.18);
+    cursor: pointer;
+  }
+  .cell.v1 { background: var(--red); }
+
+  .hint { font-size: 13px; color: var(--muted); margin: 12px 2px 0; }
+  .toast {
+    position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px);
+    background: var(--accent); color: #1a1611; font-weight: 600;
+    padding: 10px 18px; border-radius: 999px; font-size: 14px;
+    opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Patio Paver Visualizer</h1>
+    <div class="sub">8 × 15 grid of 16″ pavers — pick a color, tap or drag to paint.</div>
+  </header>
+
+  <div class="toolbar">
+    <div class="group">
+      <label>Color</label>
+      <div class="swatches" id="swatches">
+        <button class="swatch on" data-v="0"><span class="dot"></span>Grey</button>
+        <button class="swatch" data-v="1"><span class="dot"></span>Reddish</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <label for="pattern">Pattern</label>
+      <select id="pattern">
+        <option value="" selected>— choose a pattern —</option>
+        <option value="grey">All grey (reset)</option>
+        <option value="scatter">Biophilic scatter</option>
+        <option value="checker">Classic checkerboard</option>
+        <option value="bigchecker">Large-format quilt</option>
+        <option value="bands">Broad bands</option>
+        <option value="pinstripe">Pinstripe runners</option>
+        <option value="diagonal">Diagonal flow</option>
+        <option value="ombre">Ombré fade</option>
+        <option value="border">Color-drenched border</option>
+        <option value="rings">Concentric medallion</option>
+      </select>
+    </div>
+
+    <div class="group">
+      <label>Actions</label>
+      <div class="btnrow">
+        <button class="btn" id="rotate">↻ Rotate</button>
+        <button class="btn" id="undo">↶ Undo</button>
+        <button class="btn" id="clear">Clear</button>
+        <button class="btn primary" id="share">Copy link</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="counts" id="counts"></div>
+
+  <div class="stage">
+    <div id="grid"></div>
+  </div>
+
+  <p class="hint">Tap a paver to paint it. Click (or touch) and drag across pavers to paint many at once. Patterns and orientation are saved in the link.</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+const GREY = 0, RED = 1;
+const SQFT_PER = (16 / 12) ** 2; // 16" square paver
+
+// State -----------------------------------------------------------------
+let orient = 'p';        // 'p' portrait (15 rows x 8 cols) | 'l' landscape (8 x 15)
+let R, C;                // current rows / cols
+let grid = [];           // grid[r][c] -> 0 | 1
+let active = GREY;       // currently selected paint color
+let painting = false;
+const undoStack = [];
+
+function dims(o) { return o === 'p' ? { R: 15, C: 8 } : { R: 8, C: 15 }; }
+
+function blank(R, C) {
+  return Array.from({ length: R }, () => Array.from({ length: C }, () => GREY));
+}
+
+// Deterministic per-cell pseudo-random so scatter/ombré are stable & shareable.
+function noise(r, c) {
+  let x = (r * 73856093) ^ (c * 19349663);
+  x = (x ^ (x >>> 13)) >>> 0;
+  return (x % 10000) / 10000;
+}
+
+// Pattern generators ----------------------------------------------------
+// Each returns a fresh grid for the current R x C. Chosen to flatter a
+// two-tone 2026 patio: organic scatter, large-format blocking, soft fades,
+// and drenched borders rather than busy small-scale noise.
+const PATTERNS = {
+  grey:       (R, C) => blank(R, C),
+  scatter:    (R, C) => build(R, C, (r, c) => noise(r, c) < 0.24 ? RED : GREY),
+  checker:    (R, C) => build(R, C, (r, c) => (r + c) % 2),
+  bigchecker: (R, C) => build(R, C, (r, c) => (Math.floor(r / 2) + Math.floor(c / 2)) % 2),
+  bands:      (R, C) => build(R, C, (r, c) => Math.floor(r / 3) % 2),
+  pinstripe:  (R, C) => build(R, C, (r, c) => c % 3 === 0 ? RED : GREY),
+  diagonal:   (R, C) => build(R, C, (r, c) => (r + c) % 4 < 2 ? RED : GREY),
+  ombre:      (R, C) => build(R, C, (r, c) => noise(r, c) < (r / (R - 1)) * 0.95 ? RED : GREY),
+  border:     (R, C) => build(R, C, (r, c) => (r === 0 || c === 0 || r === R - 1 || c === C - 1) ? RED : GREY),
+  rings:      (R, C) => build(R, C, (r, c) => Math.min(r, R - 1 - r, c, C - 1 - c) % 2 === 0 ? RED : GREY),
+};
+
+function build(R, C, fn) {
+  return Array.from({ length: R }, (_, r) =>
+    Array.from({ length: C }, (_, c) => fn(r, c) ? RED : GREY));
+}
+
+// Rendering -------------------------------------------------------------
+const gridEl = document.getElementById('grid');
+
+function render() {
+  gridEl.style.gridTemplateColumns = `repeat(${C}, 1fr)`;
+  // Cap visual width so portrait stays tall, landscape stays wide.
+  gridEl.style.maxWidth = orient === 'p' ? '420px' : '100%';
+  const frag = document.createDocumentFragment();
+  for (let r = 0; r < R; r++) {
+    for (let c = 0; c < C; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell' + (grid[r][c] === RED ? ' v1' : '');
+      cell.dataset.r = r;
+      cell.dataset.c = c;
+      frag.appendChild(cell);
+    }
+  }
+  gridEl.replaceChildren(frag);
+  updateCounts();
+}
+
+function paintCell(cell) {
+  const r = +cell.dataset.r, c = +cell.dataset.c;
+  if (grid[r][c] === active) return;
+  grid[r][c] = active;
+  cell.classList.toggle('v1', active === RED);
+  updateCounts();
+}
+
+const countsEl = document.getElementById('counts');
+function updateCounts() {
+  let red = 0;
+  for (const row of grid) for (const v of row) if (v === RED) red++;
+  const total = R * C;
+  const grey = total - red;
+  const ft = (n) => (n * SQFT_PER).toFixed(0);
+  countsEl.innerHTML =
+    `<span class="tally"><span class="dot g"></span>${grey} grey · ${ft(grey)} sq ft</span>` +
+    `<span class="sep">|</span>` +
+    `<span class="tally"><span class="dot r"></span>${red} reddish · ${ft(red)} sq ft</span>` +
+    `<span class="sep">|</span>` +
+    `<span>${total} pavers · ${ft(total)} sq ft</span>`;
+}
+
+// Undo ------------------------------------------------------------------
+function snapshot() {
+  undoStack.push({ orient, grid: grid.map(row => row.slice()) });
+  if (undoStack.length > 60) undoStack.shift();
+}
+function undo() {
+  const prev = undoStack.pop();
+  if (!prev) { toast('Nothing to undo'); return; }
+  orient = prev.orient;
+  ({ R, C } = dims(orient));
+  grid = prev.grid;
+  render();
+  syncURL();
+}
+
+// Painting interaction --------------------------------------------------
+gridEl.addEventListener('pointerdown', (e) => {
+  const cell = e.target.closest('.cell');
+  if (!cell) return;
+  e.preventDefault();
+  snapshot();
+  painting = true;
+  gridEl.setPointerCapture(e.pointerId);
+  paintCell(cell);
+});
+gridEl.addEventListener('pointermove', (e) => {
+  if (!painting) return;
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const cell = el && el.closest && el.closest('.cell');
+  if (cell) paintCell(cell);
+});
+function endStroke() {
+  if (!painting) return;
+  painting = false;
+  syncURL();
+}
+gridEl.addEventListener('pointerup', endStroke);
+gridEl.addEventListener('pointercancel', endStroke);
+window.addEventListener('pointerup', endStroke);
+
+// Color selection -------------------------------------------------------
+document.getElementById('swatches').addEventListener('click', (e) => {
+  const b = e.target.closest('.swatch');
+  if (!b) return;
+  active = +b.dataset.v;
+  document.querySelectorAll('.swatch').forEach(s => s.classList.toggle('on', s === b));
+});
+
+// Pattern dropdown ------------------------------------------------------
+document.getElementById('pattern').addEventListener('change', (e) => {
+  const fn = PATTERNS[e.target.value];
+  if (!fn) return;
+  snapshot();
+  grid = fn(R, C);
+  render();
+  syncURL();
+});
+
+// Rotate ----------------------------------------------------------------
+document.getElementById('rotate').addEventListener('click', () => {
+  snapshot();
+  // Transpose so the design carries over to the new orientation.
+  const next = Array.from({ length: C }, (_, r) =>
+    Array.from({ length: R }, (_, c) => grid[c][r]));
+  grid = next;
+  orient = orient === 'p' ? 'l' : 'p';
+  ({ R, C } = dims(orient));
+  render();
+  syncURL();
+});
+
+// Clear -----------------------------------------------------------------
+document.getElementById('clear').addEventListener('click', () => {
+  snapshot();
+  grid = blank(R, C);
+  render();
+  syncURL();
+});
+
+// Undo button -----------------------------------------------------------
+document.getElementById('undo').addEventListener('click', undo);
+
+// Share / URL state -----------------------------------------------------
+function encode() {
+  let bits = '';
+  for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) bits += grid[r][c];
+  while (bits.length % 4) bits += '0';
+  let hex = '';
+  for (let i = 0; i < bits.length; i += 4) hex += parseInt(bits.slice(i, i + 4), 2).toString(16);
+  return orient + hex;
+}
+function decode(str) {
+  if (!str) return false;
+  const o = str[0] === 'l' ? 'l' : 'p';
+  const d = dims(o);
+  let bits = '';
+  for (const ch of str.slice(1)) {
+    const n = parseInt(ch, 16);
+    if (Number.isNaN(n)) return false;
+    bits += n.toString(2).padStart(4, '0');
+  }
+  if (bits.length < d.R * d.C) return false;
+  orient = o;
+  R = d.R; C = d.C;
+  grid = blank(R, C);
+  let i = 0;
+  for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) grid[r][c] = bits[i++] === '1' ? RED : GREY;
+  return true;
+}
+function syncURL() {
+  history.replaceState(null, '', '#' + encode());
+}
+document.getElementById('share').addEventListener('click', async () => {
+  syncURL();
+  try {
+    await navigator.clipboard.writeText(location.href);
+    toast('Link copied!');
+  } catch {
+    toast('Copy failed — copy the URL from the bar');
+  }
+});
+
+// Toast -----------------------------------------------------------------
+const toastEl = document.getElementById('toast');
+let toastT;
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => toastEl.classList.remove('show'), 1600);
+}
+
+// Init ------------------------------------------------------------------
+function init() {
+  const hash = decodeURIComponent(location.hash.replace(/^#/, ''));
+  if (!decode(hash)) {
+    orient = 'p';
+    ({ R, C } = dims(orient));
+    grid = blank(R, C);
+  }
+  render();
+}
+init();
+</script>
+</body>
+</html>
