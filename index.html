@@ -214,6 +214,7 @@
 
 <script>
   const tools = [
+    { file: "wallamp.html", title: "WallAmp", cat: "music", desc: "A Winamp for your wall: streams a Plex playlist, album, or collection through the classic skinned player, complete with a real Milkdrop visualizer. Paste your server URL and token, pick a source, mount the tablet." },
     { file: "patio-paver-visualizer.html", title: "Patio Paver Visualizer", cat: "home", desc: "Paint an 8×15 grid of two-tone 16″ pavers by tapping or dragging across squares. Curated patterns, live paver counts, rotate, and shareable layouts." },
     { file: "90s-lunch-wheel.html", title: "Wheel of Lunch", cat: "body", desc: "Spin a cheesy 90s game-show wheel rendered on a low-res tube TV to pick a balanced, high-protein lunch. Synth ticking and a win fanfare included." },
     { file: "paver-patio-planner.html", title: "Paver Patio Planner", cat: "home", desc: "Lay out a whole-paver field inside a wall opening, letting garden beds absorb the remainder so you never cut a block. Live top-down plan plus a materials list." },
@@ -238,6 +239,13 @@
   const svg = (inner) =>
     `<svg viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
   const icons = {
+    // player window with an equalizer/visualizer readout
+    "wallamp.html": svg(`
+      <rect x="16" y="28" width="64" height="40" rx="5"/>
+      <path d="M16 39h64"/>
+      <circle cx="23" cy="33.5" r="1.8" fill="currentColor" stroke="none"/>
+      <circle cx="29" cy="33.5" r="1.8" fill="currentColor" stroke="none"/>
+      <path d="M27 60V49M35 60V44M43 60V52M51 60V46M59 60V50M67 60V43" stroke-width="4"/>`),
     // two-tone paver grid, some cells filled
     "patio-paver-visualizer.html": svg(`
       <rect x="20" y="20" width="56" height="56" rx="4"/>
