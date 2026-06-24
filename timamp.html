@@ -226,6 +226,7 @@
     </svg>
   </span>
   <select id="sourceSelect"><option value="">— pick a source —</option></select>
+  <button class="iconbtn" id="diceBtn" title="Random skin from the Skin Museum">🎲</button>
   <button class="iconbtn" id="gearBtn" title="Settings">⚙</button>
   <button class="iconbtn" id="wallBtn" title="Wall mode (fullscreen)">⛶</button>
 </div>
@@ -268,6 +269,16 @@
   </div>
 
   <div class="grp">
+    <div class="controls" style="margin-bottom:12px;">
+      <label class="toggle" title="Swap to a new random Skin Museum skin on a timer.">
+        <input type="checkbox" id="autoRotate"> auto-rotate skins
+      </label>
+      <label class="toggle" style="text-transform:none; letter-spacing:0;">
+        every
+        <input id="rotateSecs" type="text" inputmode="numeric" autocomplete="off" value="20" style="width:60px; text-align:center;"> sec
+      </label>
+      <button class="txt" id="diceBtn2">🎲 random now</button>
+    </div>
     <label class="field" style="margin-bottom:10px;">
       custom skin url (.wsz, optional — applies on reconnect)
       <input id="skinUrl" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://skins.webamp.org/skin/…/Whatever.wsz/">
@@ -295,11 +306,12 @@
 const $ = (id) => document.getElementById(id);
 const els = {
   bar: $('bar'), brand: $('brand'), sourceSelect: $('sourceSelect'),
-  gearBtn: $('gearBtn'), wallBtn: $('wallBtn'), reveal: $('reveal'),
+  gearBtn: $('gearBtn'), wallBtn: $('wallBtn'), reveal: $('reveal'), diceBtn: $('diceBtn'),
   status: $('status'), panel: $('panel'), connectGrp: $('connectGrp'), optsGrp: $('optsGrp'),
   serverUrl: $('serverUrl'), token: $('token'), connectBtn: $('connectBtn'),
   filter: $('filter'), shuffle: $('shuffle'), transcode: $('transcode'),
   refreshBtn: $('refreshBtn'), disconnectBtn: $('disconnectBtn'), skinUrl: $('skinUrl'),
+  autoRotate: $('autoRotate'), rotateSecs: $('rotateSecs'), diceBtn2: $('diceBtn2'),
 };
 
 // Migrate any settings saved under the old "wallamp_" name.
@@ -312,6 +324,7 @@ for (const s of ['url', 'token', 'transcode', 'shuffle', 'skin', 'client_id', 'l
 const LS = {
   url: 'timamp_url', token: 'timamp_token', transcode: 'timamp_transcode', shuffle: 'timamp_shuffle',
   skin: 'timamp_skin', clientId: 'timamp_client_id', lastSource: 'timamp_last_source',
+  autoRotate: 'timamp_autorotate', rotateSecs: 'timamp_rotatesecs',
 };
 
 let clientId = localStorage.getItem(LS.clientId);
@@ -537,7 +550,80 @@ async function ensureWebamp() {
   await webamp.renderWhenReady($('webamp'));
   fitWebamp();
   setTimeout(fitWebamp, 300); // re-fit once Webamp settles its layout
+  if (els.autoRotate.checked) startRotate();
 }
+
+// ── Random skins from the Winamp Skin Museum ─────────────────────────────
+// We pull a batch at a random offset, cache it, and rotate. setSkinFromUrl()
+// is a real Webamp method, so swaps happen live without interrupting playback.
+let skinPool = [];
+let skinIdx = 0;
+let rotateTimer = null;
+
+// Schema-agnostic: find every {md5, filename} pair anywhere in the JSON,
+// then fall back to scraping raw 32-hex hashes if the shape is unfamiliar.
+function extractSkins(data, rawText) {
+  const found = [];
+  const walk = (o) => {
+    if (!o || typeof o !== 'object') return;
+    if (Array.isArray(o)) return o.forEach(walk);
+    const md5 = o.md5 || o.MD5 || o.hash;
+    if (typeof md5 === 'string' && /^[a-f0-9]{32}$/i.test(md5)) {
+      found.push({ md5, filename: o.fileName || o.filename || o.file_name || o.name || (md5 + '.wsz') });
+    }
+    for (const k in o) walk(o[k]);
+  };
+  if (data) walk(data);
+  if (!found.length && rawText) {
+    for (const h of new Set(rawText.match(/[a-f0-9]{32}/gi) || [])) found.push({ md5: h, filename: h + '.wsz' });
+  }
+  return found;
+}
+
+async function fillSkinPool() {
+  const offset = Math.floor(Math.random() * 90000);
+  const candidates = [
+    'https://api.webamp.org/skins/?first=100&offset=' + offset,
+    'https://api.webamp.org/skins?first=100&offset=' + offset,
+  ];
+  for (const u of candidates) {
+    try {
+      const res = await fetch(u);
+      if (!res.ok) continue;
+      const text = await res.text();
+      let data = null;
+      try { data = JSON.parse(text); } catch (e) {}
+      const skins = extractSkins(data, text);
+      if (skins.length) { skinPool = shuffle(skins); skinIdx = 0; return true; }
+    } catch (e) {}
+  }
+  return false;
+}
+
+async function randomSkin(announce) {
+  if (!webamp) return;
+  if (skinIdx >= skinPool.length) {
+    const ok = await fillSkinPool();
+    if (!ok) {
+      stopRotate();
+      els.autoRotate.checked = false;
+      localStorage.setItem(LS.autoRotate, '0');
+      setStatus('Couldn\'t reach the Skin Museum API (the piece I couldn\'t test here). Open your browser console and tell me the error — I\'ll fix the endpoint.', 'bad');
+      return;
+    }
+  }
+  const s = skinPool[skinIdx++];
+  webamp.setSkinFromUrl('https://skins.webamp.org/skin/' + s.md5 + '/' + encodeURIComponent(s.filename));
+  if (announce) setStatus('🎲 new skin', 'ok');
+}
+
+function startRotate() {
+  stopRotate();
+  const secs = Math.max(3, parseInt(els.rotateSecs.value, 10) || 20);
+  randomSkin(false);
+  rotateTimer = setInterval(() => randomSkin(false), secs * 1000);
+}
+function stopRotate() { if (rotateTimer) { clearInterval(rotateTimer); rotateTimer = null; } }
 
 // ── Connect / disconnect ─────────────────────────────────────────────────
 function normalizeUrl(raw) {
@@ -606,6 +692,16 @@ els.reveal.addEventListener('click', exitWall);
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) exitWall(); });
 els.transcode.addEventListener('change', () => localStorage.setItem(LS.transcode, els.transcode.checked ? '1' : '0'));
 els.shuffle.addEventListener('change', () => localStorage.setItem(LS.shuffle, els.shuffle.checked ? '1' : '0'));
+els.diceBtn.addEventListener('click', () => randomSkin(true));
+els.diceBtn2.addEventListener('click', () => randomSkin(true));
+els.autoRotate.addEventListener('change', () => {
+  localStorage.setItem(LS.autoRotate, els.autoRotate.checked ? '1' : '0');
+  els.autoRotate.checked ? startRotate() : stopRotate();
+});
+els.rotateSecs.addEventListener('change', () => {
+  localStorage.setItem(LS.rotateSecs, els.rotateSecs.value);
+  if (els.autoRotate.checked) startRotate(); // restart with the new interval
+});
 els.skinUrl.addEventListener('change', () => {
   const v = els.skinUrl.value.trim();
   if (v) localStorage.setItem(LS.skin, v); else localStorage.removeItem(LS.skin);
@@ -618,6 +714,8 @@ els.skinUrl.addEventListener('change', () => {
   els.transcode.checked = localStorage.getItem(LS.transcode) === '1';
   els.shuffle.checked = localStorage.getItem(LS.shuffle) !== '0'; // default on
   els.skinUrl.value = localStorage.getItem(LS.skin) || '';
+  els.autoRotate.checked = localStorage.getItem(LS.autoRotate) === '1';
+  els.rotateSecs.value = localStorage.getItem(LS.rotateSecs) || '20';
   if (els.serverUrl.value && els.token.value) {
     closePanel();
     connect();
