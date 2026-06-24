@@ -183,10 +183,13 @@
      player sits centered, just below the bar — never under the chrome. */
   #webamp {
     position: fixed !important;
-    top: calc(var(--bar-h) + env(safe-area-inset-top, 0px) + 30px);
-    left: 50%;
-    margin-left: -138px;     /* half of the 275px window — visually centers it */
+    top: calc(var(--bar-h) + env(safe-area-inset-top, 0px) + 34px);
+    left: 8px;               /* flush-left with a gutter — never clips on phones */
     z-index: 1;
+  }
+  /* Center only where there's guaranteed room (iPad-class widths). */
+  @media (min-width: 520px) {
+    #webamp { left: calc(50% - 138px); }
   }
   body.wall #webamp { top: calc(env(safe-area-inset-top, 0px) + 10px); }
 
