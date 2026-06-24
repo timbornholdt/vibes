@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Timamp">
+<meta name="theme-color" content="#0d0c0b">
+<title>Timamp — Plex Winamp player</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #0d0c0b; }
+
+  :root {
+    --bg:    #0d0c0b;
+    --panel: #16140f;
+    --line:  #2c2820;
+    --line2: #4a443a;
+    --ink:   #f3ecdd;
+    --dim:   #9b9485;
+    --dimmer:#6a6356;
+    --accent:#c08bff;
+    --ok:    #6ee787;
+    --bad:   #ff7a6b;
+    --bar-h: 48px;
+  }
+
+  body {
+    font-family: 'Courier New', 'Courier', ui-monospace, monospace;
+    color: var(--ink);
+    min-height: 100vh;
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  /* ── Slim top bar (always visible while connected) ── */
+  #bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    height: calc(var(--bar-h) + env(safe-area-inset-top, 0px));
+    padding: env(safe-area-inset-top, 0px) 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(13,12,11,0.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  body.wall #bar { display: none; }
+
+  #brand {
+    font-size: 18px;
+    letter-spacing: 1px;
+    text-transform: lowercase;
+    white-space: nowrap;
+  }
+  #brand b { color: var(--accent); }
+
+  #sourceSelect {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: inherit;
+    font-size: 16px;
+    color: var(--ink);
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--line2);
+    border-radius: 3px;
+    padding: 8px 10px;
+    outline: none;
+  }
+  #sourceSelect:focus { border-color: var(--accent); }
+
+  .iconbtn {
+    flex: 0 0 auto;
+    font-family: inherit;
+    font-size: 17px;
+    line-height: 1;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--line2);
+    border-radius: 3px;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .iconbtn:hover, .iconbtn.on { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Thin status line under the bar ── */
+  #status {
+    position: fixed;
+    top: calc(var(--bar-h) + env(safe-area-inset-top, 0px));
+    left: 0; right: 0;
+    z-index: 90;
+    padding: 4px 12px;
+    font-size: 12px;
+    letter-spacing: 0.4px;
+    color: var(--dim);
+    background: rgba(13,12,11,0.85);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: none;
+  }
+  #status.show { display: block; }
+  #status.ok  { color: var(--ok); }
+  #status.bad { color: var(--bad); white-space: normal; }
+  #status .spin { display: inline-block; animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  body.wall #status { display: none; }
+
+  /* ── Settings panel (drops down from the gear) ── */
+  #panel {
+    position: fixed;
+    top: calc(var(--bar-h) + env(safe-area-inset-top, 0px));
+    left: 0; right: 0;
+    z-index: 95;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line2);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  #panel.hidden { display: none; }
+
+  .grp { margin-bottom: 14px; }
+  .grp:last-child { margin-bottom: 0; }
+
+  label.field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  input[type="text"], input[type="password"] {
+    font-family: inherit;
+    font-size: 16px;
+    color: var(--ink);
+    background: rgba(0,0,0,0.35);
+    border: 1px solid var(--line2);
+    border-radius: 3px;
+    padding: 9px 11px;
+    outline: none;
+    width: 100%;
+  }
+  input:focus { border-color: var(--accent); }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 14px 18px; align-items: center; }
+  .toggle {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--dim); cursor: pointer; user-select: none;
+  }
+  .toggle input { width: auto; accent-color: var(--accent); transform: scale(1.25); }
+
+  button.txt {
+    font-family: inherit; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--ink); background: transparent; border: 1px solid var(--line2);
+    border-radius: 3px; padding: 9px 14px; cursor: pointer; transition: all 0.12s;
+  }
+  button.txt:hover { border-color: var(--accent); color: var(--accent); }
+  button.txt.primary { background: var(--accent); border-color: var(--accent); color: #161214; font-weight: 700; }
+  button.txt.primary:hover { color: #161214; opacity: 0.9; }
+  .spread { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  details.notes summary {
+    cursor: pointer; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--dimmer);
+  }
+  details.notes summary:hover { color: var(--dim); }
+  details.notes .body { margin-top: 10px; font-size: 13px; line-height: 1.55; color: var(--dim); }
+  details.notes code { color: var(--ink); background: rgba(0,0,0,0.4); padding: 1px 5px; border-radius: 3px; font-size: 12px; word-break: break-all; }
+  details.notes a { color: var(--accent); }
+  details.notes p { margin: 8px 0; }
+
+  /* ── Webamp stage ── */
+  /* Webamp pins its main window to {0,0}; we offset+center the container so the
+     player sits centered, just below the bar — never under the chrome. */
+  #webamp {
+    position: fixed !important;
+    top: calc(var(--bar-h) + env(safe-area-inset-top, 0px) + 30px);
+    left: 50%;
+    margin-left: -138px;     /* half of the 275px window — visually centers it */
+    z-index: 1;
+  }
+  body.wall #webamp { top: calc(env(safe-area-inset-top, 0px) + 10px); }
+
+  /* Floating reveal button in wall mode */
+  #reveal {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    right: 8px;
+    z-index: 9999;
+    display: none;
+    font-size: 16px; padding: 7px 11px;
+    background: rgba(13,12,11,0.8); color: var(--ink);
+    border: 1px solid var(--line2); border-radius: 3px; cursor: pointer;
+  }
+  body.wall #reveal { display: block; }
+</style>
+</head>
+<body>
+
+<div id="bar">
+  <span id="brand">tim<b>amp</b></span>
+  <select id="sourceSelect"><option value="">— pick a source —</option></select>
+  <button class="iconbtn" id="gearBtn" title="Settings">⚙</button>
+  <button class="iconbtn" id="wallBtn" title="Wall mode (fullscreen)">⛶</button>
+</div>
+
+<div id="status"></div>
+
+<div id="panel">
+  <!-- Connection -->
+  <div class="grp" id="connectGrp">
+    <div class="spread" style="align-items:flex-end;">
+      <label class="field" style="flex:2 1 280px;">
+        plex server url
+        <input id="serverUrl" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false"
+               placeholder="https://xxx-xxx-xxx-xxx.hash.plex.direct:32400">
+      </label>
+      <label class="field" style="flex:1 1 160px;">
+        x-plex-token
+        <input id="token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="paste token">
+      </label>
+      <button class="txt primary" id="connectBtn">Connect</button>
+    </div>
+  </div>
+
+  <!-- Filter + options (after connect) -->
+  <div class="grp" id="optsGrp">
+    <label class="field" style="margin-bottom:12px;">
+      filter the source list
+      <input id="filter" type="text" autocomplete="off" placeholder="type to narrow playlists / albums / collections">
+    </label>
+    <div class="controls">
+      <label class="toggle" title="Shuffle the track order. Collections always shuffle.">
+        <input type="checkbox" id="shuffle" checked> shuffle
+      </label>
+      <label class="toggle" title="Transcode everything to MP3 — needed for iPad/Safari or FLAC/ALAC libraries.">
+        <input type="checkbox" id="transcode"> force mp3
+      </label>
+      <button class="txt" id="refreshBtn">↻ reload sources</button>
+      <button class="txt" id="disconnectBtn">⏏ disconnect</button>
+    </div>
+  </div>
+
+  <div class="grp">
+    <label class="field" style="margin-bottom:10px;">
+      custom skin url (.wsz, optional — applies on reconnect)
+      <input id="skinUrl" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://skins.webamp.org/skin/…/Whatever.wsz/">
+    </label>
+    <details class="notes">
+      <summary>setup &amp; troubleshooting</summary>
+      <div class="body">
+        <p><strong>Server URL:</strong> use the HTTPS <code>plex.direct</code> address (e.g. <code>https://10-0-0-12.hash.plex.direct:32400</code>) so this HTTPS page isn't blocked by mixed-content rules. Find it via <code>https://plex.tv/api/resources?includeHttps=1&amp;X-Plex-Token=YOURTOKEN</code> — use the connection marked <code>local="1"</code> when the tablet shares Wi-Fi with the server.</p>
+        <p><strong>Token (on iOS):</strong> at app.plex.tv → open any item → <em>···</em> → <em>Get Info</em> → <em>View XML</em>, then tap <em>Share → Copy</em> and grab the value after <code>X-Plex-Token=</code>. Stored only in this browser.</p>
+        <p><strong>Won't play / no visualizer:</strong> almost always CORS. Add <code>https://junk.timbornholdt.com</code> under Plex → <em>Settings → Network → List of allowed CORS origins</em>, then reconnect.</p>
+        <p><strong>Skins &amp; visualizer:</strong> right-click the player for <em>Skins</em>, <em>Visualizer → Milkdrop</em>, or <em>Double Size</em>. More skins at <a href="https://skins.webamp.org/" target="_blank" rel="noopener">the Skin Museum</a>.</p>
+      </div>
+    </details>
+  </div>
+</div>
+
+<div id="webamp"></div>
+<button id="reveal" title="Show controls">≡</button>
+
+<script src="https://cdn.jsdelivr.net/npm/webamp@1.5.0/built/webamp.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/butterchurn@2.6.7/lib/butterchurn.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/butterchurn-presets@2.4.7/lib/butterchurnPresets.min.js"></script>
+
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const els = {
+  bar: $('bar'), brand: $('brand'), sourceSelect: $('sourceSelect'),
+  gearBtn: $('gearBtn'), wallBtn: $('wallBtn'), reveal: $('reveal'),
+  status: $('status'), panel: $('panel'), connectGrp: $('connectGrp'), optsGrp: $('optsGrp'),
+  serverUrl: $('serverUrl'), token: $('token'), connectBtn: $('connectBtn'),
+  filter: $('filter'), shuffle: $('shuffle'), transcode: $('transcode'),
+  refreshBtn: $('refreshBtn'), disconnectBtn: $('disconnectBtn'), skinUrl: $('skinUrl'),
+};
+
+// Migrate any settings saved under the old "wallamp_" name.
+for (const s of ['url', 'token', 'transcode', 'shuffle', 'skin', 'client_id', 'last_source']) {
+  const nk = 'timamp_' + s, ok = 'wallamp_' + s;
+  if (localStorage.getItem(nk) == null && localStorage.getItem(ok) != null) {
+    localStorage.setItem(nk, localStorage.getItem(ok));
+  }
+}
+const LS = {
+  url: 'timamp_url', token: 'timamp_token', transcode: 'timamp_transcode', shuffle: 'timamp_shuffle',
+  skin: 'timamp_skin', clientId: 'timamp_client_id', lastSource: 'timamp_last_source',
+};
+
+let clientId = localStorage.getItem(LS.clientId);
+if (!clientId) {
+  clientId = (crypto.randomUUID && crypto.randomUUID()) ||
+    ('ti-' + Math.random().toString(36).slice(2) + Date.now().toString(36));
+  localStorage.setItem(LS.clientId, clientId);
+}
+
+let base = '';
+let token = '';
+let webamp = null;
+
+function setStatus(msg, kind = '') {
+  els.status.className = (kind ? kind + ' ' : '') + 'show';
+  els.status.innerHTML = msg;
+}
+function clearStatus() { els.status.className = ''; els.status.innerHTML = ''; }
+function busy(msg) { setStatus('<span class="spin">◔</span> ' + msg); }
+
+function openPanel() { els.panel.classList.remove('hidden'); els.gearBtn.classList.add('on'); }
+function closePanel() { els.panel.classList.add('hidden'); els.gearBtn.classList.remove('on'); }
+
+// ── Plex helpers (token in query + only the safelisted Accept header = no preflight) ──
+function plexUrl(path, extra = {}) {
+  const u = new URL(base + path);
+  u.searchParams.set('X-Plex-Token', token);
+  for (const [k, v] of Object.entries(extra)) u.searchParams.set(k, v);
+  return u.toString();
+}
+async function plexJson(path, extra) {
+  const res = await fetch(plexUrl(path, extra), { headers: { Accept: 'application/json' } });
+  if (res.status === 401) throw new Error('401 — bad or expired token');
+  if (!res.ok) throw new Error(res.status + ' from server');
+  return res.json();
+}
+const meta = (j) => (j && j.MediaContainer && j.MediaContainer.Metadata) || [];
+const dirs = (j) => (j && j.MediaContainer && j.MediaContainer.Directory) || [];
+
+function partUrl(part) {
+  return base + part.key + (part.key.includes('?') ? '&' : '?') + 'X-Plex-Token=' + encodeURIComponent(token);
+}
+function transcodeUrl(ratingKey) {
+  const p = new URLSearchParams({
+    path: '/library/metadata/' + ratingKey,
+    'X-Plex-Token': token, 'X-Plex-Client-Identifier': clientId, session: clientId,
+    protocol: 'http', directPlay: '0', directStream: '0',
+    audioCodec: 'mp3', musicBitrate: '320', 'X-Plex-Product': 'Timamp', 'X-Plex-Platform': 'Web',
+  });
+  return base + '/music/:/transcode/universal/start.mp3?' + p.toString();
+}
+
+function toTracks(items) {
+  const useTranscode = els.transcode.checked;
+  const out = [];
+  for (const it of items) {
+    if (it.type && it.type !== 'track') continue;
+    const part = it.Media && it.Media[0] && it.Media[0].Part && it.Media[0].Part[0];
+    if (!part || !part.key) continue;
+    out.push({
+      metaData: {
+        artist: it.grandparentTitle || it.originalTitle || '',
+        title: it.title || part.file || 'Unknown',
+        album: it.parentTitle || '',
+      },
+      url: useTranscode ? transcodeUrl(it.ratingKey) : partUrl(part),
+      duration: it.duration ? Math.round(it.duration / 1000) : undefined,
+    });
+  }
+  return out;
+}
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Tracks under any metadata id, recursing through albums/artists down to tracks.
+async function childTracks(ratingKey, depth = 0) {
+  if (depth > 3) return [];
+  const kids = meta(await plexJson('/library/metadata/' + ratingKey + '/children'));
+  let out = [];
+  for (const k of kids) {
+    if (k.type === 'track') out.push(...toTracks([k]));
+    else if (k.ratingKey != null) out.push(...await childTracks(k.ratingKey, depth + 1));
+  }
+  return out;
+}
+
+// ── Build the source dropdown ────────────────────────────────────────────
+async function loadSources() {
+  busy('Loading your music…');
+  const groups = { Playlists: [], Collections: [], Albums: [] };
+
+  try {
+    const pls = meta(await plexJson('/playlists', { playlistType: 'audio' }));
+    for (const p of pls) groups.Playlists.push({ kind: 'playlist', id: p.ratingKey, label: p.title });
+  } catch (e) {}
+
+  try {
+    const sections = dirs(await plexJson('/library/sections')).filter((s) => s.type === 'artist');
+    for (const s of sections) {
+      try {
+        const cols = meta(await plexJson('/library/sections/' + s.key + '/collections'));
+        for (const c of cols) groups.Collections.push({ kind: 'collection', id: c.ratingKey, label: c.title });
+      } catch (e) {}
+      try {
+        const albs = meta(await plexJson('/library/sections/' + s.key + '/albums'));
+        for (const a of albs) {
+          const who = a.parentTitle ? a.parentTitle + ' — ' : '';
+          groups.Albums.push({ kind: 'album', id: a.ratingKey, label: who + a.title });
+        }
+      } catch (e) {}
+    }
+  } catch (e) {}
+
+  const total = groups.Playlists.length + groups.Collections.length + groups.Albums.length;
+  if (!total) { setStatus('Connected, but found no playlists, albums, or collections.', 'bad'); return; }
+
+  const sel = els.sourceSelect;
+  sel.innerHTML = '<option value="">— pick a source —</option>';
+  for (const [name, items] of Object.entries(groups)) {
+    if (!items.length) continue;
+    items.sort((a, b) => a.label.localeCompare(b.label));
+    const og = document.createElement('optgroup');
+    og.label = name + ' (' + items.length + ')';
+    for (const it of items) {
+      const o = document.createElement('option');
+      o.value = it.kind + ':' + it.id;
+      o.dataset.kind = it.kind;
+      o.dataset.id = it.id;
+      o.textContent = it.label;
+      og.appendChild(o);
+    }
+    sel.appendChild(og);
+  }
+  applyFilter();
+  setStatus('Connected — ' + groups.Playlists.length + ' playlists · ' +
+    groups.Albums.length + ' albums · ' + groups.Collections.length + ' collections', 'ok');
+
+  const last = localStorage.getItem(LS.lastSource);
+  if (last && [...sel.options].some((o) => o.value === last)) sel.value = last;
+}
+
+async function tracksFor(kind, id) {
+  if (kind === 'playlist') return toTracks(meta(await plexJson('/playlists/' + id + '/items')));
+  if (kind === 'album')    return toTracks(meta(await plexJson('/library/metadata/' + id + '/children')));
+  if (kind === 'collection') return childTracks(id);   // expands every album → all its tracks
+  return [];
+}
+
+async function playSelected() {
+  const opt = els.sourceSelect.selectedOptions[0];
+  if (!opt || !opt.dataset.kind) return;
+  const { kind, id } = opt.dataset;
+  localStorage.setItem(LS.lastSource, els.sourceSelect.value);
+  try {
+    busy('Loading “' + opt.textContent + '”…');
+    let tracks = await tracksFor(kind, id);
+    if (!tracks.length) {
+      setStatus('No playable tracks found in “' + opt.textContent + '”' +
+        (kind === 'collection' ? ' — is it a collection of albums/tracks?' : '') + '.', 'bad');
+      return;
+    }
+    // Collections always shuffle (per request); other sources honor the toggle.
+    if (kind === 'collection' || els.shuffle.checked) shuffle(tracks);
+    webamp.setTracksToPlay(tracks);
+    const how = (kind === 'collection' || els.shuffle.checked) ? 'shuffled' : 'in order';
+    setStatus('Playing “' + opt.textContent + '” — ' + tracks.length + ' tracks, ' + how +
+      '. Tap ▶ if it doesn\'t start.', 'ok');
+    closePanel();
+  } catch (e) {
+    setStatus('Could not load that: ' + e.message, 'bad');
+  }
+}
+
+function applyFilter() {
+  const q = els.filter.value.trim().toLowerCase();
+  for (const og of els.sourceSelect.querySelectorAll('optgroup')) {
+    let shown = 0;
+    for (const o of og.querySelectorAll('option')) {
+      const hit = !q || o.textContent.toLowerCase().includes(q);
+      o.hidden = !hit; if (hit) shown++;
+    }
+    og.hidden = shown === 0;
+  }
+}
+
+// ── Webamp ───────────────────────────────────────────────────────────────
+async function ensureWebamp() {
+  if (webamp) return;
+  if (!window.Webamp) { setStatus('Webamp failed to load from the CDN — check your connection.', 'bad'); throw new Error('no Webamp'); }
+  const opts = { initialTracks: [], zIndex: 1 };
+  try {
+    if (window.butterchurn && window.butterchurnPresets) {
+      opts.__butterchurnOptions = {
+        importButterchurn: () => Promise.resolve(window.butterchurn),
+        getPresets: () => {
+          const p = window.butterchurnPresets.getPresets();
+          return Object.keys(p).map((name) => ({ name, butterchurnPresetObject: p[name] }));
+        },
+        butterchurnOpen: false,
+      };
+    }
+  } catch (e) {}
+  const skin = localStorage.getItem(LS.skin);
+  if (skin) opts.initialSkin = { url: skin };
+  webamp = new Webamp(opts);
+  await webamp.renderWhenReady($('webamp'));
+}
+
+// ── Connect / disconnect ─────────────────────────────────────────────────
+function normalizeUrl(raw) {
+  let u = raw.trim().replace(/\/+$/, '');
+  if (u && !/^https?:\/\//i.test(u)) u = 'https://' + u;
+  return u;
+}
+async function connect() {
+  base = normalizeUrl(els.serverUrl.value);
+  token = els.token.value.trim();
+  if (!base || !token) { setStatus('Enter both a server URL and a token.', 'bad'); return; }
+  if (location.protocol === 'https:' && base.startsWith('http://')) {
+    setStatus('That\'s an http:// address — this HTTPS page can\'t load audio from it. Use the plex.direct HTTPS URL (see setup notes).', 'bad');
+    return;
+  }
+  busy('Connecting…');
+  try {
+    await plexJson('/');
+  } catch (e) {
+    const hint = /Failed to fetch|NetworkError|load failed/i.test(e.message)
+      ? 'Couldn\'t reach the server. Check the URL is the HTTPS plex.direct address, and CORS (see notes).'
+      : e.message;
+    setStatus('Connection failed: ' + hint, 'bad');
+    return;
+  }
+  localStorage.setItem(LS.url, base);
+  localStorage.setItem(LS.token, token);
+  await ensureWebamp();
+  els.connectGrp.style.display = 'none';
+  await loadSources();
+}
+function disconnect() {
+  localStorage.removeItem(LS.token);
+  localStorage.removeItem(LS.lastSource);
+  token = '';
+  els.token.value = '';
+  els.connectGrp.style.display = '';
+  els.sourceSelect.innerHTML = '<option value="">— pick a source —</option>';
+  openPanel();
+  setStatus('Disconnected. Token cleared from this browser.');
+}
+
+// ── Wall mode ────────────────────────────────────────────────────────────
+function enterWall() {
+  closePanel();
+  document.body.classList.add('wall');
+  const el = document.documentElement;
+  if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+}
+function exitWall() {
+  document.body.classList.remove('wall');
+  if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+}
+
+// ── Wiring ───────────────────────────────────────────────────────────────
+els.connectBtn.addEventListener('click', connect);
+els.token.addEventListener('keydown', (e) => { if (e.key === 'Enter') connect(); });
+els.serverUrl.addEventListener('keydown', (e) => { if (e.key === 'Enter') els.token.focus(); });
+els.sourceSelect.addEventListener('change', playSelected);
+els.filter.addEventListener('input', applyFilter);
+els.refreshBtn.addEventListener('click', loadSources);
+els.disconnectBtn.addEventListener('click', disconnect);
+els.gearBtn.addEventListener('click', () => els.panel.classList.contains('hidden') ? openPanel() : closePanel());
+els.wallBtn.addEventListener('click', enterWall);
+els.reveal.addEventListener('click', exitWall);
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) exitWall(); });
+els.transcode.addEventListener('change', () => localStorage.setItem(LS.transcode, els.transcode.checked ? '1' : '0'));
+els.shuffle.addEventListener('change', () => localStorage.setItem(LS.shuffle, els.shuffle.checked ? '1' : '0'));
+els.skinUrl.addEventListener('change', () => {
+  const v = els.skinUrl.value.trim();
+  if (v) localStorage.setItem(LS.skin, v); else localStorage.removeItem(LS.skin);
+});
+
+// ── Restore & auto-connect ───────────────────────────────────────────────
+(function restore() {
+  els.serverUrl.value = localStorage.getItem(LS.url) || '';
+  els.token.value = localStorage.getItem(LS.token) || '';
+  els.transcode.checked = localStorage.getItem(LS.transcode) === '1';
+  els.shuffle.checked = localStorage.getItem(LS.shuffle) !== '0'; // default on
+  els.skinUrl.value = localStorage.getItem(LS.skin) || '';
+  if (els.serverUrl.value && els.token.value) {
+    closePanel();
+    connect();
+  } else {
+    openPanel();
+    setStatus('Paste your Plex server URL and token to begin. (Setup notes are in this panel.)');
+  }
+})();
+</script>
+</body>
+</html>
