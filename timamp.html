@@ -111,6 +111,23 @@
   #status .spin { display: inline-block; animation: spin 0.9s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* ── Now-playing strip for radio (live song metadata, top of screen) ── */
+  #nowplaying {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    left: 16px; right: 16px;
+    z-index: 110;
+    text-align: center;
+    font-size: 14px;
+    letter-spacing: 0.4px;
+    color: var(--accent);
+    text-shadow: 0 1px 5px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.9);
+    pointer-events: none;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: none;
+  }
+  #nowplaying.show { display: block; }
+
   /* ── Settings panel (rises up from the gear) ── */
   #panel {
     position: fixed;
@@ -232,6 +249,7 @@
   <button class="iconbtn" id="wallBtn" title="Wall mode (fullscreen)">⛶</button>
 </div>
 
+<div id="nowplaying"></div>
 <div id="status"></div>
 
 <div id="panel">
@@ -326,6 +344,7 @@ const els = {
   refreshBtn: $('refreshBtn'), disconnectBtn: $('disconnectBtn'), skinUrl: $('skinUrl'),
   autoRotate: $('autoRotate'), rotateSecs: $('rotateSecs'), diceBtn2: $('diceBtn2'),
   stations: $('stations'), saveStations: $('saveStations'), resetStations: $('resetStations'),
+  nowplaying: $('nowplaying'),
 };
 
 // Migrate any settings saved under the old "wallamp_" name.
@@ -446,7 +465,7 @@ function shuffle(a) {
 // forces crossOrigin — so a stream must be HTTPS *and* send CORS headers, or
 // it plays silent. The Current is confirmed working; SomaFM channels too.
 const DEFAULT_STATIONS = [
-  ['89.3 The Current', 'https://current.stream.publicradio.org/kcmp.mp3'],
+  ['89.3 The Current', 'https://current.stream.publicradio.org/current.aac'],
   ['SomaFM — Groove Salad', 'https://ice1.somafm.com/groovesalad-128-mp3'],
   ['SomaFM — Drone Zone', 'https://ice1.somafm.com/dronezone-128-mp3'],
   ['SomaFM — Indie Pop Rocks!', 'https://ice1.somafm.com/indiepop-128-mp3'],
@@ -483,6 +502,45 @@ function renderRadioGroup() {
     og.appendChild(o);
   });
   sel.insertBefore(og, sel.firstChild ? sel.firstChild.nextSibling : null); // after placeholder
+}
+
+// ── Now-playing for radio ────────────────────────────────────────────────
+// Browsers hide a stream's in-band ICY metadata, so we poll the station's
+// now-playing JSON API instead and show the live song in a top strip (the
+// Winamp marquee can't update without reloading the stream). SomaFM exposes
+// one per channel; the channel slug is derivable from the stream URL.
+let npTimer = null;
+function somaSlug(url) {
+  const m = /somafm\.com\/([^/?]+?)-\d+-(?:mp3|aac)\b/i.exec(url) ||
+            /somafm\.com\/([a-z0-9]+)\b/i.exec(url);
+  return m ? m[1] : null;
+}
+async function pollNowPlaying(url) {
+  const slug = somaSlug(url);
+  if (!slug) return;
+  try {
+    const j = await (await fetch('https://api.somafm.com/songs/' + slug + '.json', { cache: 'no-store' })).json();
+    const s = j.songs && j.songs[0];
+    if (s && (s.artist || s.title)) {
+      const text = [s.artist, s.title].filter(Boolean).join(' — ');
+      els.nowplaying.textContent = '♪ ' + text;
+      els.nowplaying.classList.add('show');
+      document.title = '♪ ' + text + ' · Timamp';
+    }
+  } catch (e) { /* leave the last song shown; transient errors are fine */ }
+}
+function startNowPlaying(url) {
+  stopNowPlaying();
+  if (!somaSlug(url)) { hideNowPlaying(); return; } // no metadata source for this station
+  pollNowPlaying(url);
+  npTimer = setInterval(() => pollNowPlaying(url), 25000);
+}
+function stopNowPlaying() { if (npTimer) { clearInterval(npTimer); npTimer = null; } }
+function hideNowPlaying() {
+  stopNowPlaying();
+  els.nowplaying.classList.remove('show');
+  els.nowplaying.textContent = '';
+  document.title = 'Timamp — Plex Winamp player';
 }
 
 // Tracks under any metadata id, recursing albums/artists down to tracks.
@@ -598,6 +656,7 @@ async function playSelected() {
       busy('Tuning in “' + opt.textContent + '”…');
       webamp.setTracksToPlay([{ url: opt.dataset.url, metaData: { title: opt.textContent, artist: 'Radio' } }]);
       setStatus('📻 ' + opt.textContent + ' — live. Tap ▶ if it doesn\'t start; dead silence usually means the stream isn\'t CORS-enabled.', 'ok');
+      startNowPlaying(opt.dataset.url); // shows live song metadata when available (e.g. SomaFM)
       closePanel();
     } catch (e) { setStatus('Could not tune in: ' + e.message, 'bad'); }
     return;
@@ -611,6 +670,7 @@ async function playSelected() {
         (kind === 'collection' ? ' [contents: ' + (diag.kinds || '?') + '] — see console for details' : '') + '.', 'bad');
       return;
     }
+    hideNowPlaying(); // Plex sources show their own metadata in the Winamp marquee
     // Collections always shuffle (per request); other sources honor the toggle.
     if (kind === 'collection' || els.shuffle.checked) shuffle(tracks);
     webamp.setTracksToPlay(tracks);
@@ -758,6 +818,7 @@ function disconnect() {
   els.connectGrp.style.display = '';
   els.sourceSelect.innerHTML = '<option value="">— pick a source —</option>';
   renderRadioGroup(); // radio doesn't need Plex — keep it available
+  hideNowPlaying();
   openPanel();
   setStatus('Disconnected. Token cleared from this browser.');
 }
