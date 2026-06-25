@@ -348,11 +348,20 @@ function setStatus(msg, kind = '') {
 function clearStatus() { clearTimeout(statusTimer); els.status.className = ''; els.status.innerHTML = ''; }
 function busy(msg) { setStatus('<span class="spin">◔</span> ' + msg); }
 
-// Scale the Webamp cluster (native 275px wide) to fill the viewport edge-to-edge.
+// Scale the Webamp cluster to fit the area below the bar, and center it there.
 function fitWebamp() {
   const node = $('webamp');
   if (!webamp || !node) return;
-  node.style.transform = 'scale(' + (window.innerWidth / 275) + ')';
+  const NW = 275, NH = 464; // natural size of the default main+eq+playlist stack
+  const wall = document.body.classList.contains('wall');
+  const barH = wall ? 0 : els.bar.getBoundingClientRect().height;
+  const availW = window.innerWidth;
+  const availH = window.innerHeight - barH;
+  const scale = Math.max(0.6, Math.min(availW / NW, availH / NH));
+  node.style.transformOrigin = 'top left';
+  node.style.transform = 'scale(' + scale + ')';
+  node.style.left = Math.max(0, (availW - NW * scale) / 2) + 'px';
+  node.style.top = (barH + Math.max(0, (availH - NH * scale) / 2)) + 'px';
 }
 window.addEventListener('resize', fitWebamp);
 window.addEventListener('orientationchange', () => setTimeout(fitWebamp, 250));
@@ -416,14 +425,29 @@ function shuffle(a) {
   return a;
 }
 
-// Tracks under any metadata id, recursing through albums/artists down to tracks.
-async function childTracks(ratingKey, depth = 0) {
-  if (depth > 3) return [];
-  const kids = meta(await plexJson('/library/metadata/' + ratingKey + '/children'));
-  let out = [];
+// Tracks under any metadata id, recursing albums/artists down to tracks.
+// `diag` records what the top level looked like so we can debug empty collections.
+async function childTracks(ratingKey, depth, diag) {
+  depth = depth || 0;
+  if (depth > 4) return [];
+  let kids = meta(await plexJson('/library/metadata/' + ratingKey + '/children'));
+  if (!kids.length && depth === 0) {
+    // Some PMS versions serve collection items from a different path.
+    try { kids = meta(await plexJson('/library/collections/' + ratingKey + '/children')); } catch (e) {}
+  }
+  if (diag && depth === 0) diag.kinds = kids.length ? kids.map((k) => k.type).join(',') : '(no children)';
+  const out = [];
   for (const k of kids) {
-    if (k.type === 'track') out.push(...toTracks([k]));
-    else if (k.ratingKey != null) out.push(...await childTracks(k.ratingKey, depth + 1));
+    if (k.type === 'track') {
+      let t = toTracks([k]);
+      if (!t.length && k.ratingKey != null) {
+        // The children payload sometimes omits Media — fetch the track itself.
+        try { t = toTracks(meta(await plexJson('/library/metadata/' + k.ratingKey))); } catch (e) {}
+      }
+      out.push(...t);
+    } else if (k.ratingKey != null) {
+      out.push(...await childTracks(k.ratingKey, depth + 1, diag));
+    }
   }
   return out;
 }
@@ -483,10 +507,10 @@ async function loadSources() {
   if (last && [...sel.options].some((o) => o.value === last)) sel.value = last;
 }
 
-async function tracksFor(kind, id) {
+async function tracksFor(kind, id, diag) {
   if (kind === 'playlist') return toTracks(meta(await plexJson('/playlists/' + id + '/items')));
   if (kind === 'album')    return toTracks(meta(await plexJson('/library/metadata/' + id + '/children')));
-  if (kind === 'collection') return childTracks(id);   // expands every album → all its tracks
+  if (kind === 'collection') return childTracks(id, 0, diag);   // expands every album → all its tracks
   return [];
 }
 
@@ -497,10 +521,11 @@ async function playSelected() {
   localStorage.setItem(LS.lastSource, els.sourceSelect.value);
   try {
     busy('Loading “' + opt.textContent + '”…');
-    let tracks = await tracksFor(kind, id);
+    const diag = {};
+    let tracks = await tracksFor(kind, id, diag);
     if (!tracks.length) {
       setStatus('No playable tracks found in “' + opt.textContent + '”' +
-        (kind === 'collection' ? ' — is it a collection of albums/tracks?' : '') + '.', 'bad');
+        (kind === 'collection' ? ' [contents: ' + (diag.kinds || '?') + ']' : '') + '.', 'bad');
       return;
     }
     // Collections always shuffle (per request); other sources honor the toggle.
@@ -560,61 +585,48 @@ let skinPool = [];
 let skinIdx = 0;
 let rotateTimer = null;
 
-// Schema-agnostic: find every {md5, filename} pair anywhere in the JSON,
-// then fall back to scraping raw 32-hex hashes if the shape is unfamiliar.
-function extractSkins(data, rawText) {
-  const found = [];
-  const walk = (o) => {
-    if (!o || typeof o !== 'object') return;
-    if (Array.isArray(o)) return o.forEach(walk);
-    const md5 = o.md5 || o.MD5 || o.hash;
-    if (typeof md5 === 'string' && /^[a-f0-9]{32}$/i.test(md5)) {
-      found.push({ md5, filename: o.fileName || o.filename || o.file_name || o.name || (md5 + '.wsz') });
-    }
-    for (const k in o) walk(o[k]);
-  };
-  if (data) walk(data);
-  if (!found.length && rawText) {
-    for (const h of new Set(rawText.match(/[a-f0-9]{32}/gi) || [])) found.push({ md5: h, filename: h + '.wsz' });
-  }
-  return found;
+const FALLBACK_SKIN = 'https://skins.webamp.org/skin/f4244528b233e2c7d0df64f77aea84d0/Base44_OS8.wsz/';
+
+// Grab a random page of skin item IDs from the Internet Archive's winampskins
+// collection (the same corpus the Skin Museum is built from). CORS-friendly JSON.
+async function fillSkinPool() {
+  const page = 1 + Math.floor(Math.random() * 1000);
+  const url = 'https://archive.org/advancedsearch.php?q=' +
+    encodeURIComponent('collection:winampskins') +
+    '&fl[]=identifier&rows=60&page=' + page + '&output=json';
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('archive search ' + res.status);
+  const data = await res.json();
+  const ids = ((data.response && data.response.docs) || []).map((d) => d.identifier).filter(Boolean);
+  if (!ids.length) throw new Error('search returned no skins');
+  skinPool = shuffle(ids);
+  skinIdx = 0;
 }
 
-async function fillSkinPool() {
-  const offset = Math.floor(Math.random() * 90000);
-  const candidates = [
-    'https://api.webamp.org/skins/?first=100&offset=' + offset,
-    'https://api.webamp.org/skins?first=100&offset=' + offset,
-  ];
-  for (const u of candidates) {
-    try {
-      const res = await fetch(u);
-      if (!res.ok) continue;
-      const text = await res.text();
-      let data = null;
-      try { data = JSON.parse(text); } catch (e) {}
-      const skins = extractSkins(data, text);
-      if (skins.length) { skinPool = shuffle(skins); skinIdx = 0; return true; }
-    } catch (e) {}
-  }
-  return false;
+// Resolve an IA item to the URL of its actual .wsz file.
+async function skinUrlForId(id) {
+  const res = await fetch('https://archive.org/metadata/' + encodeURIComponent(id));
+  if (!res.ok) throw new Error('metadata ' + res.status);
+  const data = await res.json();
+  const f = (data.files || []).find((x) => /\.wsz$/i.test(x.name || ''));
+  if (!f) throw new Error('no .wsz file in ' + id);
+  return 'https://archive.org/download/' + encodeURIComponent(id) + '/' + encodeURIComponent(f.name);
 }
 
 async function randomSkin(announce) {
-  if (!webamp) return;
-  if (skinIdx >= skinPool.length) {
-    const ok = await fillSkinPool();
-    if (!ok) {
-      stopRotate();
-      els.autoRotate.checked = false;
-      localStorage.setItem(LS.autoRotate, '0');
-      setStatus('Couldn\'t reach the Skin Museum API (the piece I couldn\'t test here). Open your browser console and tell me the error — I\'ll fix the endpoint.', 'bad');
-      return;
-    }
+  if (!webamp) { if (announce) setStatus('Connect to your Plex server first — the player loads after you connect.', 'bad'); return; }
+  try {
+    if (announce) busy('🎲 finding a skin…');
+    if (skinIdx >= skinPool.length) await fillSkinPool();
+    const id = skinPool[skinIdx++];
+    webamp.setSkinFromUrl(await skinUrlForId(id));
+    if (announce) setStatus('🎲 ' + id.replace(/[_-]+/g, ' '), 'ok');
+  } catch (e) {
+    // Always swap to a known-good skin so the action visibly does something.
+    try { webamp.setSkinFromUrl(FALLBACK_SKIN); } catch (e2) {}
+    if (announce) setStatus('Skin shuffle hit a snag (' + e.message + ') — loaded a fallback. Tell me what the browser console shows.', 'bad');
+    else stopRotate(); // don't hammer the API on repeated auto-rotate failures
   }
-  const s = skinPool[skinIdx++];
-  webamp.setSkinFromUrl('https://skins.webamp.org/skin/' + s.md5 + '/' + encodeURIComponent(s.filename));
-  if (announce) setStatus('🎲 new skin', 'ok');
 }
 
 function startRotate() {
@@ -672,10 +684,12 @@ function enterWall() {
   document.body.classList.add('wall');
   const el = document.documentElement;
   if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+  setTimeout(fitWebamp, 80);
 }
 function exitWall() {
   document.body.classList.remove('wall');
   if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+  setTimeout(fitWebamp, 80);
 }
 
 // ── Wiring ───────────────────────────────────────────────────────────────
