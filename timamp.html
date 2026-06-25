@@ -123,10 +123,14 @@
     color: var(--accent);
     text-shadow: 0 1px 5px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.9);
     pointer-events: none;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; overflow: hidden;
     display: none;
   }
   #nowplaying.show { display: block; }
+  #nowplaying #npText { display: inline-block; white-space: nowrap; will-change: transform; }
+  /* Scroll the song/station text only when it's wider than the strip. */
+  #nowplaying.scroll #npText { animation: np-scroll var(--np-dur, 8s) linear infinite alternate; }
+  @keyframes np-scroll { from { transform: translateX(0); } to { transform: translateX(var(--np-shift, 0)); } }
 
   /* ── Settings panel (rises up from the gear) ── */
   #panel {
@@ -249,7 +253,7 @@
   <button class="iconbtn" id="wallBtn" title="Wall mode (fullscreen)">⛶</button>
 </div>
 
-<div id="nowplaying"></div>
+<div id="nowplaying"><span id="npText"></span></div>
 <div id="status"></div>
 
 <div id="panel">
@@ -344,7 +348,7 @@ const els = {
   refreshBtn: $('refreshBtn'), disconnectBtn: $('disconnectBtn'), skinUrl: $('skinUrl'),
   autoRotate: $('autoRotate'), rotateSecs: $('rotateSecs'), diceBtn2: $('diceBtn2'),
   stations: $('stations'), saveStations: $('saveStations'), resetStations: $('resetStations'),
-  nowplaying: $('nowplaying'),
+  nowplaying: $('nowplaying'), npText: $('npText'),
 };
 
 // Migrate any settings saved under the old "wallamp_" name.
@@ -516,10 +520,31 @@ function renderRadioGroup() {
 // Winamp marquee can't update without reloading the stream). SomaFM exposes
 // one per channel; the channel slug is derivable from the stream URL.
 let npTimer = null;
+let npStation = '';   // current radio station name
+let npSong = '';      // live "Artist — Title" when the station exposes it
 function somaSlug(url) {
   const m = /somafm\.com\/([^/?]+?)-\d+-(?:mp3|aac)\b/i.exec(url) ||
             /somafm\.com\/([a-z0-9]+)\b/i.exec(url);
   return m ? m[1] : null;
+}
+// Marquee shows "Artist — Title — Station" (just the station before any song
+// metadata arrives, or for stations with no metadata API). No timestamp.
+function renderNowPlaying() {
+  const text = [npSong, npStation].filter(Boolean).join(' — ');
+  if (!text) { hideNowPlaying(); return; }
+  els.npText.textContent = '♪ ' + text;
+  els.nowplaying.classList.add('show');
+  document.title = '♪ ' + text + ' · Timamp';
+  // Scroll only when the text is wider than the strip.
+  els.nowplaying.classList.remove('scroll');
+  requestAnimationFrame(() => {
+    const overflow = els.npText.scrollWidth - els.nowplaying.clientWidth;
+    if (overflow > 4) {
+      els.nowplaying.style.setProperty('--np-shift', -(overflow + 12) + 'px');
+      els.nowplaying.style.setProperty('--np-dur', Math.max(5, (overflow + 12) / 28) + 's');
+      els.nowplaying.classList.add('scroll');
+    }
+  });
 }
 async function pollNowPlaying(url) {
   const slug = somaSlug(url);
@@ -528,24 +553,26 @@ async function pollNowPlaying(url) {
     const j = await (await fetch('https://api.somafm.com/songs/' + slug + '.json', { cache: 'no-store' })).json();
     const s = j.songs && j.songs[0];
     if (s && (s.artist || s.title)) {
-      const text = [s.artist, s.title].filter(Boolean).join(' — ');
-      els.nowplaying.textContent = '♪ ' + text;
-      els.nowplaying.classList.add('show');
-      document.title = '♪ ' + text + ' · Timamp';
+      npSong = [s.artist, s.title].filter(Boolean).join(' — ');
+      renderNowPlaying();
     }
   } catch (e) { /* leave the last song shown; transient errors are fine */ }
 }
-function startNowPlaying(url) {
+function startNowPlaying(url, name) {
   stopNowPlaying();
-  if (!somaSlug(url)) { hideNowPlaying(); return; } // no metadata source for this station
+  npStation = name || '';
+  npSong = '';
+  renderNowPlaying();           // show the station name straight away
+  if (!somaSlug(url)) return;   // no live-metadata source; station name still shows
   pollNowPlaying(url);
   npTimer = setInterval(() => pollNowPlaying(url), 25000);
 }
 function stopNowPlaying() { if (npTimer) { clearInterval(npTimer); npTimer = null; } }
 function hideNowPlaying() {
   stopNowPlaying();
-  els.nowplaying.classList.remove('show');
-  els.nowplaying.textContent = '';
+  npStation = ''; npSong = '';
+  els.nowplaying.classList.remove('show', 'scroll');
+  els.npText.textContent = '';
   document.title = 'Timamp — Plex Winamp player';
 }
 
@@ -659,10 +686,9 @@ async function playSelected() {
   if (kind === 'radio') {
     if (!webamp) { setStatus('Connect to your Plex server first — the player loads after you connect.', 'bad'); return; }
     try {
-      busy('Tuning in “' + opt.textContent + '”…');
       webamp.setTracksToPlay([{ url: opt.dataset.url, metaData: { title: opt.textContent, artist: 'Radio' } }]);
-      setStatus('📻 ' + opt.textContent + ' — live. Tap ▶ if it doesn\'t start; dead silence usually means the stream isn\'t CORS-enabled.', 'ok');
-      startNowPlaying(opt.dataset.url); // shows live song metadata when available (e.g. SomaFM)
+      startNowPlaying(opt.dataset.url, opt.textContent); // marquee shows Artist — Title — Station
+      clearStatus(); // no success toast on tune-in (the marquee is the feedback)
       closePanel();
     } catch (e) { setStatus('Could not tune in: ' + e.message, 'bad'); }
     return;
@@ -700,6 +726,46 @@ function applyFilter() {
     og.hidden = shown === 0;
   }
 }
+
+// ── Anti-pop limiter ─────────────────────────────────────────────────────
+// Webamp plays through Web Audio with the preamp hot enough that loud peaks
+// clip the output, surfacing as intermittent pops/crackle on both Plex
+// streams and radio. We transparently splice a DynamicsCompressor (acting as
+// a soft brick-wall limiter) just ahead of the AudioContext destination by
+// intercepting the connect() Webamp makes to ctx.destination. Installed at
+// load time so it's already in place before Webamp builds its audio graph.
+(function installAntiPopLimiter() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC || !window.AudioNode || !AudioNode.prototype.connect) return;
+  const origConnect = AudioNode.prototype.connect;
+  const limiters = new WeakMap();
+  function limiterFor(ctx) {
+    let comp = limiters.get(ctx);
+    if (!comp) {
+      comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -2;  // only tames peaks near full-scale
+      comp.knee.value = 0;
+      comp.ratio.value = 20;
+      comp.attack.value = 0.002;
+      comp.release.value = 0.2;
+      const trim = ctx.createGain();
+      trim.gain.value = 0.92;     // a little headroom under 0 dBFS
+      origConnect.call(comp, trim);
+      origConnect.call(trim, ctx.destination);
+      limiters.set(ctx, comp);
+    }
+    return comp;
+  }
+  AudioNode.prototype.connect = function (dest) {
+    try {
+      if (dest && dest.context && dest === dest.context.destination) {
+        const comp = limiterFor(dest.context);
+        if (this !== comp) return origConnect.call(this, comp); // route through the limiter
+      }
+    } catch (e) { /* fall through to the real connect */ }
+    return origConnect.apply(this, arguments);
+  };
+})();
 
 // ── Webamp ───────────────────────────────────────────────────────────────
 async function ensureWebamp() {
@@ -774,8 +840,7 @@ async function randomSkin(announce) {
     skinPool = shuffle(files); skinIdx = 0;
   }
   const f = skinPool[skinIdx++];
-  webamp.setSkinFromUrl(skinUrl(f));
-  if (announce) setStatus('🎲 ' + f.replace(/.*\//, '').replace(/\.wsz$/i, ''), 'ok');
+  webamp.setSkinFromUrl(skinUrl(f)); // skin swaps silently — no toast with the skin name
 }
 
 function startRotate() {
