@@ -226,6 +226,7 @@
     </svg>
   </span>
   <select id="sourceSelect"><option value="">— pick a source —</option></select>
+  <button class="iconbtn" id="diceBtn" title="Random skin from your fav-winamp-skins folder">🎲</button>
   <button class="iconbtn" id="gearBtn" title="Settings">⚙</button>
   <button class="iconbtn" id="wallBtn" title="Wall mode (fullscreen)">⛶</button>
 </div>
@@ -268,6 +269,16 @@
   </div>
 
   <div class="grp">
+    <div class="controls" style="margin-bottom:12px;">
+      <label class="toggle" title="Cycle to a random skin from your fav-winamp-skins folder on a timer.">
+        <input type="checkbox" id="autoRotate"> auto-rotate skins
+      </label>
+      <label class="toggle" style="text-transform:none; letter-spacing:0;">
+        every
+        <input id="rotateSecs" type="text" inputmode="numeric" autocomplete="off" value="20" style="width:60px; text-align:center;"> sec
+      </label>
+      <button class="txt" id="diceBtn2">🎲 random now</button>
+    </div>
     <label class="field" style="margin-bottom:10px;">
       custom skin url (.wsz, optional — applies on reconnect)
       <input id="skinUrl" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://skins.webamp.org/skin/…/Whatever.wsz/">
@@ -295,11 +306,12 @@
 const $ = (id) => document.getElementById(id);
 const els = {
   bar: $('bar'), brand: $('brand'), sourceSelect: $('sourceSelect'),
-  gearBtn: $('gearBtn'), wallBtn: $('wallBtn'), reveal: $('reveal'),
+  gearBtn: $('gearBtn'), wallBtn: $('wallBtn'), reveal: $('reveal'), diceBtn: $('diceBtn'),
   status: $('status'), panel: $('panel'), connectGrp: $('connectGrp'), optsGrp: $('optsGrp'),
   serverUrl: $('serverUrl'), token: $('token'), connectBtn: $('connectBtn'),
   filter: $('filter'), shuffle: $('shuffle'), transcode: $('transcode'),
   refreshBtn: $('refreshBtn'), disconnectBtn: $('disconnectBtn'), skinUrl: $('skinUrl'),
+  autoRotate: $('autoRotate'), rotateSecs: $('rotateSecs'), diceBtn2: $('diceBtn2'),
 };
 
 // Migrate any settings saved under the old "wallamp_" name.
@@ -312,6 +324,7 @@ for (const s of ['url', 'token', 'transcode', 'shuffle', 'skin', 'client_id', 'l
 const LS = {
   url: 'timamp_url', token: 'timamp_token', transcode: 'timamp_transcode', shuffle: 'timamp_shuffle',
   skin: 'timamp_skin', clientId: 'timamp_client_id', lastSource: 'timamp_last_source',
+  autoRotate: 'timamp_autorotate', rotateSecs: 'timamp_rotatesecs',
 };
 
 let clientId = localStorage.getItem(LS.clientId);
@@ -412,15 +425,37 @@ function shuffle(a) {
   return a;
 }
 
-// Tracks under any metadata id, recursing through albums/artists down to tracks.
-async function childTracks(ratingKey, depth = 0) {
-  if (depth > 3) return [];
-  const kids = meta(await plexJson('/library/metadata/' + ratingKey + '/children'));
-  let out = [];
-  for (const k of kids) {
-    if (k.type === 'track') out.push(...toTracks([k]));
-    else if (k.ratingKey != null) out.push(...await childTracks(k.ratingKey, depth + 1));
+// Tracks under any metadata id, recursing albums/artists down to tracks.
+// `diag` records the top-level child types; console logs help debug empties.
+async function childTracks(ratingKey, depth, diag) {
+  depth = depth || 0;
+  if (depth > 4) return [];
+  let kids = meta(await plexJson('/library/metadata/' + ratingKey + '/children'));
+  if (!kids.length && depth === 0) {
+    // Some PMS versions serve collection items from a different path.
+    try { kids = meta(await plexJson('/library/collections/' + ratingKey + '/children')); } catch (e) {}
   }
+  if (depth === 0) {
+    console.log('[timamp] collection', ratingKey, '→', kids.length, 'children:',
+      kids.map((k) => k.type + (k.title ? ' "' + k.title + '"' : '')));
+    if (diag) diag.kinds = kids.length ? [...new Set(kids.map((k) => k.type))].join(',') : '(no children)';
+  }
+  const out = [];
+  for (const k of kids) {
+    if (k.type === 'track') {
+      let t = toTracks([k]);
+      if (!t.length && k.ratingKey != null) {
+        // The children payload sometimes omits Media — fetch the track itself.
+        try { t = toTracks(meta(await plexJson('/library/metadata/' + k.ratingKey))); } catch (e) {}
+      }
+      out.push(...t);
+    } else if (k.ratingKey != null) {
+      const sub = await childTracks(k.ratingKey, depth + 1, diag);
+      if (depth === 0) console.log('[timamp]  ', k.type, k.title, '→', sub.length, 'tracks');
+      out.push(...sub);
+    }
+  }
+  if (depth === 0) console.log('[timamp] total playable tracks:', out.length);
   return out;
 }
 
@@ -475,14 +510,19 @@ async function loadSources() {
   setStatus('Connected — ' + groups.Playlists.length + ' playlists · ' +
     groups.Albums.length + ' albums · ' + groups.Collections.length + ' collections', 'ok');
 
+  // Restore the last-played source AND actually load it (programmatic value
+  // changes don't fire 'change', so we kick playSelected ourselves).
   const last = localStorage.getItem(LS.lastSource);
-  if (last && [...sel.options].some((o) => o.value === last)) sel.value = last;
+  if (last && [...sel.options].some((o) => o.value === last)) {
+    sel.value = last;
+    playSelected();
+  }
 }
 
-async function tracksFor(kind, id) {
+async function tracksFor(kind, id, diag) {
   if (kind === 'playlist') return toTracks(meta(await plexJson('/playlists/' + id + '/items')));
   if (kind === 'album')    return toTracks(meta(await plexJson('/library/metadata/' + id + '/children')));
-  if (kind === 'collection') return childTracks(id);   // expands every album → all its tracks
+  if (kind === 'collection') return childTracks(id, 0, diag);   // expands every album → all its tracks
   return [];
 }
 
@@ -493,10 +533,11 @@ async function playSelected() {
   localStorage.setItem(LS.lastSource, els.sourceSelect.value);
   try {
     busy('Loading “' + opt.textContent + '”…');
-    let tracks = await tracksFor(kind, id);
+    const diag = {};
+    let tracks = await tracksFor(kind, id, diag);
     if (!tracks.length) {
       setStatus('No playable tracks found in “' + opt.textContent + '”' +
-        (kind === 'collection' ? ' — is it a collection of albums/tracks?' : '') + '.', 'bad');
+        (kind === 'collection' ? ' [contents: ' + (diag.kinds || '?') + '] — see console for details' : '') + '.', 'bad');
       return;
     }
     // Collections always shuffle (per request); other sources honor the toggle.
@@ -546,7 +587,67 @@ async function ensureWebamp() {
   await webamp.renderWhenReady($('webamp'));
   fitWebamp();
   setTimeout(fitWebamp, 300); // re-fit once Webamp settles its layout
+  if (els.autoRotate.checked) startRotate();
 }
+
+// ── Random skins from junk.timbornholdt.com/fav-winamp-skins ──────────────
+// Same-origin, so no CORS headaches: setSkinFromUrl swaps live without
+// interrupting playback. Drop .wsz files in that folder; if the host doesn't
+// serve a directory listing, also add a skins.json array of filenames.
+const SKIN_DIR = '/fav-winamp-skins/';
+let skinPool = [];
+let skinIdx = 0;
+let rotateTimer = null;
+
+async function loadSkinList() {
+  try {                                  // preferred: an explicit manifest
+    const r = await fetch(SKIN_DIR + 'skins.json', { cache: 'no-store' });
+    if (r.ok) {
+      const j = await r.json();
+      const files = (Array.isArray(j) ? j : (j.skins || [])).map(String);
+      if (files.length) return files;
+    }
+  } catch (e) {}
+  try {                                  // fallback: scrape a directory listing
+    const r = await fetch(SKIN_DIR, { cache: 'no-store' });
+    if (r.ok) {
+      const html = await r.text();
+      const files = [...new Set((html.match(/href="([^"?]+\.wsz)"/gi) || [])
+        .map((m) => m.replace(/^href="|"$/gi, '')))];
+      if (files.length) return files;
+    }
+  } catch (e) {}
+  return [];
+}
+
+function skinUrl(f) {
+  if (/^https?:\/\//i.test(f) || f.startsWith('/')) return f;
+  return SKIN_DIR + f;
+}
+
+async function randomSkin(announce) {
+  if (!webamp) { if (announce) setStatus('Connect to your Plex server first — the player loads after you connect.', 'bad'); return; }
+  if (skinIdx >= skinPool.length) {
+    const files = await loadSkinList();
+    if (!files.length) {
+      stopRotate(); els.autoRotate.checked = false; localStorage.setItem(LS.autoRotate, '0');
+      if (announce) setStatus('No skins found in ' + SKIN_DIR + ' — add some .wsz files there (and a skins.json list if the folder isn\'t browsable).', 'bad');
+      return;
+    }
+    skinPool = shuffle(files); skinIdx = 0;
+  }
+  const f = skinPool[skinIdx++];
+  webamp.setSkinFromUrl(skinUrl(f));
+  if (announce) setStatus('🎲 ' + f.replace(/.*\//, '').replace(/\.wsz$/i, ''), 'ok');
+}
+
+function startRotate() {
+  stopRotate();
+  const secs = Math.max(3, parseInt(els.rotateSecs.value, 10) || 20);
+  randomSkin(false);
+  rotateTimer = setInterval(() => randomSkin(false), secs * 1000);
+}
+function stopRotate() { if (rotateTimer) { clearInterval(rotateTimer); rotateTimer = null; } }
 
 // ── Connect / disconnect ─────────────────────────────────────────────────
 function normalizeUrl(raw) {
@@ -621,6 +722,16 @@ els.skinUrl.addEventListener('change', () => {
   const v = els.skinUrl.value.trim();
   if (v) localStorage.setItem(LS.skin, v); else localStorage.removeItem(LS.skin);
 });
+els.diceBtn.addEventListener('click', () => randomSkin(true));
+els.diceBtn2.addEventListener('click', () => randomSkin(true));
+els.autoRotate.addEventListener('change', () => {
+  localStorage.setItem(LS.autoRotate, els.autoRotate.checked ? '1' : '0');
+  els.autoRotate.checked ? startRotate() : stopRotate();
+});
+els.rotateSecs.addEventListener('change', () => {
+  localStorage.setItem(LS.rotateSecs, els.rotateSecs.value);
+  if (els.autoRotate.checked) startRotate(); // restart with the new interval
+});
 
 // ── Restore & auto-connect ───────────────────────────────────────────────
 (function restore() {
@@ -629,6 +740,8 @@ els.skinUrl.addEventListener('change', () => {
   els.transcode.checked = localStorage.getItem(LS.transcode) === '1';
   els.shuffle.checked = localStorage.getItem(LS.shuffle) !== '0'; // default on
   els.skinUrl.value = localStorage.getItem(LS.skin) || '';
+  els.autoRotate.checked = localStorage.getItem(LS.autoRotate) === '1';
+  els.rotateSecs.value = localStorage.getItem(LS.rotateSecs) || '20';
   if (els.serverUrl.value && els.token.value) {
     closePanel();
     connect();
