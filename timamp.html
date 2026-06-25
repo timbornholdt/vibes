@@ -138,7 +138,7 @@
     text-transform: uppercase;
     color: var(--dim);
   }
-  input[type="text"], input[type="password"] {
+  input[type="text"], input[type="password"], textarea {
     font-family: inherit;
     font-size: 16px;
     color: var(--ink);
@@ -149,7 +149,8 @@
     outline: none;
     width: 100%;
   }
-  input:focus { border-color: var(--accent); }
+  textarea { resize: vertical; line-height: 1.5; }
+  input:focus, textarea:focus { border-color: var(--accent); }
 
   .controls { display: flex; flex-wrap: wrap; gap: 14px 18px; align-items: center; }
   .toggle {
@@ -269,6 +270,18 @@
   </div>
 
   <div class="grp">
+    <label class="field" style="margin-bottom:6px;">
+      📻 radio stations — one per line, as <code style="text-transform:none;letter-spacing:0;">name | https stream url</code>
+      <textarea id="stations" rows="5" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+    </label>
+    <div class="controls">
+      <button class="txt primary" id="saveStations">save stations</button>
+      <button class="txt" id="resetStations">reset to defaults</button>
+      <span style="opacity:.6; font-size:13px;">streams must be HTTPS &amp; CORS-enabled, or Webamp plays them silent</span>
+    </div>
+  </div>
+
+  <div class="grp">
     <div class="controls" style="margin-bottom:12px;">
       <label class="toggle" title="Cycle to a random skin from your fav-winamp-skins folder on a timer.">
         <input type="checkbox" id="autoRotate"> auto-rotate skins
@@ -312,6 +325,7 @@ const els = {
   filter: $('filter'), shuffle: $('shuffle'), transcode: $('transcode'),
   refreshBtn: $('refreshBtn'), disconnectBtn: $('disconnectBtn'), skinUrl: $('skinUrl'),
   autoRotate: $('autoRotate'), rotateSecs: $('rotateSecs'), diceBtn2: $('diceBtn2'),
+  stations: $('stations'), saveStations: $('saveStations'), resetStations: $('resetStations'),
 };
 
 // Migrate any settings saved under the old "wallamp_" name.
@@ -324,7 +338,7 @@ for (const s of ['url', 'token', 'transcode', 'shuffle', 'skin', 'client_id', 'l
 const LS = {
   url: 'timamp_url', token: 'timamp_token', transcode: 'timamp_transcode', shuffle: 'timamp_shuffle',
   skin: 'timamp_skin', clientId: 'timamp_client_id', lastSource: 'timamp_last_source',
-  autoRotate: 'timamp_autorotate', rotateSecs: 'timamp_rotatesecs',
+  autoRotate: 'timamp_autorotate', rotateSecs: 'timamp_rotatesecs', stations: 'timamp_stations',
 };
 
 let clientId = localStorage.getItem(LS.clientId);
@@ -425,6 +439,52 @@ function shuffle(a) {
   return a;
 }
 
+// ── Radio stations ───────────────────────────────────────────────────────
+// Live internet-radio streams, played as single Webamp tracks. Fully
+// user-editable (stored in localStorage) so you can add/fix any station.
+// Note: Webamp routes audio through Web Audio (for the visualizer), which
+// forces crossOrigin — so a stream must be HTTPS *and* send CORS headers, or
+// it plays silent. The Current is confirmed working; SomaFM channels too.
+const DEFAULT_STATIONS = [
+  ['89.3 The Current', 'https://current.stream.publicradio.org/kcmp.mp3'],
+  ['SomaFM — Groove Salad', 'https://ice1.somafm.com/groovesalad-128-mp3'],
+  ['SomaFM — Drone Zone', 'https://ice1.somafm.com/dronezone-128-mp3'],
+  ['SomaFM — Indie Pop Rocks!', 'https://ice1.somafm.com/indiepop-128-mp3'],
+  // Radio K: grab its URL from radiok.org (DevTools → Network → Media) and add a line here.
+];
+const defaultStationsText = () => DEFAULT_STATIONS.map(([n, u]) => n + ' | ' + u).join('\n');
+function parseStations(text) {
+  return (text || '').split('\n').map((l) => {
+    const i = l.indexOf('|');
+    if (i < 0) return null;
+    const name = l.slice(0, i).trim(), url = l.slice(i + 1).trim();
+    return name && /^https?:\/\//i.test(url) ? { name, url } : null;
+  }).filter(Boolean);
+}
+function getStations() {
+  const stored = localStorage.getItem(LS.stations);
+  return parseStations(stored != null ? stored : defaultStationsText());
+}
+function renderRadioGroup() {
+  const sel = els.sourceSelect;
+  const old = sel.querySelector('optgroup[data-radio]');
+  if (old) old.remove();
+  const stations = getStations();
+  if (!stations.length) return;
+  const og = document.createElement('optgroup');
+  og.label = 'Radio (' + stations.length + ')';
+  og.dataset.radio = '1';
+  stations.forEach((s, i) => {
+    const o = document.createElement('option');
+    o.value = 'radio:' + i;
+    o.dataset.kind = 'radio';
+    o.dataset.url = s.url;
+    o.textContent = s.name;
+    og.appendChild(o);
+  });
+  sel.insertBefore(og, sel.firstChild ? sel.firstChild.nextSibling : null); // after placeholder
+}
+
 // Tracks under any metadata id, recursing albums/artists down to tracks.
 // `diag` records the top-level child types; console logs help debug empties.
 async function childTracks(ratingKey, depth, diag) {
@@ -506,6 +566,7 @@ async function loadSources() {
     }
     sel.appendChild(og);
   }
+  renderRadioGroup();
   applyFilter();
   setStatus('Connected — ' + groups.Playlists.length + ' playlists · ' +
     groups.Albums.length + ' albums · ' + groups.Collections.length + ' collections', 'ok');
@@ -531,6 +592,16 @@ async function playSelected() {
   if (!opt || !opt.dataset.kind) return;
   const { kind, id } = opt.dataset;
   localStorage.setItem(LS.lastSource, els.sourceSelect.value);
+  if (kind === 'radio') {
+    if (!webamp) { setStatus('Connect to your Plex server first — the player loads after you connect.', 'bad'); return; }
+    try {
+      busy('Tuning in “' + opt.textContent + '”…');
+      webamp.setTracksToPlay([{ url: opt.dataset.url, metaData: { title: opt.textContent, artist: 'Radio' } }]);
+      setStatus('📻 ' + opt.textContent + ' — live. Tap ▶ if it doesn\'t start; dead silence usually means the stream isn\'t CORS-enabled.', 'ok');
+      closePanel();
+    } catch (e) { setStatus('Could not tune in: ' + e.message, 'bad'); }
+    return;
+  }
   try {
     busy('Loading “' + opt.textContent + '”…');
     const diag = {};
@@ -686,6 +757,7 @@ function disconnect() {
   els.token.value = '';
   els.connectGrp.style.display = '';
   els.sourceSelect.innerHTML = '<option value="">— pick a source —</option>';
+  renderRadioGroup(); // radio doesn't need Plex — keep it available
   openPanel();
   setStatus('Disconnected. Token cleared from this browser.');
 }
@@ -732,6 +804,17 @@ els.rotateSecs.addEventListener('change', () => {
   localStorage.setItem(LS.rotateSecs, els.rotateSecs.value);
   if (els.autoRotate.checked) startRotate(); // restart with the new interval
 });
+els.saveStations.addEventListener('click', () => {
+  localStorage.setItem(LS.stations, els.stations.value);
+  renderRadioGroup(); applyFilter();
+  setStatus('Saved ' + getStations().length + ' radio station(s) — they\'re in the Radio group up top.', 'ok');
+});
+els.resetStations.addEventListener('click', () => {
+  els.stations.value = defaultStationsText();
+  localStorage.setItem(LS.stations, els.stations.value);
+  renderRadioGroup(); applyFilter();
+  setStatus('Radio stations reset to defaults.', 'ok');
+});
 
 // ── Restore & auto-connect ───────────────────────────────────────────────
 (function restore() {
@@ -742,6 +825,9 @@ els.rotateSecs.addEventListener('change', () => {
   els.skinUrl.value = localStorage.getItem(LS.skin) || '';
   els.autoRotate.checked = localStorage.getItem(LS.autoRotate) === '1';
   els.rotateSecs.value = localStorage.getItem(LS.rotateSecs) || '20';
+  const savedStations = localStorage.getItem(LS.stations);
+  els.stations.value = savedStations != null ? savedStations : defaultStationsText();
+  renderRadioGroup(); // radio is available even before connecting
   if (els.serverUrl.value && els.token.value) {
     closePanel();
     connect();
