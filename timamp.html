@@ -579,54 +579,35 @@ async function ensureWebamp() {
 }
 
 // ── Random skins from the Winamp Skin Museum ─────────────────────────────
-// We pull a batch at a random offset, cache it, and rotate. setSkinFromUrl()
-// is a real Webamp method, so swaps happen live without interrupting playback.
+// The museum serves raw .wsz files from its CORS-enabled Cloudflare CDN at
+// cdn.webampskins.org/skins/<md5>.wsz. setSkinFromUrl() is a real Webamp
+// method, so swaps happen live without interrupting playback.
+// (Curated pool of hand-picked skins — Archive.org has no CORS, and the
+// museum's full-list API is GraphQL; this set is guaranteed to load.)
+const SKINS = [
+  { md5: '5e4f10275dcb1fb211d4a8b4f1bda236', name: 'Base v2.91' },
+  { md5: 'f4244528b233e2c7d0df64f77aea84d0', name: 'Base44 OS8' },
+  { md5: 'c0a1c57802bf5ec839098abc4027d9dd', name: 'Matrix' },
+  { md5: '8ae8433d2c190df681c70caf639fc9fa', name: 'Winamp v3' },
+  { md5: 'ad0f79d2048db2bbbd264834ccd573bd', name: 'WAC' },
+  { md5: '06e2e8ce02da06dbe418322150b388aa', name: 'WOW' },
+  { md5: 'd770a634cc1ab252cfb16c64f4f5f616', name: 'Zelda Amp 3' },
+  { md5: 'f86f47ed539e393678f805fe776e4d30', name: 'Internet Archive' },
+];
 let skinPool = [];
 let skinIdx = 0;
 let rotateTimer = null;
 
-const FALLBACK_SKIN = 'https://skins.webamp.org/skin/f4244528b233e2c7d0df64f77aea84d0/Base44_OS8.wsz/';
-
-// Grab a random page of skin item IDs from the Internet Archive's winampskins
-// collection (the same corpus the Skin Museum is built from). CORS-friendly JSON.
-async function fillSkinPool() {
-  const page = 1 + Math.floor(Math.random() * 1000);
-  const url = 'https://archive.org/advancedsearch.php?q=' +
-    encodeURIComponent('collection:winampskins') +
-    '&fl[]=identifier&rows=60&page=' + page + '&output=json';
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('archive search ' + res.status);
-  const data = await res.json();
-  const ids = ((data.response && data.response.docs) || []).map((d) => d.identifier).filter(Boolean);
-  if (!ids.length) throw new Error('search returned no skins');
-  skinPool = shuffle(ids);
-  skinIdx = 0;
+function nextSkin() {
+  if (skinIdx >= skinPool.length) { skinPool = shuffle(SKINS.slice()); skinIdx = 0; }
+  return skinPool[skinIdx++];
 }
 
-// Resolve an IA item to the URL of its actual .wsz file.
-async function skinUrlForId(id) {
-  const res = await fetch('https://archive.org/metadata/' + encodeURIComponent(id));
-  if (!res.ok) throw new Error('metadata ' + res.status);
-  const data = await res.json();
-  const f = (data.files || []).find((x) => /\.wsz$/i.test(x.name || ''));
-  if (!f) throw new Error('no .wsz file in ' + id);
-  return 'https://archive.org/download/' + encodeURIComponent(id) + '/' + encodeURIComponent(f.name);
-}
-
-async function randomSkin(announce) {
+function randomSkin(announce) {
   if (!webamp) { if (announce) setStatus('Connect to your Plex server first — the player loads after you connect.', 'bad'); return; }
-  try {
-    if (announce) busy('🎲 finding a skin…');
-    if (skinIdx >= skinPool.length) await fillSkinPool();
-    const id = skinPool[skinIdx++];
-    webamp.setSkinFromUrl(await skinUrlForId(id));
-    if (announce) setStatus('🎲 ' + id.replace(/[_-]+/g, ' '), 'ok');
-  } catch (e) {
-    // Always swap to a known-good skin so the action visibly does something.
-    try { webamp.setSkinFromUrl(FALLBACK_SKIN); } catch (e2) {}
-    if (announce) setStatus('Skin shuffle hit a snag (' + e.message + ') — loaded a fallback. Tell me what the browser console shows.', 'bad');
-    else stopRotate(); // don't hammer the API on repeated auto-rotate failures
-  }
+  const s = nextSkin();
+  webamp.setSkinFromUrl('https://cdn.webampskins.org/skins/' + s.md5 + '.wsz');
+  if (announce) setStatus('🎲 ' + s.name, 'ok');
 }
 
 function startRotate() {
