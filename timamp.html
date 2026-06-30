@@ -111,27 +111,6 @@
   #status .spin { display: inline-block; animation: spin 0.9s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ── Now-playing strip for radio (live song metadata, top of screen) ── */
-  #nowplaying {
-    position: fixed;
-    top: calc(env(safe-area-inset-top, 0px) + 12px);
-    left: 16px; right: 16px;
-    z-index: 110;
-    text-align: center;
-    font-size: 14px;
-    letter-spacing: 0.4px;
-    color: var(--accent);
-    text-shadow: 0 1px 5px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.9);
-    pointer-events: none;
-    white-space: nowrap; overflow: hidden;
-    display: none;
-  }
-  #nowplaying.show { display: block; }
-  #nowplaying #npText { display: inline-block; white-space: nowrap; will-change: transform; }
-  /* Scroll the song/station text only when it's wider than the strip. */
-  #nowplaying.scroll #npText { animation: np-scroll var(--np-dur, 8s) linear infinite alternate; }
-  @keyframes np-scroll { from { transform: translateX(0); } to { transform: translateX(var(--np-shift, 0)); } }
-
   /* ── Settings panel (rises up from the gear) ── */
   #panel {
     position: fixed;
@@ -253,7 +232,6 @@
   <button class="iconbtn" id="wallBtn" title="Wall mode (fullscreen)">⛶</button>
 </div>
 
-<div id="nowplaying"><span id="npText"></span></div>
 <div id="status"></div>
 
 <div id="panel">
@@ -348,7 +326,6 @@ const els = {
   refreshBtn: $('refreshBtn'), disconnectBtn: $('disconnectBtn'), skinUrl: $('skinUrl'),
   autoRotate: $('autoRotate'), rotateSecs: $('rotateSecs'), diceBtn2: $('diceBtn2'),
   stations: $('stations'), saveStations: $('saveStations'), resetStations: $('resetStations'),
-  nowplaying: $('nowplaying'), npText: $('npText'),
 };
 
 // Migrate any settings saved under the old "wallamp_" name.
@@ -517,35 +494,29 @@ function renderRadioGroup() {
 
 // ── Now-playing for radio ────────────────────────────────────────────────
 // Browsers hide a stream's in-band ICY metadata, so we poll the station's
-// now-playing JSON API instead and show the live song in a top strip (the
-// Winamp marquee can't update without reloading the stream). SomaFM exposes
-// one per channel; the channel slug is derivable from the stream URL.
+// now-playing JSON API (SomaFM exposes one per channel) and push the live
+// "artist / title" straight into Webamp's marquee via its Redux store — the
+// same SET_MEDIA_TAGS action Webamp uses for ID3 tags, so the marquee and
+// playlist update live with no stream reload. Stations without a metadata
+// API just keep showing their name in the marquee.
 let npTimer = null;
-let npStation = '';   // current radio station name
-let npSong = '';      // live "Artist — Title" when the station exposes it
 function somaSlug(url) {
   const m = /somafm\.com\/([^/?]+?)-\d+-(?:mp3|aac)\b/i.exec(url) ||
             /somafm\.com\/([a-z0-9]+)\b/i.exec(url);
   return m ? m[1] : null;
 }
-// Marquee shows "Artist — Title — Station" (just the station before any song
-// metadata arrives, or for stations with no metadata API). No timestamp.
-function renderNowPlaying() {
-  const text = [npSong, npStation].filter(Boolean).join(' — ');
-  if (!text) { hideNowPlaying(); return; }
-  els.npText.textContent = '♪ ' + text;
-  els.nowplaying.classList.add('show');
-  document.title = '♪ ' + text + ' · Timamp';
-  // Scroll only when the text is wider than the strip.
-  els.nowplaying.classList.remove('scroll');
-  requestAnimationFrame(() => {
-    const overflow = els.npText.scrollWidth - els.nowplaying.clientWidth;
-    if (overflow > 4) {
-      els.nowplaying.style.setProperty('--np-shift', -(overflow + 12) + 'px');
-      els.nowplaying.style.setProperty('--np-dur', Math.max(5, (overflow + 12) / 28) + 's');
-      els.nowplaying.classList.add('scroll');
-    }
-  });
+// Update the currently-playing track's tags in Webamp (drives the marquee).
+function setMarquee(artist, title) {
+  try {
+    const id = webamp.store.getState().playlist.currentTrack;
+    if (id == null) return;
+    webamp.store.dispatch({
+      type: 'SET_MEDIA_TAGS', id,
+      artist: artist || '', title: title || '',
+      album: '', albumArtUrl: null,
+      numberOfChannels: 2, bitrate: 0, sampleRate: 0,
+    });
+  } catch (e) { /* store/action shape changed — fail quietly, keep station name */ }
 }
 async function pollNowPlaying(url) {
   const slug = somaSlug(url);
@@ -554,26 +525,20 @@ async function pollNowPlaying(url) {
     const j = await (await fetch('https://api.somafm.com/songs/' + slug + '.json', { cache: 'no-store' })).json();
     const s = j.songs && j.songs[0];
     if (s && (s.artist || s.title)) {
-      npSong = [s.artist, s.title].filter(Boolean).join(' — ');
-      renderNowPlaying();
+      setMarquee(s.artist, s.title);
+      document.title = '♪ ' + [s.artist, s.title].filter(Boolean).join(' — ') + ' · Timamp';
     }
   } catch (e) { /* leave the last song shown; transient errors are fine */ }
 }
-function startNowPlaying(url, name) {
+function startNowPlaying(url) {
   stopNowPlaying();
-  npStation = name || '';
-  npSong = '';
-  renderNowPlaying();           // show the station name straight away
-  if (!somaSlug(url)) return;   // no live-metadata source; station name still shows
+  if (!somaSlug(url)) return;   // no live-metadata source; the station name stays in the marquee
   pollNowPlaying(url);
   npTimer = setInterval(() => pollNowPlaying(url), 25000);
 }
 function stopNowPlaying() { if (npTimer) { clearInterval(npTimer); npTimer = null; } }
 function hideNowPlaying() {
   stopNowPlaying();
-  npStation = ''; npSong = '';
-  els.nowplaying.classList.remove('show', 'scroll');
-  els.npText.textContent = '';
   document.title = 'Timamp — Plex Winamp player';
 }
 
@@ -687,8 +652,10 @@ async function playSelected() {
   if (kind === 'radio') {
     if (!webamp) { setStatus('Connect to your Plex server first — the player loads after you connect.', 'bad'); return; }
     try {
-      webamp.setTracksToPlay([{ url: opt.dataset.url, metaData: { title: opt.textContent, artist: 'Radio' } }]);
-      startNowPlaying(opt.dataset.url, opt.textContent); // marquee shows Artist — Title — Station
+      // Marquee shows the station name until the live song arrives (SomaFM),
+      // then setMarquee replaces it with the actual artist / title.
+      webamp.setTracksToPlay([{ url: opt.dataset.url, metaData: { title: opt.textContent } }]);
+      startNowPlaying(opt.dataset.url);
       clearStatus(); // no success toast on tune-in (the marquee is the feedback)
       closePanel();
     } catch (e) { setStatus('Could not tune in: ' + e.message, 'bad'); }
