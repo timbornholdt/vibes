@@ -214,6 +214,7 @@
 
 <script>
   const tools = [
+    { file: "snes-world.html", title: "SNES World", cat: "games", desc: "A website you walk through: side-scroll down a dusk street, jump, crouch, and swing at the shrubbery, then step into a midcentury den and drop the needle on the record player. Future home of the music library." },
     { file: "timamp.html", title: "Timamp", cat: "music", desc: "A Winamp for your wall: streams a Plex playlist, album, or collection — or a live internet-radio station — through the classic skinned player, with a real Milkdrop visualizer and shuffle-able skins. Paste your server URL and token, pick a source, mount the tablet." },
     { file: "patio-paver-visualizer.html", title: "Patio Paver Visualizer", cat: "home", desc: "Paint an 8×15 grid of two-tone 16″ pavers by tapping or dragging across squares. Curated patterns, live paver counts, rotate, and shareable layouts." },
     { file: "90s-lunch-wheel.html", title: "Wheel of Lunch", cat: "body", desc: "Spin a cheesy 90s game-show wheel rendered on a low-res tube TV to pick a balanced, high-protein lunch. Synth ticking and a win fanfare included." },
@@ -239,6 +240,15 @@
   const svg = (inner) =>
     `<svg viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
   const icons = {
+    // little hero jumping toward a flat-roof house, side-scroller style
+    "snes-world.html": svg(`
+      <path d="M8 76h80"/>
+      <path d="M42 32h40"/>
+      <rect x="47" y="32" width="30" height="44"/>
+      <rect x="56" y="54" width="11" height="22"/>
+      <rect x="16" y="38" width="13" height="13" rx="3"/>
+      <path d="M18 55h9M22 55v9M22 58l-7 7M22 58l7 7" stroke-width="4"/>
+      <path d="M30 30c4-6 10-6 13 0" stroke-width="4" stroke-dasharray="1 7"/>`),
     // player window with an equalizer/visualizer readout
     "timamp.html": svg(`
       <rect x="16" y="28" width="64" height="40" rx="5"/>

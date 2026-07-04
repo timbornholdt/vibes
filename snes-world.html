@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>snes world</title>
+<style>
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #0d0c0b;
+    color: #d9d2c5;
+    font-family: 'Courier New', Courier, ui-monospace, monospace;
+    overflow: hidden;
+  }
+
+  .stage {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    touch-action: none;
+  }
+
+  h1 {
+    font-size: 13px;
+    letter-spacing: 4px;
+    text-transform: lowercase;
+    font-weight: 700;
+    color: #8a8275;
+    margin: 0;
+  }
+
+  canvas {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    background: #000;
+    box-shadow: 0 0 0 2px #2a2620, 0 0 40px rgba(0,0,0,0.8);
+  }
+
+  .keys {
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: #6d675c;
+    text-align: center;
+    padding: 0 12px;
+  }
+  .keys b { color: #b8b0a1; font-weight: 700; }
+
+  /* touch pads — only shown on coarse pointers */
+  .pads { display: none; }
+  @media (pointer: coarse) {
+    .pads {
+      display: flex;
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      justify-content: space-between;
+      padding: 0 14px 18px;
+      pointer-events: none;
+    }
+    .keys { display: none; }
+  }
+  .pad-group { display: flex; gap: 8px; align-items: flex-end; }
+  .pad {
+    pointer-events: auto;
+    width: 54px; height: 54px;
+    border-radius: 12px;
+    border: 2px solid #4a443a;
+    background: rgba(30,28,24,0.7);
+    color: #d9d2c5;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    user-select: none;
+    -webkit-user-select: none;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pad:active { background: rgba(90,82,66,0.8); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <h1>snes world</h1>
+  <canvas id="game" width="320" height="180"></canvas>
+  <div class="keys">
+    <b>&#8592;&#8594;</b>/<b>a d</b> walk &nbsp; <b>space</b> jump &nbsp; <b>shift</b> strike &nbsp;
+    <b>&#8595;</b>/<b>s</b> crouch &nbsp; <b>&#8593;</b>/<b>w</b> enter doors + poke at things
+  </div>
+  <div class="pads">
+    <div class="pad-group">
+      <button class="pad" data-k="left">&#9664;</button>
+      <button class="pad" data-k="right">&#9654;</button>
+    </div>
+    <div class="pad-group">
+      <button class="pad" data-k="up">&#9650;</button>
+      <button class="pad" data-k="down">&#9660;</button>
+      <button class="pad" data-k="strike">B</button>
+      <button class="pad" data-k="jump">A</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+const W = 320, H = 180;
+const cv = document.getElementById('game');
+const ctx = cv.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+// integer upscale to fit the window
+function fit() {
+  const pad = 70;
+  const s = Math.max(1, Math.floor(Math.min(
+    window.innerWidth / W, (window.innerHeight - pad) / H)));
+  cv.style.width = (W * s) + 'px';
+  cv.style.height = (H * s) + 'px';
+}
+window.addEventListener('resize', fit);
+fit();
+
+/* ── sprites ─────────────────────────────────────────────── */
+
+const PAL = {
+  k: '#26202e',  // outline
+  h: '#5b3a24',  // hair
+  s: '#eab081',  // skin
+  t: '#d99e2b',  // mustard shirt
+  p: '#31555c',  // teal pants
+  b: '#55311f',  // shoes
+};
+
+const HEAD = [
+  '....kkkkkk......',
+  '...khhhhhhk.....',
+  '..khhhhhhhhk....',
+  '..khhhsssssk....',
+  '..khhsssssssk...',
+  '..khhsskssksk...',
+  '..khssssssssk...',
+  '...ksssssssk....',
+  '....ksssssk.....',
+  '.....kkkkk......',
+];
+
+const TORSO_IDLE = [
+  '....kttttttk....',
+  '...kttttttttk...',
+  '...ktkttttktk...',
+  '...ktkttttktk...',
+  '...kskttttksk...',
+  '....kttttttk....',
+  '....kkkkkkk.....',
+];
+
+const TORSO_STRIKE = [
+  '....kttttttk....',
+  '...kttttttttk...',
+  '...ktkttttttttk.',
+  '...ktkttttttssk.',
+  '...kskttttkkkk..',
+  '....kttttttk....',
+  '....kkkkkkk.....',
+];
+
+const LEGS_IDLE = [
+  '....kppppppk....',
+  '....kppppppk....',
+  '....kppkkppk....',
+  '....kpk..kpk....',
+  '....kpk..kpk....',
+  '...kbbk..kbbk...',
+  '...kkkk..kkkk...',
+];
+
+const LEGS_STRIDE = [
+  '....kppppppk....',
+  '...kpppkkpppk...',
+  '..kppk....kppk..',
+  '.kppk......kppk.',
+  '.kpk........kpk.',
+  'kbbk........kbbk',
+  'kkkk........kkkk',
+];
+
+const LEGS_JUMP = [
+  '....kppppppk....',
+  '...kpppppppk....',
+  '...kppkkkppk....',
+  '..kbbk...kbbk...',
+  '..kkkk...kkkk...',
+];
+
+const CROUCH_BODY = [
+  '..kttttttttk....',
+  '.kskttttttksk...',
+  '.kkkpppppppkk...',
+  '...kppkkkkppk...',
+  '..kbbbk..kbbbk..',
+  '..kkkkk..kkkkk..',
+];
+
+function bake(rows) {
+  const c = document.createElement('canvas');
+  c.width = 16; c.height = rows.length;
+  const g = c.getContext('2d');
+  rows.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++) {
+      const col = PAL[row[x]];
+      if (col) { g.fillStyle = col; g.fillRect(x, y, 1, 1); }
+    }
+  });
+  return c;
+}
+
+const SPR = {
+  idle:   bake([...HEAD, ...TORSO_IDLE, ...LEGS_IDLE]),
+  stride: bake([...HEAD, ...TORSO_IDLE, ...LEGS_STRIDE]),
+  jump:   bake([...HEAD, ...TORSO_IDLE, ...LEGS_JUMP]),
+  strike: bake([...HEAD, ...TORSO_STRIKE, ...LEGS_IDLE]),
+  strikeAir: bake([...HEAD, ...TORSO_STRIKE, ...LEGS_JUMP]),
+  crouch: bake([...HEAD, ...CROUCH_BODY]),
+};
+
+/* ── input ───────────────────────────────────────────────── */
+
+const held = { left: false, right: false, up: false, down: false, jump: false, strike: false };
+const tapped = new Set(); // edge-triggered, cleared each frame
+
+const KEYMAP = {
+  ArrowLeft: 'left', KeyA: 'left',
+  ArrowRight: 'right', KeyD: 'right',
+  ArrowUp: 'up', KeyW: 'up',
+  ArrowDown: 'down', KeyS: 'down',
+  Space: 'jump',
+  ShiftLeft: 'strike', ShiftRight: 'strike',
+};
+
+window.addEventListener('keydown', e => {
+  const k = KEYMAP[e.code];
+  if (!k) return;
+  e.preventDefault();
+  if (!held[k]) tapped.add(k);
+  held[k] = true;
+});
+window.addEventListener('keyup', e => {
+  const k = KEYMAP[e.code];
+  if (k) held[k] = false;
+});
+
+for (const btn of document.querySelectorAll('.pad')) {
+  const k = btn.dataset.k;
+  const on = e => { e.preventDefault(); if (!held[k]) tapped.add(k); held[k] = true; };
+  const off = e => { e.preventDefault(); held[k] = false; };
+  btn.addEventListener('pointerdown', on);
+  btn.addEventListener('pointerup', off);
+  btn.addEventListener('pointercancel', off);
+  btn.addEventListener('pointerleave', off);
+}
+
+/* ── record player audio (built lazily on first spin) ────── */
+
+const hifi = { playing: false, actx: null, master: null, timer: null, nextT: 0, step: 0 };
+
+const CHORDS = [ // lo-fi descent: Fmaj7 Em7 Dm7 Cmaj7 (midi notes)
+  [41, 53, 57, 60, 64],
+  [40, 52, 55, 59, 62],
+  [38, 50, 53, 57, 60],
+  [36, 48, 52, 55, 59],
+];
+const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+
+function startMusic() {
+  if (!hifi.actx) {
+    hifi.actx = new (window.AudioContext || window.webkitAudioContext)();
+    hifi.master = hifi.actx.createGain();
+    hifi.master.gain.value = 0.5;
+    hifi.master.connect(hifi.actx.destination);
+
+    // vinyl crackle: looping noise buffer, mostly quiet, occasional pops
+    const len = hifi.actx.sampleRate * 2;
+    const buf = hifi.actx.createBuffer(1, len, hifi.actx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      d[i] = (Math.random() * 2 - 1) * 0.012;
+      if (Math.random() < 0.0004) d[i] = (Math.random() * 2 - 1) * 0.6;
+    }
+    const src = hifi.actx.createBufferSource();
+    src.buffer = buf; src.loop = true;
+    const lp = hifi.actx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 4200;
+    const g = hifi.actx.createGain(); g.gain.value = 0.9;
+    src.connect(lp); lp.connect(g); g.connect(hifi.master);
+    src.start();
+    hifi.crackleGain = g;
+  }
+  hifi.actx.resume();
+  hifi.playing = true;
+  hifi.nextT = hifi.actx.currentTime + 0.1;
+  hifi.timer = setInterval(scheduleChords, 200);
+  scheduleChords();
+}
+
+function scheduleChords() {
+  const a = hifi.actx;
+  while (hifi.nextT < a.currentTime + 0.6) {
+    const notes = CHORDS[hifi.step % CHORDS.length];
+    const t = hifi.nextT, dur = 2.6;
+    notes.forEach((m, i) => {
+      const o = a.createOscillator();
+      o.type = i === 0 ? 'sine' : 'triangle';
+      o.frequency.value = hz(m);
+      // a hair of wobble, like a worn belt drive
+      o.detune.setValueAtTime((Math.random() * 10 - 5), t);
+      const g = a.createGain();
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(i === 0 ? 0.10 : 0.055, t + 0.4);
+      g.gain.setValueAtTime(i === 0 ? 0.10 : 0.055, t + dur - 0.9);
+      g.gain.linearRampToValueAtTime(0, t + dur);
+      o.connect(g); g.connect(hifi.master);
+      o.start(t); o.stop(t + dur);
+    });
+    hifi.nextT += dur;
+    hifi.step++;
+  }
+}
+
+function stopMusic() {
+  hifi.playing = false;
+  clearInterval(hifi.timer);
+  if (hifi.actx) hifi.actx.suspend();
+}
+
+/* ── world ───────────────────────────────────────────────── */
+
+const GROUND = 150;
+
+const player = {
+  x: 48, y: GROUND, vx: 0, vy: 0,
+  facing: 1, onGround: true, crouching: false,
+  strikeT: 0, animT: 0, coyote: 0, jbuf: 0,
+};
+
+let scene = 'outside';
+let cam = 0;
+let fade = { v: 0, dir: 0, cb: null }; // v: 0 clear → 1 black
+let dialog = { text: '', t: 0 };
+let notes = [];   // floating music notes in the den
+let time = 0;
+
+const bushes = [ { x: 96 }, { x: 210 }, { x: 555 } ]; // strikeable, they rustle
+bushes.forEach(b => b.shake = 0);
+
+const SCENES = {
+  outside: {
+    w: 640,
+    doors: [
+      { x: 300, w: 20, to: 'den', spawnX: 42, sign: 'the den' },
+      { x: 507, w: 20, to: 'annex', spawnX: 160, sign: '???' },
+    ],
+    zones: [],
+  },
+  den: {
+    w: 320,
+    doors: [ { x: 24, w: 18, to: 'outside', spawnX: 306, sign: 'outside' } ],
+    zones: [
+      { x: 196, w: 62, hint: 'record player',
+        act() {
+          if (hifi.playing) { stopMusic(); say('the needle lifts. the room gets a little too quiet.'); }
+          else { startMusic(); say('something warm starts spinning. the full music library moves in here soon.'); }
+        } },
+      { x: 118, w: 42, hint: 'comfy chair',
+        act() { say('an impossibly comfortable chair. you could listen to whole albums in this thing.'); } },
+    ],
+  },
+  annex: {
+    w: 320,
+    doors: [ { x: 152, w: 18, to: 'outside', spawnX: 513, sign: 'outside' } ],
+    zones: [
+      { x: 40, w: 60, hint: 'crates',
+        act() { say('empty crates and one bare bulb. something will live here eventually.'); } },
+    ],
+  },
+};
+
+function say(text) { dialog.text = text; dialog.t = 240; }
+
+function goTo(name, spawnX) {
+  fade.dir = 1;
+  fade.cb = () => {
+    scene = name;
+    player.x = spawnX;
+    player.vx = 0; player.vy = 0; player.y = GROUND;
+    cam = Math.max(0, Math.min(player.x - W / 2, SCENES[name].w - W));
+    notes = [];
+    fade.dir = -1;
+  };
+}
+
+/* ── update ──────────────────────────────────────────────── */
+
+function update() {
+  time++;
+  const S = SCENES[scene];
+  const transitioning = fade.dir !== 0 || fade.v > 0.05;
+
+  // fade progress
+  if (fade.dir === 1) {
+    fade.v = Math.min(1, fade.v + 0.07);
+    if (fade.v === 1 && fade.cb) { fade.cb(); fade.cb = null; }
+  } else if (fade.dir === -1) {
+    fade.v = Math.max(0, fade.v - 0.07);
+    if (fade.v === 0) fade.dir = 0;
+  }
+
+  if (dialog.t > 0) dialog.t--;
+
+  const striking = player.strikeT > 0;
+  if (striking) player.strikeT--;
+
+  if (!transitioning) {
+    // crouch (ground only)
+    player.crouching = held.down && player.onGround && !striking;
+
+    // horizontal
+    const speed = player.crouching ? 0.55 : 1.55;
+    let move = 0;
+    if (held.left) move -= 1;
+    if (held.right) move += 1;
+    if (move !== 0 && !(striking && player.onGround)) {
+      player.vx += move * 0.35;
+      player.vx = Math.max(-speed, Math.min(speed, player.vx));
+      player.facing = move;
+    } else {
+      player.vx *= 0.72;
+      if (Math.abs(player.vx) < 0.05) player.vx = 0;
+    }
+    player.x += player.vx;
+    player.x = Math.max(6, Math.min(S.w - 6, player.x));
+
+    // jump: buffer + coyote time
+    if (tapped.has('jump')) player.jbuf = 7;
+    else if (player.jbuf > 0) player.jbuf--;
+    if (player.onGround) player.coyote = 7;
+    else if (player.coyote > 0) player.coyote--;
+
+    if (player.jbuf > 0 && player.coyote > 0 && !player.crouching) {
+      player.vy = -5.1;
+      player.onGround = false;
+      player.coyote = 0; player.jbuf = 0;
+    }
+    // variable jump height
+    if (!held.jump && player.vy < -1.6) player.vy = -1.6;
+
+    // gravity
+    player.vy += 0.32;
+    player.y += player.vy;
+    if (player.y >= GROUND) {
+      player.y = GROUND; player.vy = 0; player.onGround = true;
+    } else {
+      player.onGround = false;
+    }
+
+    // strike
+    if (tapped.has('strike') && !striking && !player.crouching) {
+      player.strikeT = 16;
+      if (scene === 'outside') {
+        for (const b of bushes) {
+          if (Math.abs((b.x + 10) - (player.x + player.facing * 14)) < 16) b.shake = 18;
+        }
+      } else if (scene === 'den') {
+        const rp = SCENES.den.zones[0];
+        if (player.x + player.facing * 14 > rp.x && player.x + player.facing * 14 < rp.x + rp.w) {
+          say('hey, easy! those records are originals.');
+        }
+      }
+    }
+
+    // doors + interact zones (up / W)
+    if (tapped.has('up') && player.onGround) {
+      let used = false;
+      for (const d of S.doors) {
+        if (player.x > d.x - 4 && player.x < d.x + d.w + 4) { goTo(d.to, d.spawnX); used = true; break; }
+      }
+      if (!used) {
+        for (const z of S.zones) {
+          if (player.x > z.x - 4 && player.x < z.x + z.w + 4) { z.act(); break; }
+        }
+      }
+    }
+  }
+
+  // camera follows with a little lead
+  const target = Math.max(0, Math.min(player.x - W / 2 + player.facing * 20, S.w - W));
+  cam += (target - cam) * 0.12;
+
+  // bushes settle
+  for (const b of bushes) if (b.shake > 0) b.shake--;
+
+  // music notes drift up from the turntable
+  if (scene === 'den' && hifi.playing && time % 34 === 0) {
+    notes.push({ x: 222 + Math.random() * 14, y: 96, t: 0 });
+  }
+  notes = notes.filter(n => (n.t++, n.t < 120));
+
+  if (player.animT !== undefined) player.animT += Math.abs(player.vx) > 0.2 ? 1 : 0;
+
+  tapped.clear();
+}
+
+/* ── drawing helpers ─────────────────────────────────────── */
+
+function rect(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x - cam), Math.round(y), w, h); }
+function rectS(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); } // screen-space
+
+function text(str, x, y, c = '#f4ede1', screen = false) {
+  ctx.fillStyle = c;
+  ctx.font = '7px monospace';
+  ctx.textBaseline = 'top';
+  ctx.fillText(str, Math.round(screen ? x : x - cam), Math.round(y));
+}
+
+function drawDoor(x, y, w, h, frame, panel) {
+  rect(x - 2, y - 2, w + 4, h + 2, frame);
+  rect(x, y, w, h, panel);
+  rect(x + w - 5, y + Math.floor(h / 2) - 1, 2, 2, '#e8c46a'); // knob
+}
+
+function doorHint(d) {
+  if (player.onGround && player.x > d.x - 4 && player.x < d.x + d.w + 4 && fade.dir === 0) {
+    const bob = Math.sin(time / 12) * 1.5;
+    text('▲', d.x + d.w / 2 - 3, 88 + bob, '#f4ede1');
+  }
+}
+
+function zoneHint(z, y) {
+  if (player.onGround && player.x > z.x - 4 && player.x < z.x + z.w + 4 && fade.dir === 0 && dialog.t <= 0) {
+    const bob = Math.sin(time / 12) * 1.5;
+    text('▲', z.x + z.w / 2 - 3, y + bob, '#f4ede1');
+  }
+}
+
+/* ── scene: outside ──────────────────────────────────────── */
+
+function drawOutside() {
+  // dusky golden-hour sky, banded like a SNES gradient
+  const bands = ['#2c2440', '#4a3358', '#7a4460', '#b45d55', '#d98a4e', '#eab55f'];
+  bands.forEach((c, i) => rectS(0, i * 18, W, 18, c));
+  rectS(0, 108, W, 42, '#eab55f');
+
+  // sun
+  rectS(238 - cam * 0.05, 64, 22, 22, '#f7e6a1');
+  rectS(240 - cam * 0.05, 62, 18, 26, '#f7e6a1');
+
+  // far hills (slow parallax)
+  ctx.fillStyle = '#57406b';
+  for (let i = -1; i < 8; i++) {
+    const hx = i * 130 - (cam * 0.25) % 130;
+    ctx.beginPath();
+    ctx.moveTo(hx, 128); ctx.lineTo(hx + 65, 84); ctx.lineTo(hx + 130, 128);
+    ctx.closePath(); ctx.fill();
+  }
+  // near hills
+  ctx.fillStyle = '#6b4a58';
+  for (let i = -1; i < 8; i++) {
+    const hx = i * 170 - (cam * 0.5) % 170 - 40;
+    ctx.beginPath();
+    ctx.moveTo(hx, 136); ctx.lineTo(hx + 85, 104); ctx.lineTo(hx + 170, 136);
+    ctx.closePath(); ctx.fill();
+  }
+
+  // drifting clouds
+  ctx.fillStyle = 'rgba(247,230,190,0.85)';
+  for (let i = 0; i < 4; i++) {
+    const cx = ((i * 190 + time * 0.08 - cam * 0.12) % (W + 120)) - 60;
+    const cy = 22 + i * 16;
+    ctx.fillRect(cx, cy, 34, 6); ctx.fillRect(cx + 6, cy - 4, 20, 4);
+  }
+
+  // ground: grass strip + sidewalk
+  rect(0, 136, 640, 8, '#7a9448');
+  rect(0, 144, 640, 6, '#5d7538');
+  rect(0, GROUND, 640, 30, '#b8a98c');
+  ctx.fillStyle = '#a2937a';
+  for (let i = 0; i < 16; i++) rect(i * 40, GROUND, 1, 30, '#a2937a');
+  rect(0, GROUND, 640, 1, '#8f8168');
+
+  // ── the den: midcentury ranch ──
+  rect(258, 76, 110, 74, '#c8b89a');          // wall
+  rect(250, 68, 126, 10, '#4a3a30');          // low flat roof, wide eaves
+  rect(252, 78, 122, 2, '#3a2d24');
+  rect(268, 44, 12, 34, '#8f8578');           // stone chimney
+  rect(270, 46, 3, 3, '#a89e90'); rect(275, 52, 3, 3, '#a89e90'); rect(271, 58, 3, 3, '#a89e90');
+  // wood slat siding
+  ctx.fillStyle = '#b3a284';
+  for (let i = 0; i < 9; i++) rect(258, 84 + i * 8, 110, 1, '#b3a284');
+  // big picture window, warm glow
+  rect(324, 92, 36, 40, '#3a2d24');
+  rect(326, 94, 32, 36, '#f2c96e');
+  rect(341, 94, 2, 36, '#3a2d24');
+  rect(326, 111, 32, 2, '#3a2d24');
+  // breezeblock planter
+  rect(370, 132, 24, 18, '#ded5c2');
+  ctx.fillStyle = '#c4baa4';
+  rect(374, 136, 4, 4, '#c4baa4'); rect(382, 136, 4, 4, '#c4baa4');
+  rect(374, 143, 4, 4, '#c4baa4'); rect(382, 143, 4, 4, '#c4baa4');
+  rect(372, 126, 20, 6, '#5d7538');
+  // door
+  drawDoor(300, 104, 20, 46, '#4a3a30', '#9a5b32');
+  rect(300, 104, 20, 3, '#c4884e');
+  text('the den', 296, 92, '#3a2d24');
+
+  // ── the annex: boarded up, future room ──
+  rect(470, 88, 96, 62, '#8f9aa3');
+  rect(464, 80, 108, 10, '#525c66');
+  ctx.fillStyle = '#7d8890';
+  for (let i = 0; i < 7; i++) rect(470, 94 + i * 8, 96, 1, '#7d8890');
+  // boarded window
+  rect(478, 100, 26, 24, '#3a3f47');
+  rect(476, 104, 30, 5, '#6e6046');
+  rect(476, 114, 30, 5, '#6e6046');
+  drawDoor(507, 104, 20, 46, '#525c66', '#68727c');
+  text('? ? ?', 508, 92, '#2e343b');
+  text('coming soon', 486, 132, '#3a3f47');
+
+  // bushes (strikeable)
+  for (const b of bushes) {
+    const sx = b.shake > 0 ? Math.sin(b.shake * 1.8) * 2 : 0;
+    rect(b.x + sx, 138, 20, 12, '#4c6b2f');
+    rect(b.x + 3 + sx, 134, 14, 6, '#5d7d38');
+    rect(b.x + 6 - sx, 131, 8, 5, '#6b8f42');
+  }
+
+  // little sign by the road
+  rect(150, 128, 2, 22, '#6e5a40');
+  rect(136, 118, 30, 12, '#3a2d24');
+  rect(137, 119, 28, 10, '#d9d2c5');
+  text('west', 141, 121, '#3a2d24');
+
+  for (const d of SCENES.outside.doors) doorHint(d);
+}
+
+/* ── scene: the den (midcentury modern) ──────────────────── */
+
+function drawDen() {
+  // warm wood paneled wall
+  rectS(0, 0, W, GROUND, '#7a5334');
+  ctx.fillStyle = '#6b4527';
+  for (let i = 0; i < 20; i++) rectS(i * 17, 0, 2, GROUND, '#6b4527');
+  rectS(0, 118, W, 4, '#54371e'); // chair rail
+
+  // floor: walnut planks + shag rug
+  rectS(0, GROUND, W, 30, '#8f5f36');
+  ctx.fillStyle = '#7a4f2c';
+  for (let i = 0; i < 10; i++) rectS(i * 34, GROUND, 1, 30, '#7a4f2c');
+  rectS(0, GROUND, W, 1, '#54371e');
+  rectS(96, 154, 178, 20, '#c26e3f'); // burnt-orange shag rug
+  rectS(100, 156, 170, 16, '#d1804e');
+  ctx.fillStyle = '#c26e3f';
+  for (let i = 0; i < 21; i++) rectS(102 + i * 8, 158 + (i % 2) * 6, 3, 3, '#c26e3f');
+
+  // window on the right, dusk outside
+  rectS(272, 40, 38, 66, '#3a2d24');
+  rectS(274, 42, 34, 62, '#4a3358');
+  rectS(276, 44, 30, 26, '#7a4460');   // sunset band
+  rectS(276, 70, 30, 3, '#d98a4e');
+  rectS(289, 42, 2, 62, '#3a2d24');
+  rectS(274, 72, 34, 2, '#3a2d24');
+  rectS(268, 36, 46, 5, '#54371e');    // pelmet
+  rectS(268, 41, 6, 66, '#a34c33');    // curtains
+  rectS(308, 41, 6, 66, '#a34c33');
+
+  // sunburst clock
+  rectS(148, 34, 10, 10, '#e8c46a');
+  ctx.strokeStyle = '#e8c46a';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 8; i++) {
+    const a = i * Math.PI / 4;
+    ctx.beginPath();
+    ctx.moveTo(153 + Math.cos(a) * 7, 39 + Math.sin(a) * 7);
+    ctx.lineTo(153 + Math.cos(a) * 12, 39 + Math.sin(a) * 12);
+    ctx.stroke();
+  }
+  rectS(152, 36, 2, 4, '#26202e');
+
+  // abstract art print
+  rectS(60, 40, 26, 34, '#3a2d24');
+  rectS(62, 42, 22, 30, '#ded5c2');
+  rectS(65, 46, 9, 14, '#c26e3f');
+  rectS(72, 56, 9, 12, '#31555c');
+  rectS(67, 62, 5, 7, '#e8c46a');
+
+  // exit door
+  drawDoor(24, 104, 18, 46, '#54371e', '#9a5b32');
+
+  // arc floor lamp over the chair
+  rectS(172, 146, 10, 4, '#d9d2c5');
+  rectS(176, 96, 2, 50, '#d9d2c5');
+  rectS(158, 94, 20, 2, '#d9d2c5');
+  rectS(150, 96, 12, 7, '#e8c46a');
+  ctx.fillStyle = 'rgba(247,220,140,0.13)';
+  ctx.beginPath();
+  ctx.moveTo(156, 103); ctx.lineTo(136, GROUND); ctx.lineTo(176, GROUND);
+  ctx.closePath(); ctx.fill();
+
+  // ── comfy chair: eames-style lounger + ottoman ──
+  rectS(120, 112, 20, 26, '#3f3128');            // seat back shell
+  rectS(122, 114, 18, 24, '#7c4a3a');            // leather
+  rectS(120, 132, 30, 12, '#3f3128');            // seat shell
+  rectS(122, 130, 28, 8, '#8a5240');             // cushion
+  rectS(124, 116, 14, 3, '#93604c');             // headrest stitch
+  rectS(128, 144, 3, 6, '#26202e');               // base
+  rectS(124, 149, 12, 2, '#26202e');
+  rectS(154, 136, 16, 8, '#7c4a3a');             // ottoman
+  rectS(158, 144, 3, 5, '#26202e');
+  rectS(155, 148, 10, 2, '#26202e');
+
+  // ── credenza + record player ──
+  rectS(196, 116, 62, 30, '#8a5c30');            // walnut sideboard
+  rectS(196, 116, 62, 3, '#a06e3c');
+  rectS(200, 124, 26, 18, '#7a4f28');            // sliding doors
+  rectS(228, 124, 26, 18, '#96683a');
+  rectS(226, 124, 2, 18, '#54371e');
+  rectS(200, 146, 3, 6, '#54371e');               // tapered legs
+  rectS(253, 146, 3, 6, '#54371e');
+  // records leaning beside it
+  rectS(262, 128, 3, 22, '#26202e');
+  rectS(266, 130, 3, 20, '#7a2e2e');
+  rectS(270, 132, 3, 18, '#2e4a7a');
+  // turntable
+  rectS(214, 106, 34, 10, '#ded5c2');            // plinth
+  rectS(214, 106, 34, 2, '#efe8d8');
+  const rcx = 227, rcy = 110;
+  ctx.fillStyle = '#26202e';
+  ctx.beginPath(); ctx.arc(rcx, rcy, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#b23a3a';
+  ctx.beginPath(); ctx.arc(rcx, rcy, 2, 0, Math.PI * 2); ctx.fill();
+  if (hifi.playing) {                             // spinning groove glint
+    const a = time / 9;
+    ctx.strokeStyle = '#4a4456';
+    ctx.beginPath(); ctx.arc(rcx, rcy, 4.5, a, a + 1.2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(rcx, rcy, 4.5, a + Math.PI, a + Math.PI + 1.2); ctx.stroke();
+  }
+  // tonearm
+  ctx.strokeStyle = '#8a8275';
+  ctx.beginPath();
+  ctx.moveTo(243, 108);
+  ctx.lineTo(hifi.playing ? rcx + 3 : 240, hifi.playing ? rcy + 2 : 113);
+  ctx.stroke();
+  rectS(242, 106, 3, 3, '#8a8275');
+
+  // hanging plant
+  rectS(248, 30, 2, 14, '#8a8275');
+  rectS(242, 44, 14, 8, '#a34c33');
+  rectS(240, 42, 18, 3, '#6b8f42');
+  rectS(238, 45, 4, 9, '#5d7d38');
+  rectS(256, 45, 4, 11, '#5d7d38');
+
+  // floating notes when spinning (pixel-art eighth notes)
+  for (const n of notes) {
+    const a = Math.max(0, 1 - n.t / 120);
+    ctx.fillStyle = `rgba(244,237,225,${a.toFixed(2)})`;
+    const nx = Math.round(n.x + Math.sin(n.t / 14) * 4);
+    const ny = Math.round(n.y - n.t * 0.45);
+    ctx.fillRect(nx, ny, 3, 2);        // note head
+    ctx.fillRect(nx + 3, ny - 6, 1, 7); // stem
+    ctx.fillRect(nx + 4, ny - 6, 2, 2); // flag
+  }
+
+  for (const d of SCENES.den.doors) doorHint(d);
+  for (const z of SCENES.den.zones) zoneHint(z, 96);
+}
+
+/* ── scene: the annex (empty, future) ────────────────────── */
+
+function drawAnnex() {
+  rectS(0, 0, W, GROUND, '#3a3f47');
+  ctx.fillStyle = '#333840';
+  for (let i = 0; i < 20; i++) rectS(i * 17, 0, 2, GROUND, '#333840');
+  rectS(0, GROUND, W, 30, '#4a4550');
+  ctx.fillStyle = '#423d48';
+  for (let i = 0; i < 10; i++) rectS(i * 34, GROUND, 1, 30, '#423d48');
+
+  // one bare bulb
+  rectS(159, 0, 2, 34, '#525c66');
+  rectS(156, 34, 8, 10, '#f7e6a1');
+  ctx.fillStyle = 'rgba(247,230,160,0.10)';
+  ctx.beginPath();
+  ctx.moveTo(160, 44); ctx.lineTo(110, GROUND); ctx.lineTo(210, GROUND);
+  ctx.closePath(); ctx.fill();
+
+  // crates
+  rectS(44, 126, 24, 24, '#6e6046');
+  rectS(46, 128, 20, 20, '#7d6e50');
+  rectS(72, 134, 18, 16, '#6e6046');
+  rectS(50, 110, 20, 16, '#6e6046');
+  text('this room isn\'t ready yet', 96, 70, '#8a8275', true);
+
+  drawDoor(152, 104, 18, 46, '#525c66', '#68727c');
+  for (const d of SCENES.annex.doors) doorHint(d);
+  for (const z of SCENES.annex.zones) zoneHint(z, 100);
+}
+
+/* ── player + ui ─────────────────────────────────────────── */
+
+function drawPlayer() {
+  const striking = player.strikeT > 0;
+  let spr;
+  if (player.crouching) spr = SPR.crouch;
+  else if (!player.onGround) spr = striking ? SPR.strikeAir : SPR.jump;
+  else if (striking) spr = SPR.strike;
+  else if (Math.abs(player.vx) > 0.2) spr = (Math.floor(player.animT / 7) % 2 === 0) ? SPR.stride : SPR.idle;
+  else spr = (Math.floor(time / 50) % 8 === 0) ? SPR.stride : SPR.idle; // rare weight-shift
+
+  const px = Math.round(player.x - cam);
+  const py = Math.round(player.y - spr.height);
+
+  ctx.save();
+  if (player.facing === -1) {
+    ctx.translate(px, 0); ctx.scale(-1, 1);
+    ctx.drawImage(spr, -8, py);
+  } else {
+    ctx.drawImage(spr, px - 8, py);
+  }
+  ctx.restore();
+
+  // slash arc during active strike frames
+  if (striking && player.strikeT > 4 && player.strikeT < 14) {
+    const sx = px + player.facing * 12;
+    const sy = player.y - 12;
+    ctx.strokeStyle = '#f4ede1';
+    ctx.lineWidth = 1.5;
+    const sweep = (14 - player.strikeT) / 10;
+    ctx.beginPath();
+    ctx.arc(sx, sy, 7, (player.facing === 1 ? -1.4 : Math.PI + 1.4) - sweep * player.facing,
+      (player.facing === 1 ? -1.4 : Math.PI + 1.4) + (0.5 + sweep) * player.facing, player.facing === -1);
+    ctx.stroke();
+  }
+
+  // small shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.fillRect(px - 6, GROUND - 1, 12, 2);
+}
+
+function drawDialog() {
+  if (dialog.t <= 0) return;
+  const a = Math.min(1, dialog.t / 20);
+  ctx.globalAlpha = a;
+  rectS(8, H - 34, W - 16, 26, '#141017');
+  ctx.strokeStyle = '#d9d2c5';
+  ctx.strokeRect(9.5, H - 32.5, W - 19, 23);
+  ctx.fillStyle = '#f4ede1';
+  ctx.font = '7px monospace';
+  // naive two-line wrap
+  const words = dialog.text.split(' ');
+  let line = '', lines = [];
+  for (const w2 of words) {
+    if ((line + ' ' + w2).trim().length > 46) { lines.push(line.trim()); line = w2; }
+    else line += ' ' + w2;
+  }
+  lines.push(line.trim());
+  lines.slice(0, 2).forEach((l, i) => ctx.fillText(l, 16, H - 28 + i * 9));
+  ctx.globalAlpha = 1;
+}
+
+/* ── main loop (fixed 60fps step) ────────────────────────── */
+
+let last = performance.now(), acc = 0;
+function frame(now) {
+  acc += Math.min(now - last, 100);
+  last = now;
+  while (acc >= 1000 / 60) { update(); acc -= 1000 / 60; }
+
+  ctx.clearRect(0, 0, W, H);
+  if (scene === 'outside') drawOutside();
+  else if (scene === 'den') drawDen();
+  else drawAnnex();
+  drawPlayer();
+  drawDialog();
+
+  if (fade.v > 0) {
+    ctx.fillStyle = `rgba(8,6,10,${fade.v.toFixed(2)})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+say('evening. the den is unlocked — head east and step inside.');
+
+// tiny debug handle (harmless; lets automated checks read game state)
+window.__snes = { player, hifi, get scene() { return scene; } };
+</script>
+</body>
+</html>
