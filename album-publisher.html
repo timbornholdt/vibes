@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Album Publisher</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --bg: #16130f;
+    --panel: #211d17;
+    --line: #383025;
+    --ink: #f0e8d8;
+    --dim: #a2967e;
+    --accent: #e8963c;
+    --ok: #7fbf6a;
+    --err: #e06c5a;
+  }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 20px 16px 60px; }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: 0.3px; }
+  .sub { color: var(--dim); font-size: 13px; margin: 0 0 18px; }
+  button { font: inherit; cursor: pointer; }
+  .gear { background: none; border: 1px solid var(--line); color: var(--dim); border-radius: 8px;
+    padding: 4px 10px; font-size: 14px; }
+  .gear.on { color: var(--accent); border-color: var(--accent); }
+
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px; margin-bottom: 18px; }
+  .panel.hidden { display: none; }
+  .panel label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--dim); margin: 10px 0 4px; }
+  .panel label:first-child { margin-top: 0; }
+  .panel input { width: 100%; font-size: 16px; padding: 8px 10px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+  .panel .hint { font-size: 12px; color: var(--dim); margin: 6px 0 0; }
+  .panel .row { display: flex; gap: 8px; margin-top: 12px; }
+
+  .primary { background: var(--accent); color: #1d1508; border: none; border-radius: 8px;
+    padding: 9px 16px; font-weight: 600; }
+  .primary:disabled { opacity: 0.5; cursor: default; }
+  .ghost { background: none; border: 1px solid var(--line); color: var(--ink);
+    border-radius: 8px; padding: 9px 14px; }
+
+  .search { width: 100%; font-size: 16px; padding: 12px 14px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+  .search:focus { outline: none; border-color: var(--accent); }
+
+  .status { min-height: 22px; font-size: 13px; color: var(--dim); margin: 10px 2px; }
+  .status.err { color: var(--err); }
+  .status.ok { color: var(--ok); }
+
+  .section-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--dim); margin: 18px 2px 8px; }
+  .result { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 10px; margin-bottom: 8px; color: var(--ink); }
+  .result:active { border-color: var(--accent); }
+  .result img, .result .noart { width: 52px; height: 52px; border-radius: 6px; object-fit: cover;
+    background: var(--bg); flex: none; }
+  .result .noart { display: flex; align-items: center; justify-content: center; color: var(--dim);
+    font-size: 20px; }
+  .result .meta { min-width: 0; }
+  .result .t { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .result .a { font-size: 13px; color: var(--dim); overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; }
+  .result .badge { margin-left: auto; flex: none; font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.6px; color: var(--accent); border: 1px solid var(--accent);
+    border-radius: 20px; padding: 2px 9px; }
+  .result .badge.site { color: var(--ok); border-color: var(--ok); }
+
+  .detail { text-align: center; }
+  .detail img { width: min(70vw, 320px); border-radius: 12px; border: 1px solid var(--line); }
+  .detail h2 { margin: 14px 0 2px; font-size: 20px; }
+  .detail .artist { color: var(--dim); margin: 0; }
+  .detail .facts { font-size: 13px; color: var(--dim); margin: 10px 0 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; }
+  .chip { font-size: 12px; border: 1px solid var(--line); border-radius: 20px; padding: 3px 10px;
+    color: var(--dim); }
+  .detail .row { display: flex; gap: 10px; justify-content: center; margin-top: 18px; }
+
+  .editor textarea { width: 100%; min-height: 45vh; font-size: 16px; line-height: 1.5;
+    font-family: ui-monospace, Menlo, monospace; padding: 12px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink); resize: vertical; }
+  .editor textarea:focus { outline: none; border-color: var(--accent); }
+  .editor .head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .editor .head img, .editor .head .noart { width: 56px; height: 56px; border-radius: 8px;
+    object-fit: cover; background: var(--panel); flex: none; }
+  .editor .head .t { font-weight: 600; }
+  .editor .head .a { font-size: 13px; color: var(--dim); }
+  .editor .head a { color: var(--accent); font-size: 13px; }
+  .editor .row { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
+  .editor .row .spacer { flex: 1; }
+
+  .back { background: none; border: none; color: var(--accent); padding: 0; font-size: 14px;
+    margin-bottom: 14px; display: inline-block; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Album Publisher</h1>
+      <p class="sub">plex &rarr; timbornholdt.com/albums, reviews written anywhere</p>
+    </div>
+    <button class="gear" id="gearBtn">settings</button>
+  </header>
+
+  <div class="panel hidden" id="settings">
+    <label for="plexUrl">Plex server URL</label>
+    <input id="plexUrl" type="url" placeholder="https://10-0-0-12.hash.plex.direct:32400" autocomplete="off">
+    <label for="plexToken">Plex token</label>
+    <input id="plexToken" type="password" placeholder="X-Plex-Token" autocomplete="off">
+    <p class="hint">Shared with Timamp — if you've set that up on this device, these are prefilled.</p>
+    <label for="siteToken">timbornholdt.com album API token</label>
+    <input id="siteToken" type="password" placeholder="ALBUM_API_SECRET_TOKEN" autocomplete="off">
+    <div class="row">
+      <button class="primary" id="saveSettings">Save</button>
+      <button class="ghost" id="closeSettings">Close</button>
+    </div>
+  </div>
+
+  <div id="searchView">
+    <input class="search" id="q" type="search" placeholder="search by album or artist&hellip;"
+      autocomplete="off" autocapitalize="off" spellcheck="false">
+    <div class="status" id="status"></div>
+    <div id="results"></div>
+  </div>
+
+  <div id="detailView" class="hidden">
+    <button class="back" id="detailBack">&larr; back to search</button>
+    <div class="detail" id="detailBody"></div>
+  </div>
+
+  <div id="editorView" class="hidden editor">
+    <button class="back" id="editorBack">&larr; back to search</button>
+    <div class="head" id="editorHead"></div>
+    <textarea id="review" placeholder="Write the review (Markdown — [youtube]ID[/youtube] works too)"></textarea>
+    <div class="row">
+      <button class="primary" id="saveReview">Save review</button>
+      <span class="spacer"></span>
+      <span class="status" id="editorStatus"></span>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const LS = { plexUrl: 'timamp_url', plexToken: 'timamp_token', siteToken: 'album-api-token',
+  siteBase: 'album-api-base' };
+const SITE = localStorage.getItem(LS.siteBase) || 'https://timbornholdt.com';
+
+let plexBase = (localStorage.getItem(LS.plexUrl) || '').replace(/\/+$/, '');
+let plexToken = localStorage.getItem(LS.plexToken) || '';
+let siteToken = localStorage.getItem(LS.siteToken) || '';
+let current = null; // plex album selected for import
+
+// ── settings ──
+function openSettings(msg) {
+  $('plexUrl').value = plexBase;
+  $('plexToken').value = plexToken;
+  $('siteToken').value = siteToken;
+  $('settings').classList.remove('hidden');
+  $('gearBtn').classList.add('on');
+  if (msg) setStatus(msg, 'err');
+}
+function closeSettings() { $('settings').classList.add('hidden'); $('gearBtn').classList.remove('on'); }
+$('gearBtn').addEventListener('click', () =>
+  $('settings').classList.contains('hidden') ? openSettings() : closeSettings());
+$('closeSettings').addEventListener('click', closeSettings);
+$('saveSettings').addEventListener('click', () => {
+  plexBase = $('plexUrl').value.trim().replace(/\/+$/, '');
+  plexToken = $('plexToken').value.trim();
+  siteToken = $('siteToken').value.trim();
+  localStorage.setItem(LS.plexUrl, plexBase);
+  localStorage.setItem(LS.plexToken, plexToken);
+  localStorage.setItem(LS.siteToken, siteToken);
+  closeSettings();
+  setStatus('settings saved', 'ok');
+  if ($('q').value.trim()) runSearch($('q').value.trim());
+});
+
+// ── status ──
+function setStatus(msg, kind = '') { const s = $('status'); s.textContent = msg; s.className = 'status ' + kind; }
+
+// ── plex helpers (token in query + safelisted Accept header = no preflight, same as timamp) ──
+function plexUrl(path, extra = {}) {
+  const u = new URL(plexBase + path);
+  u.searchParams.set('X-Plex-Token', plexToken);
+  for (const [k, v] of Object.entries(extra)) u.searchParams.set(k, v);
+  return u.toString();
+}
+async function plexJson(path, extra) {
+  const res = await fetch(plexUrl(path, extra), { headers: { Accept: 'application/json' } });
+  if (res.status === 401) throw new Error('Plex: bad or expired token');
+  if (!res.ok) throw new Error('Plex: ' + res.status + ' from server');
+  return res.json();
+}
+function artUrl(thumb, size) {
+  if (!thumb) return null;
+  return plexUrl('/photo/:/transcode', { url: thumb, width: size, height: size, minSize: 1, upscale: 1 });
+}
+
+// ── site API helpers ──
+async function siteFetch(path, opts = {}) {
+  const res = await fetch(SITE + path, {
+    ...opts,
+    headers: { Authorization: 'Bearer ' + siteToken, ...(opts.headers || {}) },
+  });
+  if (res.status === 401) { openSettings('site API token was rejected — paste a fresh one'); throw new Error('site: 401'); }
+  if (!res.ok) throw new Error('site: ' + res.status);
+  return res.status === 204 ? null : res.json();
+}
+const siteSearch = (q) => siteFetch('/api/v1/albums?q=' + encodeURIComponent(q));
+const siteShow = (slug) => siteFetch('/api/v1/albums/' + encodeURIComponent(slug));
+
+// ── views ──
+function show(view) {
+  for (const v of ['searchView', 'detailView', 'editorView']) $(v).classList.toggle('hidden', v !== view);
+}
+$('detailBack').addEventListener('click', () => show('searchView'));
+$('editorBack').addEventListener('click', () => show('searchView'));
+
+// ── search ──
+let debounce = null;
+let searchSeq = 0;
+$('q').addEventListener('input', () => {
+  clearTimeout(debounce);
+  const q = $('q').value.trim();
+  if (q.length < 2) { $('results').innerHTML = ''; setStatus(''); return; }
+  debounce = setTimeout(() => runSearch(q), 350);
+});
+
+async function runSearch(q) {
+  if (!siteToken || !plexBase || !plexToken) { openSettings('fill in Plex + site credentials first'); return; }
+  const seq = ++searchSeq;
+  setStatus('searching…');
+  const [site, plex] = await Promise.allSettled([siteSearch(q), plexSearch(q)]);
+  if (seq !== searchSeq) return; // a newer search superseded this one
+  const errs = [site, plex].filter((r) => r.status === 'rejected').map((r) => r.reason.message);
+  setStatus(errs.join(' · '), errs.length ? 'err' : '');
+  renderResults(site.status === 'fulfilled' ? site.value.albums : [],
+    plex.status === 'fulfilled' ? plex.value : []);
+}
+
+async function plexSearch(q) {
+  const data = await plexJson('/hubs/search', { query: q, limit: 12 });
+  const hubs = (data.MediaContainer && data.MediaContainer.Hub) || [];
+  const hub = (type) => (hubs.find((h) => h.type === type) || {}).Metadata || [];
+  const albums = hub('album');
+  // fold in albums by matching artists, skipping ones the album hub already found
+  for (const artist of hub('artist').slice(0, 3)) {
+    try {
+      const kids = await plexJson('/library/metadata/' + artist.ratingKey + '/children');
+      const seen = new Set(albums.map((a) => a.ratingKey));
+      for (const kid of (kids.MediaContainer && kids.MediaContainer.Metadata) || []) {
+        if (!seen.has(kid.ratingKey)) albums.push(kid);
+      }
+    } catch (e) { /* artist expansion is best-effort */ }
+  }
+  return albums;
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function resultRow({ art, title, artist, badge, badgeClass }) {
+  const img = art ? `<img src="${esc(art)}" alt="" loading="lazy">` : '<div class="noart">♪</div>';
+  return `${img}<div class="meta"><div class="t">${esc(title)}</div><div class="a">${esc(artist)}</div></div>
+    <span class="badge ${badgeClass || ''}">${badge}</span>`;
+}
+
+function renderResults(siteAlbums, plexAlbums) {
+  const box = $('results');
+  box.innerHTML = '';
+  const onSite = (title, artist) => siteAlbums.find((a) =>
+    a.title.toLowerCase() === String(title).toLowerCase() &&
+    a.artist.toLowerCase() === String(artist).toLowerCase());
+
+  if (siteAlbums.length) {
+    box.insertAdjacentHTML('beforeend', '<div class="section-label">on the site — tap to edit review</div>');
+    for (const a of siteAlbums) {
+      const btn = document.createElement('button');
+      btn.className = 'result';
+      btn.innerHTML = resultRow({ art: a.album_art_url, title: a.title, artist: a.artist,
+        badge: 'edit', badgeClass: 'site' });
+      btn.addEventListener('click', () => openEditor(a.slug));
+      box.appendChild(btn);
+    }
+  }
+  const fresh = plexAlbums.filter((p) => !onSite(p.title, p.parentTitle));
+  if (fresh.length) {
+    box.insertAdjacentHTML('beforeend', '<div class="section-label">in plex — tap to import</div>');
+    for (const p of fresh) {
+      const btn = document.createElement('button');
+      btn.className = 'result';
+      btn.innerHTML = resultRow({ art: artUrl(p.thumb, 120), title: p.title,
+        artist: p.parentTitle || '', badge: 'import' });
+      btn.addEventListener('click', () => openDetail(p.ratingKey));
+      box.appendChild(btn);
+    }
+  }
+  if (!siteAlbums.length && !fresh.length) {
+    box.innerHTML = '<div class="section-label">nothing found in plex or on the site</div>';
+  }
+}
+
+// ── import detail ──
+async function openDetail(ratingKey) {
+  setStatus('loading album…');
+  let meta;
+  try {
+    const data = await plexJson('/library/metadata/' + ratingKey);
+    meta = data.MediaContainer.Metadata[0];
+  } catch (e) { setStatus(e.message, 'err'); return; }
+  setStatus('');
+
+  current = {
+    title: meta.title,
+    artist: meta.parentTitle || '',
+    releasedAt: meta.originallyAvailableAt || null,
+    year: meta.year || null,
+    genres: (meta.Genre || []).map((g) => g.tag),
+    thumb: meta.thumb,
+  };
+  const facts = [current.releasedAt ? 'released ' + current.releasedAt
+    : (current.year ? 'released ' + current.year + ' (no exact date in Plex)' : 'no release date in Plex')];
+  $('detailBody').innerHTML = `
+    ${current.thumb ? `<img src="${esc(artUrl(current.thumb, 600))}" alt="album art">` : ''}
+    <h2>${esc(current.title)}</h2>
+    <p class="artist">${esc(current.artist)}</p>
+    <p class="facts">${esc(facts.join(''))}</p>
+    <div class="chips">${current.genres.map((g) => `<span class="chip">${esc(g)}</span>`).join('')}</div>
+    <div class="row"><button class="primary" id="importBtn">Import to timbornholdt.com</button></div>
+    <div class="status" id="importStatus"></div>`;
+  $('importBtn').addEventListener('click', importCurrent);
+  show('detailView');
+}
+
+async function importCurrent() {
+  const btn = $('importBtn');
+  const st = $('importStatus');
+  btn.disabled = true;
+  st.textContent = 'importing…';
+  st.className = 'status';
+  try {
+    const fd = new FormData();
+    fd.append('album[title]', current.title);
+    fd.append('album[artist_name]', current.artist);
+    if (current.releasedAt) fd.append('album[released_at]', current.releasedAt);
+    for (const g of current.genres) fd.append('album[genre_names][]', g);
+    if (current.thumb) {
+      st.textContent = 'pulling art from plex…';
+      const art = await fetch(artUrl(current.thumb, 1600));
+      if (art.ok) {
+        const blob = await art.blob();
+        fd.append('album[album_art]', blob, 'album-art.jpg');
+      }
+    }
+    st.textContent = 'uploading…';
+    const created = await siteFetch('/api/v1/albums', { method: 'POST', body: fd });
+    st.textContent = 'imported!';
+    st.className = 'status ok';
+    await openEditor(created.slug);
+  } catch (e) {
+    st.textContent = e.message;
+    st.className = 'status err';
+    btn.disabled = false;
+  }
+}
+
+// ── review editor ──
+let editing = null;
+async function openEditor(slug) {
+  setStatus('loading album…');
+  let album;
+  try { album = await siteShow(slug); } catch (e) { setStatus(e.message, 'err'); return; }
+  setStatus('');
+  editing = album;
+  const img = album.album_art_url ? `<img src="${esc(album.album_art_url)}" alt="">`
+    : '<div class="noart">♪</div>';
+  $('editorHead').innerHTML = `${img}
+    <div><div class="t">${esc(album.title)}</div><div class="a">${esc(album.artist)}</div>
+    <a href="${SITE}/albums/${esc(album.slug)}" target="_blank" rel="noopener">view on site &nearr;</a></div>`;
+  $('review').value = album.review || '';
+  $('editorStatus').textContent = '';
+  show('editorView');
+}
+
+$('saveReview').addEventListener('click', async () => {
+  const st = $('editorStatus');
+  st.textContent = 'saving…';
+  st.className = 'status';
+  try {
+    await siteFetch('/api/v1/albums/' + encodeURIComponent(editing.slug), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ album: { review: $('review').value } }),
+    });
+    st.textContent = 'saved';
+    st.className = 'status ok';
+  } catch (e) {
+    st.textContent = e.message;
+    st.className = 'status err';
+  }
+});
+
+// first run: nudge toward settings if anything's missing
+if (!siteToken || !plexBase || !plexToken) openSettings();
+</script>
+</body>
+</html>
