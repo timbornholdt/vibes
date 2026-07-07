@@ -4,145 +4,228 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Album Publisher</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; }
   :root {
-    --bg: #16130f;
-    --panel: #211d17;
-    --line: #383025;
-    --ink: #f0e8d8;
-    --dim: #a2967e;
-    --accent: #e8963c;
-    --ok: #7fbf6a;
-    --err: #e06c5a;
+    /* DMG-01 four-shade LCD + shell */
+    --g0: #9bbc0f;   /* lcd lightest (background) */
+    --g1: #8bac0f;   /* lcd light */
+    --g2: #306230;   /* lcd dark */
+    --g3: #0f380f;   /* lcd darkest (ink) */
+    --shell: #c9c5bc;
+    --shell-dark: #a8a49b;
+    --bezel: #4a4658;
+    --btn: #8b2f5f;  /* A/B button burgundy */
+    --pix: "Press Start 2P", monospace;
+    --mono: ui-monospace, Menlo, "Courier New", monospace;
   }
-  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink);
-    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-  .wrap { max-width: 640px; margin: 0 auto; padding: 20px 16px 60px; }
-  header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: 0.3px; }
-  .sub { color: var(--dim); font-size: 13px; margin: 0 0 18px; }
-  button { font: inherit; cursor: pointer; }
-  .gear { background: none; border: 1px solid var(--line); color: var(--dim); border-radius: 8px;
-    padding: 4px 10px; font-size: 14px; }
-  .gear.on { color: var(--accent); border-color: var(--accent); }
+  html, body { margin: 0; padding: 0; background: var(--shell);
+    font-family: var(--mono); font-size: 16px; line-height: 1.5; }
+  body { display: flex; justify-content: center; min-height: 100vh;
+    background-image: radial-gradient(circle at 30% 10%, #d5d1c8, var(--shell) 60%); }
 
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-    padding: 14px; margin-bottom: 18px; }
-  .panel.hidden { display: none; }
-  .panel label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px;
-    color: var(--dim); margin: 10px 0 4px; }
-  .panel label:first-child { margin-top: 0; }
-  .panel input { width: 100%; font-size: 16px; padding: 8px 10px; border-radius: 8px;
-    border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
-  .panel .hint { font-size: 12px; color: var(--dim); margin: 6px 0 0; }
-  .panel .row { display: flex; gap: 8px; margin-top: 12px; }
+  .shell { width: 100%; max-width: 560px; padding: 18px 14px 28px; }
 
-  .primary { background: var(--accent); color: #1d1508; border: none; border-radius: 8px;
-    padding: 9px 16px; font-weight: 600; }
-  .primary:disabled { opacity: 0.5; cursor: default; }
-  .ghost { background: none; border: 1px solid var(--line); color: var(--ink);
-    border-radius: 8px; padding: 9px 14px; }
-
-  .search { width: 100%; font-size: 16px; padding: 12px 14px; border-radius: 10px;
-    border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
-  .search:focus { outline: none; border-color: var(--accent); }
-
-  .status { min-height: 22px; font-size: 13px; color: var(--dim); margin: 10px 2px; }
-  .status.err { color: var(--err); }
-  .status.ok { color: var(--ok); }
-
-  .section-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px;
-    color: var(--dim); margin: 18px 2px 8px; }
-  .result { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
-    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-    padding: 10px; margin-bottom: 8px; color: var(--ink); }
-  .result:active { border-color: var(--accent); }
-  .result img, .result .noart { width: 52px; height: 52px; border-radius: 6px; object-fit: cover;
-    background: var(--bg); flex: none; }
-  .result .noart { display: flex; align-items: center; justify-content: center; color: var(--dim);
-    font-size: 20px; }
-  .result .meta { min-width: 0; }
-  .result .t { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .result .a { font-size: 13px; color: var(--dim); overflow: hidden; text-overflow: ellipsis;
+  /* ── screen bezel ── */
+  .bezel { background: var(--bezel); border-radius: 12px 12px 40px 12px;
+    padding: 26px 18px 20px; box-shadow: inset 0 2px 6px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.25); }
+  .bezel-top { display: flex; align-items: center; gap: 10px; margin: -16px 0 12px; }
+  .bezel-line { flex: 1; height: 4px; border-top: 1px solid #6c6880; border-bottom: 1px solid #6c6880; }
+  .bezel-caption { font-family: var(--pix); font-size: 7px; color: #b8b4c8; letter-spacing: 1px;
     white-space: nowrap; }
-  .result .badge { margin-left: auto; flex: none; font-size: 11px; text-transform: uppercase;
-    letter-spacing: 0.6px; color: var(--accent); border: 1px solid var(--accent);
-    border-radius: 20px; padding: 2px 9px; }
-  .result .badge.site { color: var(--ok); border-color: var(--ok); }
+  .battery { display: flex; align-items: center; gap: 6px; margin: 0 0 10px 2px; }
+  .battery .dot { width: 8px; height: 8px; border-radius: 50%; background: #e0331f;
+    box-shadow: 0 0 6px #e0331f; }
+  .battery span { font-family: var(--pix); font-size: 7px; color: #b8b4c8; letter-spacing: 1px; }
 
+  /* ── the LCD ── */
+  .lcd { background: var(--g0); color: var(--g3); padding: 16px 14px 20px; min-height: 380px;
+    box-shadow: inset 0 0 0 2px var(--g1), inset 0 3px 10px rgba(15,56,15,0.35);
+    background-image: repeating-linear-gradient(0deg, rgba(15,56,15,0.05) 0 1px, transparent 1px 3px); }
+  .lcd h1 { font-family: var(--pix); font-size: 13px; margin: 0 0 6px; letter-spacing: 0.5px; }
+  .lcd .sub { font-family: var(--pix); font-size: 7px; color: var(--g2); margin: 0 0 16px;
+    letter-spacing: 0.5px; line-height: 1.8; }
+  .label { font-family: var(--pix); font-size: 7px; letter-spacing: 1px; color: var(--g2);
+    margin: 16px 2px 6px; text-transform: uppercase; }
+  input, textarea { font-family: var(--mono); font-size: 16px; color: var(--g3);
+    background: var(--g0); border: 2px solid var(--g3); border-radius: 0; width: 100%;
+    padding: 8px 10px; }
+  input:focus, textarea:focus { outline: 2px solid var(--g2); outline-offset: 1px; }
+  input::placeholder, textarea::placeholder { color: var(--g2); opacity: 0.8; }
+
+  button { font-family: var(--pix); font-size: 9px; letter-spacing: 1px; cursor: pointer;
+    text-transform: uppercase; }
+  .primary { background: var(--g3); color: var(--g0); border: 2px solid var(--g3);
+    padding: 10px 16px; box-shadow: 2px 2px 0 var(--g2); }
+  .primary:active { transform: translate(2px, 2px); box-shadow: none; }
+  .primary:disabled { opacity: 0.5; cursor: default; }
+  .ghost { background: var(--g0); color: var(--g3); border: 2px solid var(--g3);
+    padding: 10px 14px; }
+  .back { background: none; border: none; color: var(--g3); padding: 0; margin: 0 0 14px;
+    font-size: 8px; }
+  .back::before { content: "◄ "; }
+
+  .status { min-height: 20px; font-family: var(--pix); font-size: 8px; line-height: 1.8;
+    color: var(--g2); margin: 12px 2px; }
+  .status.err { background: var(--g3); color: var(--g0); padding: 4px 6px; display: inline-block; }
+  .status.err::before { content: "! "; }
+  .status.ok::before { content: "★ "; }
+  .status.ok { color: var(--g3); }
+  @keyframes blink { 50% { opacity: 0; } }
+  .blink { animation: blink 1s steps(1) infinite; }
+
+  /* ── results ── */
+  .section-label { font-family: var(--pix); font-size: 7px; letter-spacing: 1px; color: var(--g2);
+    margin: 18px 2px 8px; text-transform: uppercase; }
+  .section-label::before { content: "▶ "; }
+  .result { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+    background: var(--g0); border: 2px solid var(--g3); padding: 8px; margin-bottom: 8px;
+    color: var(--g3); font-family: var(--mono); }
+  .result:active { background: var(--g1); }
+  img.art { filter: grayscale(1) brightness(1.05) contrast(1.1) sepia(1) hue-rotate(52deg) saturate(2.2);
+    image-rendering: pixelated; }
+  .result img, .result .noart { width: 48px; height: 48px; object-fit: cover; flex: none;
+    border: 2px solid var(--g3); background: var(--g1); }
+  .result .noart { display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .result .meta { min-width: 0; }
+  .result .t { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .result .a { font-size: 13px; color: var(--g2); overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; }
+  .result .badge { margin-left: auto; flex: none; font-family: var(--pix); font-size: 6px;
+    letter-spacing: 1px; padding: 4px 6px; border: 2px solid var(--g3); text-transform: uppercase; }
+  .result .badge.site { background: var(--g3); color: var(--g0); }
+
+  /* ── detail / editor ── */
   .detail { text-align: center; }
-  .detail img { width: min(70vw, 320px); border-radius: 12px; border: 1px solid var(--line); }
-  .detail h2 { margin: 14px 0 2px; font-size: 20px; }
-  .detail .artist { color: var(--dim); margin: 0; }
-  .detail .facts { font-size: 13px; color: var(--dim); margin: 10px 0 0; }
+  .detail img { width: min(60vw, 260px); border: 3px solid var(--g3); }
+  .detail h2 { font-family: var(--pix); font-size: 11px; line-height: 1.8; margin: 14px 0 4px; }
+  .detail .artist { margin: 0; color: var(--g2); }
+  .detail .facts { font-family: var(--pix); font-size: 7px; color: var(--g2); margin: 12px 0 0;
+    line-height: 1.8; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; }
-  .chip { font-size: 12px; border: 1px solid var(--line); border-radius: 20px; padding: 3px 10px;
-    color: var(--dim); }
+  .chip { font-family: var(--pix); font-size: 6px; border: 1px solid var(--g2); padding: 4px 7px;
+    color: var(--g2); letter-spacing: 1px; text-transform: uppercase; }
   .detail .row { display: flex; gap: 10px; justify-content: center; margin-top: 18px; }
 
-  .editor textarea { width: 100%; min-height: 45vh; font-size: 16px; line-height: 1.5;
-    font-family: ui-monospace, Menlo, monospace; padding: 12px; border-radius: 10px;
-    border: 1px solid var(--line); background: var(--panel); color: var(--ink); resize: vertical; }
-  .editor textarea:focus { outline: none; border-color: var(--accent); }
-  .editor .head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-  .editor .head img, .editor .head .noart { width: 56px; height: 56px; border-radius: 8px;
-    object-fit: cover; background: var(--panel); flex: none; }
-  .editor .head .t { font-weight: 600; }
-  .editor .head .a { font-size: 13px; color: var(--dim); }
-  .editor .head a { color: var(--accent); font-size: 13px; }
+  .editor .head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .editor .head img, .editor .head .noart { width: 52px; height: 52px; object-fit: cover;
+    flex: none; border: 2px solid var(--g3); background: var(--g1); }
+  .editor .head .noart { display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .editor .head .t { font-weight: 700; }
+  .editor .head .a { font-size: 13px; color: var(--g2); }
+  .editor .head a { color: var(--g3); font-size: 12px; }
+  .editor textarea { min-height: 42vh; line-height: 1.5; resize: vertical; }
   .editor .row { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
   .editor .row .spacer { flex: 1; }
 
-  .back { background: none; border: none; color: var(--accent); padding: 0; font-size: 14px;
-    margin-bottom: 14px; display: inline-block; }
+  /* ── boot gate ── */
+  #gate { text-align: center; padding-top: 30px; }
+  #gate .logo { font-family: var(--pix); font-size: 18px; letter-spacing: 2px; margin: 0 0 4px;
+    animation: drop 1.1s ease-out; }
+  @keyframes drop { from { transform: translateY(-70px); } to { transform: translateY(0); } }
+  #gate .tm { font-family: var(--pix); font-size: 7px; color: var(--g2); letter-spacing: 1px;
+    margin: 0 0 34px; }
+  #gate input { max-width: 300px; text-align: center; }
+  #gate .primary { margin-top: 16px; }
+
+  .panel { border: 2px solid var(--g3); padding: 12px; margin-bottom: 16px; }
+  .panel.hidden { display: none; }
+  .panel .hint { font-size: 12px; color: var(--g2); margin: 6px 0 0; }
+  .panel .row { display: flex; gap: 8px; margin-top: 14px; }
   .hidden { display: none; }
+
+  /* ── shell chrome below the screen ── */
+  .chrome { display: flex; align-items: flex-end; justify-content: space-between;
+    margin-top: 18px; padding: 0 6px; }
+  .brand { font-style: italic; font-weight: 700; color: #5a5664; font-size: 20px;
+    font-family: -apple-system, sans-serif; letter-spacing: 0.5px; }
+  .brand sup { font-size: 9px; }
+  .selects { display: flex; gap: 14px; align-items: center; }
+  .pill-wrap { text-align: center; }
+  .pill { display: block; width: 52px; height: 14px; border-radius: 10px; background: var(--shell-dark);
+    border: none; box-shadow: inset 0 -2px 3px rgba(0,0,0,0.35), 0 1px 0 #fff; transform: rotate(-22deg); }
+  .pill:active { box-shadow: inset 0 2px 3px rgba(0,0,0,0.4); }
+  .pill-wrap .cap { font-family: var(--pix); font-size: 6px; color: #7a7668; letter-spacing: 1px;
+    display: block; margin-top: 8px; }
+  .speaker { display: grid; grid-template-columns: repeat(6, 6px); gap: 7px; transform: rotate(-22deg);
+    margin-right: 4px; }
+  .speaker i { width: 6px; height: 34px; border-radius: 4px; background: var(--shell-dark);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.35); }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div>
-      <h1>Album Publisher</h1>
-      <p class="sub">plex &rarr; timbornholdt.com/albums, reviews written anywhere</p>
+<div class="shell">
+  <div class="bezel">
+    <div class="bezel-top">
+      <div class="bezel-line"></div>
+      <div class="bezel-caption">DOT MATRIX WITH PLEX LINK</div>
+      <div class="bezel-line"></div>
     </div>
-    <button class="gear" id="gearBtn">settings</button>
-  </header>
+    <div class="battery"><div class="dot"></div><span>BATTERY</span></div>
+    <div class="lcd">
 
-  <div class="panel hidden" id="settings">
-    <label for="plexUrl">Plex server URL</label>
-    <input id="plexUrl" type="url" placeholder="https://10-0-0-12.hash.plex.direct:32400" autocomplete="off">
-    <label for="plexToken">Plex token</label>
-    <input id="plexToken" type="password" placeholder="X-Plex-Token" autocomplete="off">
-    <p class="hint">Shared with Timamp — if you've set that up on this device, these are prefilled.</p>
-    <label for="siteToken">timbornholdt.com album API token</label>
-    <input id="siteToken" type="password" placeholder="ALBUM_API_SECRET_TOKEN" autocomplete="off">
-    <div class="row">
-      <button class="primary" id="saveSettings">Save</button>
-      <button class="ghost" id="closeSettings">Close</button>
+      <div id="gate">
+        <p class="logo">ALBUM BOY</p>
+        <p class="tm">&trade; TIMTENDO CO. 2026</p>
+        <div class="label">Enter password</div>
+        <input id="gateToken" type="password" autocomplete="off" placeholder="album api token">
+        <br>
+        <button class="primary" id="gateGo">Start</button>
+        <div class="status" id="gateStatus"><span class="blink">PRESS START</span></div>
+      </div>
+
+      <div id="app" class="hidden">
+        <h1>ALBUM PUBLISHER</h1>
+        <p class="sub">PLEX &rarr; TIMBORNHOLDT.COM &middot; REVIEWS FROM ANYWHERE</p>
+
+        <div class="panel hidden" id="settings">
+          <div class="label">Plex server URL</div>
+          <input id="plexUrl" type="url" placeholder="https://10-0-0-12.hash.plex.direct:32400" autocomplete="off">
+          <div class="label">Plex token</div>
+          <input id="plexToken" type="password" placeholder="X-Plex-Token" autocomplete="off">
+          <p class="hint">Shared with Timamp — prefilled if that's set up on this device.</p>
+          <div class="row">
+            <button class="primary" id="saveSettings">Save</button>
+            <button class="ghost" id="closeSettings">Close</button>
+          </div>
+        </div>
+
+        <div id="searchView">
+          <input id="q" type="search" placeholder="search album or artist..."
+            autocomplete="off" autocapitalize="off" spellcheck="false">
+          <div class="status" id="status"></div>
+          <div id="results"></div>
+        </div>
+
+        <div id="detailView" class="hidden">
+          <button class="back" id="detailBack">back to search</button>
+          <div class="detail" id="detailBody"></div>
+        </div>
+
+        <div id="editorView" class="hidden editor">
+          <button class="back" id="editorBack">back to search</button>
+          <div class="head" id="editorHead"></div>
+          <textarea id="review" placeholder="Write the review (Markdown — [youtube]ID[/youtube] works too)"></textarea>
+          <div class="row">
+            <button class="primary" id="saveReview">Save review</button>
+            <span class="spacer"></span>
+            <span class="status" id="editorStatus"></span>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
-
-  <div id="searchView">
-    <input class="search" id="q" type="search" placeholder="search by album or artist&hellip;"
-      autocomplete="off" autocapitalize="off" spellcheck="false">
-    <div class="status" id="status"></div>
-    <div id="results"></div>
-  </div>
-
-  <div id="detailView" class="hidden">
-    <button class="back" id="detailBack">&larr; back to search</button>
-    <div class="detail" id="detailBody"></div>
-  </div>
-
-  <div id="editorView" class="hidden editor">
-    <button class="back" id="editorBack">&larr; back to search</button>
-    <div class="head" id="editorHead"></div>
-    <textarea id="review" placeholder="Write the review (Markdown — [youtube]ID[/youtube] works too)"></textarea>
-    <div class="row">
-      <button class="primary" id="saveReview">Save review</button>
-      <span class="spacer"></span>
-      <span class="status" id="editorStatus"></span>
+  <div class="chrome">
+    <div class="brand">Album Boy<sup>&trade;</sup></div>
+    <div class="selects">
+      <div class="pill-wrap">
+        <button class="pill" id="gearBtn" aria-label="settings"></button>
+        <span class="cap">SELECT</span>
+      </div>
+      <div class="speaker"><i></i><i></i><i></i><i></i><i></i><i></i></div>
     </div>
   </div>
 </div>
@@ -158,28 +241,72 @@ let plexToken = localStorage.getItem(LS.plexToken) || '';
 let siteToken = localStorage.getItem(LS.siteToken) || '';
 let current = null; // plex album selected for import
 
-// ── settings ──
-function openSettings(msg) {
+// ── boot gate ──
+async function tokenValid() {
+  try {
+    const res = await fetch(SITE + '/api/v1/albums?q=a',
+      { headers: { Authorization: 'Bearer ' + siteToken } });
+    return res.ok ? true : (res.status === 401 ? false : null); // null = site unreachable/erroring
+  } catch (e) { return null; }
+}
+function gateMsg(msg, kind) {
+  $('gateStatus').className = 'status ' + (kind || '');
+  $('gateStatus').innerHTML = msg;
+}
+function lock(msg) {
+  $('app').classList.add('hidden');
+  $('gate').classList.remove('hidden');
+  gateMsg(msg || '<span class="blink">PRESS START</span>', msg ? 'err' : '');
+}
+function unlock() {
+  $('gate').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  if (!plexBase || !plexToken) openSettings();
+}
+$('gateGo').addEventListener('click', tryUnlock);
+$('gateToken').addEventListener('keydown', (e) => { if (e.key === 'Enter') tryUnlock(); });
+async function tryUnlock() {
+  const entered = $('gateToken').value.trim();
+  if (entered) siteToken = entered;
+  if (!siteToken) { gateMsg('ENTER PASSWORD', 'err'); return; }
+  gateMsg('CHECKING&hellip;');
+  const ok = await tokenValid();
+  if (ok === true) {
+    localStorage.setItem(LS.siteToken, siteToken);
+    $('gateToken').value = '';
+    unlock();
+  } else if (ok === false) {
+    gateMsg('WRONG PASSWORD', 'err');
+  } else {
+    gateMsg('CANNOT REACH SITE', 'err');
+  }
+}
+(async function boot() {
+  if (!siteToken) { lock(); return; }
+  const ok = await tokenValid();
+  if (ok === true) unlock();
+  else lock(ok === false ? 'PASSWORD EXPIRED' : 'CANNOT REACH SITE');
+})();
+
+// ── settings (plex only — the gate owns the site token) ──
+function openSettings() {
   $('plexUrl').value = plexBase;
   $('plexToken').value = plexToken;
-  $('siteToken').value = siteToken;
   $('settings').classList.remove('hidden');
-  $('gearBtn').classList.add('on');
-  if (msg) setStatus(msg, 'err');
 }
-function closeSettings() { $('settings').classList.add('hidden'); $('gearBtn').classList.remove('on'); }
-$('gearBtn').addEventListener('click', () =>
-  $('settings').classList.contains('hidden') ? openSettings() : closeSettings());
+function closeSettings() { $('settings').classList.add('hidden'); }
+$('gearBtn').addEventListener('click', () => {
+  if ($('app').classList.contains('hidden')) return; // locked
+  $('settings').classList.contains('hidden') ? openSettings() : closeSettings();
+});
 $('closeSettings').addEventListener('click', closeSettings);
 $('saveSettings').addEventListener('click', () => {
   plexBase = $('plexUrl').value.trim().replace(/\/+$/, '');
   plexToken = $('plexToken').value.trim();
-  siteToken = $('siteToken').value.trim();
   localStorage.setItem(LS.plexUrl, plexBase);
   localStorage.setItem(LS.plexToken, plexToken);
-  localStorage.setItem(LS.siteToken, siteToken);
   closeSettings();
-  setStatus('settings saved', 'ok');
+  setStatus('SETTINGS SAVED', 'ok');
   if ($('q').value.trim()) runSearch($('q').value.trim());
 });
 
@@ -195,8 +322,8 @@ function plexUrl(path, extra = {}) {
 }
 async function plexJson(path, extra) {
   const res = await fetch(plexUrl(path, extra), { headers: { Accept: 'application/json' } });
-  if (res.status === 401) throw new Error('Plex: bad or expired token');
-  if (!res.ok) throw new Error('Plex: ' + res.status + ' from server');
+  if (res.status === 401) throw new Error('PLEX: BAD TOKEN');
+  if (!res.ok) throw new Error('PLEX: ' + res.status);
   return res.json();
 }
 function artUrl(thumb, size) {
@@ -210,8 +337,8 @@ async function siteFetch(path, opts = {}) {
     ...opts,
     headers: { Authorization: 'Bearer ' + siteToken, ...(opts.headers || {}) },
   });
-  if (res.status === 401) { openSettings('site API token was rejected — paste a fresh one'); throw new Error('site: 401'); }
-  if (!res.ok) throw new Error('site: ' + res.status);
+  if (res.status === 401) { lock('PASSWORD EXPIRED'); throw new Error('SITE: 401'); }
+  if (!res.ok) throw new Error('SITE: ' + res.status);
   return res.status === 204 ? null : res.json();
 }
 const siteSearch = (q) => siteFetch('/api/v1/albums?q=' + encodeURIComponent(q));
@@ -235,9 +362,9 @@ $('q').addEventListener('input', () => {
 });
 
 async function runSearch(q) {
-  if (!siteToken || !plexBase || !plexToken) { openSettings('fill in Plex + site credentials first'); return; }
+  if (!plexBase || !plexToken) { openSettings(); setStatus('SET PLEX URL + TOKEN FIRST', 'err'); return; }
   const seq = ++searchSeq;
-  setStatus('searching…');
+  setStatus('SEARCHING…');
   const [site, plex] = await Promise.allSettled([siteSearch(q), plexSearch(q)]);
   if (seq !== searchSeq) return; // a newer search superseded this one
   const errs = [site, plex].filter((r) => r.status === 'rejected').map((r) => r.reason.message);
@@ -270,7 +397,7 @@ function esc(s) {
 }
 
 function resultRow({ art, title, artist, badge, badgeClass }) {
-  const img = art ? `<img src="${esc(art)}" alt="" loading="lazy">` : '<div class="noart">♪</div>';
+  const img = art ? `<img class="art" src="${esc(art)}" alt="" loading="lazy">` : '<div class="noart">♪</div>';
   return `${img}<div class="meta"><div class="t">${esc(title)}</div><div class="a">${esc(artist)}</div></div>
     <span class="badge ${badgeClass || ''}">${badge}</span>`;
 }
@@ -283,7 +410,7 @@ function renderResults(siteAlbums, plexAlbums) {
     a.artist.toLowerCase() === String(artist).toLowerCase());
 
   if (siteAlbums.length) {
-    box.insertAdjacentHTML('beforeend', '<div class="section-label">on the site — tap to edit review</div>');
+    box.insertAdjacentHTML('beforeend', '<div class="section-label">on the site — edit review</div>');
     for (const a of siteAlbums) {
       const btn = document.createElement('button');
       btn.className = 'result';
@@ -295,7 +422,7 @@ function renderResults(siteAlbums, plexAlbums) {
   }
   const fresh = plexAlbums.filter((p) => !onSite(p.title, p.parentTitle));
   if (fresh.length) {
-    box.insertAdjacentHTML('beforeend', '<div class="section-label">in plex — tap to import</div>');
+    box.insertAdjacentHTML('beforeend', '<div class="section-label">in plex — import</div>');
     for (const p of fresh) {
       const btn = document.createElement('button');
       btn.className = 'result';
@@ -306,13 +433,13 @@ function renderResults(siteAlbums, plexAlbums) {
     }
   }
   if (!siteAlbums.length && !fresh.length) {
-    box.innerHTML = '<div class="section-label">nothing found in plex or on the site</div>';
+    box.innerHTML = '<div class="section-label">no results in plex or on the site</div>';
   }
 }
 
 // ── import detail ──
 async function openDetail(ratingKey) {
-  setStatus('loading album…');
+  setStatus('LOADING…');
   let meta;
   try {
     const data = await plexJson('/library/metadata/' + ratingKey);
@@ -328,15 +455,15 @@ async function openDetail(ratingKey) {
     genres: (meta.Genre || []).map((g) => g.tag),
     thumb: meta.thumb,
   };
-  const facts = [current.releasedAt ? 'released ' + current.releasedAt
-    : (current.year ? 'released ' + current.year + ' (no exact date in Plex)' : 'no release date in Plex')];
+  const facts = [current.releasedAt ? 'RELEASED ' + current.releasedAt
+    : (current.year ? 'RELEASED ' + current.year + ' (NO EXACT DATE IN PLEX)' : 'NO RELEASE DATE IN PLEX')];
   $('detailBody').innerHTML = `
-    ${current.thumb ? `<img src="${esc(artUrl(current.thumb, 600))}" alt="album art">` : ''}
+    ${current.thumb ? `<img class="art" src="${esc(artUrl(current.thumb, 600))}" alt="album art">` : ''}
     <h2>${esc(current.title)}</h2>
     <p class="artist">${esc(current.artist)}</p>
     <p class="facts">${esc(facts.join(''))}</p>
     <div class="chips">${current.genres.map((g) => `<span class="chip">${esc(g)}</span>`).join('')}</div>
-    <div class="row"><button class="primary" id="importBtn">Import to timbornholdt.com</button></div>
+    <div class="row"><button class="primary" id="importBtn">Import &#9654;</button></div>
     <div class="status" id="importStatus"></div>`;
   $('importBtn').addEventListener('click', importCurrent);
   show('detailView');
@@ -346,7 +473,7 @@ async function importCurrent() {
   const btn = $('importBtn');
   const st = $('importStatus');
   btn.disabled = true;
-  st.textContent = 'importing…';
+  st.textContent = 'IMPORTING…';
   st.className = 'status';
   try {
     const fd = new FormData();
@@ -355,16 +482,16 @@ async function importCurrent() {
     if (current.releasedAt) fd.append('album[released_at]', current.releasedAt);
     for (const g of current.genres) fd.append('album[genre_names][]', g);
     if (current.thumb) {
-      st.textContent = 'pulling art from plex…';
+      st.textContent = 'PULLING ART FROM PLEX…';
       const art = await fetch(artUrl(current.thumb, 1600));
       if (art.ok) {
         const blob = await art.blob();
         fd.append('album[album_art]', blob, 'album-art.jpg');
       }
     }
-    st.textContent = 'uploading…';
+    st.textContent = 'UPLOADING…';
     const created = await siteFetch('/api/v1/albums', { method: 'POST', body: fd });
-    st.textContent = 'imported!';
+    st.textContent = 'IMPORTED!';
     st.className = 'status ok';
     await openEditor(created.slug);
   } catch (e) {
@@ -377,12 +504,12 @@ async function importCurrent() {
 // ── review editor ──
 let editing = null;
 async function openEditor(slug) {
-  setStatus('loading album…');
+  setStatus('LOADING…');
   let album;
   try { album = await siteShow(slug); } catch (e) { setStatus(e.message, 'err'); return; }
   setStatus('');
   editing = album;
-  const img = album.album_art_url ? `<img src="${esc(album.album_art_url)}" alt="">`
+  const img = album.album_art_url ? `<img class="art" src="${esc(album.album_art_url)}" alt="">`
     : '<div class="noart">♪</div>';
   $('editorHead').innerHTML = `${img}
     <div><div class="t">${esc(album.title)}</div><div class="a">${esc(album.artist)}</div>
@@ -394,7 +521,7 @@ async function openEditor(slug) {
 
 $('saveReview').addEventListener('click', async () => {
   const st = $('editorStatus');
-  st.textContent = 'saving…';
+  st.textContent = 'SAVING…';
   st.className = 'status';
   try {
     await siteFetch('/api/v1/albums/' + encodeURIComponent(editing.slug), {
@@ -402,16 +529,13 @@ $('saveReview').addEventListener('click', async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ album: { review: $('review').value } }),
     });
-    st.textContent = 'saved';
+    st.textContent = 'SAVED';
     st.className = 'status ok';
   } catch (e) {
     st.textContent = e.message;
     st.className = 'status err';
   }
 });
-
-// first run: nudge toward settings if anything's missing
-if (!siteToken || !plexBase || !plexToken) openSettings();
 </script>
 </body>
 </html>
