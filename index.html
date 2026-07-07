@@ -214,6 +214,7 @@
 
 <script>
   const tools = [
+    { file: "album-publisher.html", title: "Album Publisher", cat: "music", desc: "Search your Plex library, pull an album's art, release date, and genres straight onto timbornholdt.com, then write the review from anywhere. Also edits reviews for albums already on the site." },
     { file: "snes-world.html", title: "SNES World", cat: "games", desc: "A website you walk through: side-scroll down a dusk street, jump, crouch, and swing at the shrubbery, then step into a midcentury den and drop the needle on the record player. Future home of the music library." },
     { file: "timamp.html", title: "Timamp", cat: "music", desc: "A Winamp for your wall: streams a Plex playlist, album, or collection — or a live internet-radio station — through the classic skinned player, with a real Milkdrop visualizer and shuffle-able skins. Paste your server URL and token, pick a source, mount the tablet." },
     { file: "patio-paver-visualizer.html", title: "Patio Paver Visualizer", cat: "home", desc: "Paint an 8×15 grid of two-tone 16″ pavers by tapping or dragging across squares. Curated patterns, live paver counts, rotate, and shareable layouts." },
@@ -240,6 +241,13 @@
   const svg = (inner) =>
     `<svg viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
   const icons = {
+    // record sliding out of its sleeve, pencil underneath for the review
+    "album-publisher.html": svg(`
+      <rect x="14" y="18" width="42" height="42" rx="4"/>
+      <circle cx="60" cy="39" r="16"/>
+      <circle cx="60" cy="39" r="2.6" fill="currentColor" stroke="none"/>
+      <path d="M24 78l32-32"/>
+      <path d="M24 78l3-9 6 6-9 3z" fill="currentColor" stroke="none"/>`),
     // little hero jumping toward a flat-roof house, side-scroller style
     "snes-world.html": svg(`
       <path d="M8 76h80"/>
