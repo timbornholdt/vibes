@@ -155,17 +155,12 @@
   .card p, .card li { font-size: 13px; color: var(--muted); line-height: 1.55; margin: .35em 0; }
   .card code { font-family: ui-monospace, monospace; font-size: 12px; color: #cfe; background: rgba(76,201,240,.08); padding: 1px 5px; border-radius: 5px; }
   .live { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-  .live input {
-    flex: 1 1 180px; min-width: 150px; background: #0a121c; border: 1px solid var(--line); color: var(--text);
-    border-radius: 8px; padding: 9px 11px; font-family: ui-monospace, monospace; font-size: 16px;
-  }
   .live button {
     background: var(--instrument); color: #04212e; border: none; border-radius: 8px; padding: 9px 14px;
     font-weight: 700; font-size: 12px; cursor: pointer; letter-spacing: .02em;
   }
   .status { margin-top: 9px; font-family: ui-monospace, monospace; font-size: 11px; color: var(--dim); line-height: 1.5; min-height: 1.2em; }
   .status.ok { color: #7ee0a0; } .status.err { color: #ff9a9a; }
-  .forget { background: none; border: none; padding: 0; font: inherit; color: var(--dim); text-decoration: underline; cursor: pointer; }
   a { color: var(--instrument); }
 </style>
 </head>
@@ -230,17 +225,16 @@
       <h3>How to read it</h3>
       <p>The colored field is an inverse-distance interpolation between monitoring stations (dots), so it estimates AQI <em>between</em> sensors the way a weather radar fills gaps between returns.</p>
       <p>Press play (or hit space) to sweep through the 48-hour window, or drag the scrubber. Tap a station to pin its reading in the readout.</p>
-      <p style="color:var(--dim)" id="demoNote">Until you connect live data, <strong>values are simulated</strong> — the timestamps are real but the plume is fiction.</p>
+      <p style="color:var(--dim)" id="demoNote">Live data loads automatically. If the fetch fails (or you're offline), a <strong>simulated demo plume</strong> is shown — real timestamps, fictional smoke.</p>
     </div>
     <div class="card">
-      <h3>Connect live data (OpenAQ v3)</h3>
-      <p>Get a free key at <a href="https://explore.openaq.org" target="_blank" rel="noopener">openaq.org</a> and paste it below to pull real PM2.5 for the metro. The key is saved in your browser (localStorage) and reconnects automatically next visit.</p>
+      <h3>Live data (Open-Meteo)</h3>
+      <p>Live PM2.5 comes from <a href="https://open-meteo.com/en/docs/air-quality-api" target="_blank" rel="noopener">Open-Meteo's air-quality API</a> — the CAMS atmospheric model sampled at eleven metro points, converted to US AQI. No key needed; it loads automatically and updates hourly.</p>
       <div class="live">
-        <input id="apiKey" type="password" placeholder="OpenAQ API key (X-API-Key)" autocomplete="off">
-        <button id="liveBtn">Connect</button>
+        <button id="liveBtn">Reload live data</button>
       </div>
       <div class="status" id="status"></div>
-      <p style="color:var(--dim);font-size:12px"><button class="forget" id="forgetBtn" hidden>Forget saved key</button></p>
+      <p style="color:var(--dim);font-size:12px">It's model data on an ~11 km grid rather than monitor readings — smoother than station truth, but keyless and browser-friendly. (OpenAQ's v3 API rejects cross-origin browser requests, so it can't power a static page like this.)</p>
     </div>
   </div>
 </div>
@@ -252,8 +246,6 @@
  *  - 48h time-lapse animation
  *  - Simulated demo data; live OpenAQ v3 when a key is connected
  * ------------------------------------------------------------------ */
-
-const KEY_STORE = 'aqi-radar-openaq-key';
 
 // Representative metro monitoring points for demo mode (approximate)
 const STATIONS = [
@@ -353,7 +345,7 @@ L.control.zoom({position: 'topright'}).addTo(map);  // top-left is the readout's
 // label-free dark tiles; city names are drawn by hand above the color field instead
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
   subdomains: 'abcd', maxZoom: 19,
-  attribution: '&copy; OpenStreetMap &copy; CARTO · data &copy; OpenAQ'
+  attribution: '&copy; OpenStreetMap &copy; CARTO · data &copy; Open-Meteo'
 }).addTo(map);
 map.fitBounds([[44.70, -93.62], [45.26, -92.78]]);
 
@@ -521,10 +513,8 @@ document.querySelectorAll('.speeds button').forEach(b => {
   });
 });
 
-/* ---------- live OpenAQ v3 fetch ---------- */
+/* ---------- live Open-Meteo fetch (keyless, CORS-friendly) ---------- */
 const statusEl = document.getElementById('status');
-const keyInput = document.getElementById('apiKey');
-const forgetBtn = document.getElementById('forgetBtn');
 const badge = document.getElementById('modeBadge');
 function setStatus(msg, cls) { statusEl.textContent = msg; statusEl.className = 'status ' + (cls || ''); }
 
@@ -538,97 +528,77 @@ function pm25ToAqi(c) {
   return 500;
 }
 
-async function connectLive(key) {
-  setStatus('Fetching metro PM2.5 locations…');
-  const H = {'X-API-Key': key};
-  const bbox = '-93.62,44.70,-92.78,45.26';           // W,S,E,N
-  const isoFrom = new Date(WIN_START).toISOString();
-  const isoTo = new Date(NOW).toISOString();
+// Metro sample points for the CAMS model grid (~11 km cells)
+const GRID = [
+  {name:'Minneapolis',   lat:44.9778, lng:-93.2650},
+  {name:'St. Paul',      lat:44.9537, lng:-93.0900},
+  {name:'Blaine',        lat:45.1608, lng:-93.2349},
+  {name:'Anoka',         lat:45.1977, lng:-93.3872},
+  {name:'Brooklyn Park', lat:45.0941, lng:-93.3563},
+  {name:'Maple Grove',   lat:45.0725, lng:-93.4558},
+  {name:'Eden Prairie',  lat:44.8547, lng:-93.4708},
+  {name:'Shakopee',      lat:44.7974, lng:-93.5269},
+  {name:'Apple Valley',  lat:44.7319, lng:-93.2177},
+  {name:'Woodbury',      lat:44.9239, lng:-92.9594},
+  {name:'Stillwater',    lat:45.0566, lng:-92.8088},
+];
 
-  // 1) find PM2.5 sensors in the metro box
-  const locRes = await fetch(
-    `https://api.openaq.org/v3/locations?bbox=${bbox}&parameters_id=2&limit=60`, {headers: H});
-  if (!locRes.ok) throw new Error('locations HTTP ' + locRes.status);
-  const locs = (await locRes.json()).results || [];
-  const sensors = [];
-  for (const loc of locs) {
-    const c = loc.coordinates || {};
-    (loc.sensors || []).forEach(sn => {
-      if ((sn.parameter?.name || '') === 'pm25')
-        sensors.push({id: sn.id, name: loc.name, lat: c.latitude, lng: c.longitude});
-    });
-  }
-  if (!sensors.length) throw new Error('no PM2.5 sensors returned');
-  setStatus(`Found ${sensors.length} sensors — pulling hourly history…`);
+async function connectLive() {
+  setStatus('Fetching 48h of metro PM2.5 from the model…');
+  const lats = GRID.map(g => g.lat).join(',');
+  const lngs = GRID.map(g => g.lng).join(',');
+  const url = 'https://air-quality-api.open-meteo.com/v1/air-quality' +
+    `?latitude=${lats}&longitude=${lngs}` +
+    '&hourly=pm2_5&past_days=2&forecast_days=1&timeformat=unixtime&timezone=UTC';
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const json = await res.json();
+  const points = Array.isArray(json) ? json : [json];
 
-  // 2) pull last-48h hourly averages per sensor (cap to keep it light)
-  const pick = sensors.slice(0, 12), live = [];
-  for (const s of pick) {
-    const r = await fetch(
-      `https://api.openaq.org/v3/sensors/${s.id}/hours?datetime_from=${isoFrom}&datetime_to=${isoTo}&limit=60`,
-      {headers: H});
-    if (!r.ok) continue;
-    const rows = (await r.json()).results || [];
+  const live = [];
+  points.forEach((p, idx) => {
+    const g = GRID[idx];
+    const times = p?.hourly?.time || [], pm = p?.hourly?.pm2_5 || [];
+    if (!g || !times.length) return;
     const byHr = {};
-    rows.forEach(row => {
-      const dt = new Date(row.period?.datetimeFrom?.utc || row.datetime?.utc);
-      const hr = Math.round((dt.getTime() - WIN_START) / 3600e3);
-      if (hr >= 0 && hr <= STEPS) byHr[hr] = pm25ToAqi(row.value);
+    times.forEach((t, i) => {
+      const hr = Math.round((t * 1000 - WIN_START) / 3600e3);
+      if (hr >= 0 && hr <= STEPS && pm[i] != null) byHr[hr] = pm25ToAqi(pm[i]);
     });
-    if (!Object.keys(byHr).length) continue;
-    const arr = []; let lastV = byHr[0] ?? 30;
-    for (let h = 0; h <= STEPS; h++) { if (byHr[h] != null) lastV = byHr[h]; arr.push(Math.round(lastV)); }
-    live.push({s, arr});
-  }
-  if (!live.length) throw new Error('no hourly data in window');
+    if (!Object.keys(byHr).length) return;
+    const arr = []; let lastV = byHr[0] ?? 0;
+    for (let h = 0; h <= STEPS; h++) { if (byHr[h] != null) lastV = byHr[h]; arr.push(lastV); }
+    live.push({g, arr});
+  });
+  if (live.length < 3) throw new Error('too few grid points returned');
 
-  // 3) swap stations + series to the live set
   STATIONS.length = 0;
   series = [];
   live.forEach((l, i) => {
-    STATIONS.push({id: 's' + i, name: l.s.name, lat: l.s.lat, lng: l.s.lng, _i: i});
+    STATIONS.push({id: 'g' + i, name: l.g.name, lat: l.g.lat, lng: l.g.lng, _i: i});
     series.push(l.arr);
   });
   hoverIdx = -1; pinnedIdx = -1;
   buildMarkers();
-  badge.textContent = '● Live data — OpenAQ';
+  badge.textContent = '● Live data — Open-Meteo';
   badge.classList.add('live');
   document.getElementById('demoNote').textContent =
-    'Live PM2.5 from OpenAQ monitors, converted to US AQI. Gaps in a sensor’s history hold its last reading.';
-  setStatus(`Live: ${live.length} stations loaded.`, 'ok');
+    'Live PM2.5 from the CAMS model via Open-Meteo, converted to US AQI. Model data, not monitor readings — treat it as weather, not gospel.';
+  setStatus(`Live: ${live.length} metro points loaded.`, 'ok');
   rebuildGrid(); refresh(playhead);
 }
 
 document.getElementById('liveBtn').addEventListener('click', async () => {
-  const key = keyInput.value.trim();
-  if (!key) { setStatus('Paste an OpenAQ API key first.', 'err'); return; }
-  try {
-    await connectLive(key);
-    localStorage.setItem(KEY_STORE, key);
-    forgetBtn.hidden = false;
-  } catch (e) {
-    setStatus('Live fetch failed: ' + e.message + ' — staying on demo data.', 'err');
-  }
-});
-
-forgetBtn.addEventListener('click', () => {
-  localStorage.removeItem(KEY_STORE);
-  keyInput.value = '';
-  forgetBtn.hidden = true;
-  setStatus('Key forgotten. Reload for demo data.', '');
+  try { await connectLive(); }
+  catch (e) { setStatus('Reload failed: ' + e.message + ' — keeping the data already on screen.', 'err'); }
 });
 
 /* ---------- boot ---------- */
 setTimeout(async () => {
   rebuildGrid(); refresh(playhead);
   if (!reduce) setPlaying(true);
-  const saved = localStorage.getItem(KEY_STORE);
-  if (saved) {
-    keyInput.value = saved;
-    forgetBtn.hidden = false;
-    try { await connectLive(saved); }
-    catch (e) { setStatus('Saved key reconnect failed: ' + e.message + ' — demo data shown.', 'err'); }
-  }
+  try { await connectLive(); }
+  catch (e) { setStatus('Live fetch failed: ' + e.message + ' — showing demo data.', 'err'); }
 }, 300);
 </script>
 </body>
