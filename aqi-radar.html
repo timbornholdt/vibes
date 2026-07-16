@@ -187,7 +187,7 @@
       <div id="cityLabels"></div>
 
       <div class="readout">
-        <div class="k">Metro peak now</div>
+        <div class="k">Rosemount · estimated</div>
         <div class="aqi"><b id="roVal">—</b><span class="cat" id="roCat">—</span></div>
         <div class="sub" id="roSub">Hover or tap a station for its reading.</div>
       </div>
@@ -214,9 +214,9 @@
         </div>
       </div>
       <div class="speeds" role="group" aria-label="Playback speed">
+        <button data-s="1" class="on">1×</button>
+        <button data-s="2">2×</button>
         <button data-s="4">4×</button>
-        <button data-s="8" class="on">8×</button>
-        <button data-s="16">16×</button>
       </div>
       <div class="clock">
         <div class="t" id="clockT">—</div>
@@ -229,7 +229,7 @@
     <div class="card">
       <h3>How to read it</h3>
       <p>The colored field is an inverse-distance interpolation between monitoring stations (dots), so it estimates AQI <em>between</em> sensors the way a weather radar fills gaps between returns.</p>
-      <p>Press play (or hit space) to sweep through the 48-hour window, or drag the scrubber. Tap a station to pin its reading in the readout.</p>
+      <p>Press play (or hit space) to sweep through the 48-hour window, or drag the scrubber. The readout tracks <em>Rosemount</em> by default; tap a station to pin it instead (the pin is remembered), tap the map to unpin.</p>
       <p style="color:var(--dim)" id="demoNote">The clock tags each frame <strong>observed</strong> (real station readings) or <strong>model est.</strong> (atmospheric model — can run far too low during smoke events). Offline, a simulated demo plume is shown.</p>
     </div>
     <div class="card">
@@ -280,6 +280,7 @@ const CITIES = [
   {name:'Eden Prairie', lat:44.8547, lng:-93.4708},
   {name:'Shakopee',     lat:44.7974, lng:-93.5269},
   {name:'Apple Valley', lat:44.7319, lng:-93.2177},
+  {name:'Rosemount',    lat:44.7391, lng:-93.1259, major:true},
   {name:'Woodbury',     lat:44.9239, lng:-92.9594},
   {name:'Stillwater',   lat:45.0566, lng:-92.8088},
 ];
@@ -357,8 +358,17 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
 }).addTo(map);
 map.fitBounds([[44.70, -93.62], [45.26, -92.78]]);
 
+// Home point: the readout tracks this spot unless a station is pinned
+const HOME = {name: 'Rosemount', lat: 44.7391, lng: -93.1259};
+const PIN_STORE = 'aqi-radar-pin';
+
 let hoverIdx = -1, pinnedIdx = -1, markerClicked = false;
 let markers = [];
+function setPin(idx) {
+  pinnedIdx = idx;
+  if (idx >= 0) localStorage.setItem(PIN_STORE, STATIONS[idx].id);
+  else localStorage.removeItem(PIN_STORE);
+}
 function buildMarkers() {
   markers.forEach(m => map.removeLayer(m));
   // markerPane (z-index 600) keeps the dots above the interpolation canvas (450)
@@ -372,15 +382,18 @@ function buildMarkers() {
     m.on('mouseout',  () => { hoverIdx = -1; refresh(playhead); });
     m.on('click',     () => {
       markerClicked = true;  // Leaflet fires the map click right after; don't let it unpin
-      pinnedIdx = pinnedIdx === i ? -1 : i; refresh(playhead);
+      setPin(pinnedIdx === i ? -1 : i); refresh(playhead);
     });
     return m;
   });
+  // restore a remembered pin if that station still exists in this dataset
+  const saved = localStorage.getItem(PIN_STORE);
+  pinnedIdx = saved != null ? STATIONS.findIndex(s => s.id === saved) : -1;
 }
 buildMarkers();
 map.on('click', () => {
   if (markerClicked) { markerClicked = false; return; }
-  if (pinnedIdx >= 0) { pinnedIdx = -1; refresh(playhead); }
+  if (pinnedIdx >= 0) { setPin(-1); refresh(playhead); }
 });
 
 /* ---------- city labels ---------- */
@@ -462,14 +475,12 @@ function refresh(t) {
   drawField(t);
   const vals = STATIONS.map((s, i) => valAt(i, t));
   // update markers
-  let peak = 0, peakName = '';
   markers.forEach((m, i) => {
     const v = Math.round(vals[i]), c = colorFor(v);
     m.setStyle({fillColor: 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')'});
     m.setTooltipContent('<b>' + v + '</b> · ' + STATIONS[i].name);
-    if (v > peak) { peak = v; peakName = STATIONS[i].name; }
   });
-  // readout: pinned station wins, then hover, then metro peak
+  // readout: pinned station wins, then hover, then the home estimate (Rosemount)
   const focus = pinnedIdx >= 0 ? pinnedIdx : hoverIdx;
   if (focus >= 0 && focus < STATIONS.length) {
     const v = Math.round(vals[focus]), cat = catFor(v);
@@ -478,18 +489,26 @@ function refresh(t) {
     roCat.textContent = cat.name; roCat.style.color = 'rgb(' + cat.c + ')';
     roSub.innerHTML = '<em>' + STATIONS[focus].name + '</em>';
   } else {
-    const cat = catFor(peak);
-    roK.textContent = 'Metro peak';
-    roVal.textContent = peak; roVal.style.color = 'rgb(' + cat.c + ')';
+    // IDW estimate at HOME, same math as the field (nearest monitor dominates)
+    let num = 0, den = 0;
+    STATIONS.forEach((s, i) => {
+      const dLat = (HOME.lat - s.lat) * 111, dLng = (HOME.lng - s.lng) * 79;
+      const d2 = dLat * dLat + dLng * dLng + 0.5;
+      const w = 1 / (d2 * d2);
+      num += w * vals[i]; den += w;
+    });
+    const v = den ? Math.round(num / den) : 0, cat = catFor(v);
+    roK.textContent = HOME.name + ' · estimated';
+    roVal.textContent = v; roVal.style.color = 'rgb(' + cat.c + ')';
     roCat.textContent = cat.name; roCat.style.color = 'rgb(' + cat.c + ')';
-    roSub.innerHTML = 'Highest: <em>' + peakName + '</em>';
+    roSub.innerHTML = 'interpolated from nearby stations';
   }
   fmtClock(t);
   scrub.style.setProperty('--pct', (t / HOURS * 100) + '%');
 }
 
 /* ---------- animation ---------- */
-let playhead = HOURS, playing = false, speed = 8, last = 0;
+let playhead = HOURS, playing = false, speed = 1, last = 0;
 const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function setPlaying(p) {
@@ -502,7 +521,7 @@ function setPlaying(p) {
 function loop(ts) {
   if (!playing) return;
   const dt = (ts - last) / 1000; last = ts;
-  playhead += dt * speed * (HOURS / 60);          // speed× real minutes -> hrs
+  playhead += dt * speed * (HOURS / 120);         // 1× sweeps the 48h window in ~2 min
   if (playhead >= HOURS) { playhead = 0; }
   scrub.value = Math.round(playhead / HOURS * 4800);
   refresh(playhead);
@@ -552,6 +571,7 @@ const GRID = [
   {name:'Eden Prairie',  lat:44.8547, lng:-93.4708},
   {name:'Shakopee',      lat:44.7974, lng:-93.5269},
   {name:'Apple Valley',  lat:44.7319, lng:-93.2177},
+  {name:'Rosemount',     lat:44.7391, lng:-93.1259},
   {name:'Woodbury',      lat:44.9239, lng:-92.9594},
   {name:'Stillwater',    lat:45.0566, lng:-92.8088},
 ];
@@ -669,7 +689,7 @@ function buildLive(current) {
   series = newSeries;
   stations.forEach((st, i) => STATIONS.push({id: st.uid, name: st.name, lat: st.lat, lng: st.lng, _i: i}));
   for (let h = 0; h <= STEPS; h++) hourSource[h] = obsCount[h] >= 2 ? 'obs' : (modelSeries ? 'model' : 'demo');
-  hoverIdx = -1; pinnedIdx = -1;
+  hoverIdx = -1;
   buildMarkers();
 
   const obsHours = hourSource.filter(s => s === 'obs').length;
@@ -689,7 +709,7 @@ function buildModelOnly() {
     series.push(modelSeries[i]);
   });
   hourSource.fill('model');
-  hoverIdx = -1; pinnedIdx = -1;
+  hoverIdx = -1;
   buildMarkers();
   badge.textContent = '● Model only — add token for real stations';
   badge.classList.remove('live');
