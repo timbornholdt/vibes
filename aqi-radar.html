@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Twin Cities AQI Radar</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+<style>
+  * { box-sizing: border-box; }
+
+  :root {
+    --ink: #0b111b;
+    --panel: #111a28;
+    --panel-2: #0e1622;
+    --line: #233246;
+    --text: #e7edf5;
+    --muted: #8598ae;
+    --dim: #5f7085;
+    --instrument: #4cc9f0;      /* cool cyan = UI/instrument, kept distinct from data colors */
+    --instrument-dim: #1d5670;
+    /* EPA AQI category colors (data palette) */
+    --good: #00e400; --mod: #ffd21f; --usg: #ff7e00; --unh: #ff2d2d; --vunh: #8f3f97; --haz: #7e0023;
+  }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background:
+      radial-gradient(1200px 600px at 70% -10%, #16283b 0%, transparent 60%),
+      var(--ink);
+    color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 22px 18px 40px; }
+
+  /* Header */
+  header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+  .title { display: flex; flex-direction: column; gap: 4px; }
+  .eyebrow {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11px; letter-spacing: .28em; text-transform: uppercase; color: var(--instrument);
+  }
+  h1 {
+    margin: 0; font-size: clamp(22px, 3.4vw, 34px); line-height: 1.02; font-weight: 800;
+    letter-spacing: -.02em;
+  }
+  h1 span { color: var(--muted); font-weight: 600; }
+  .badge {
+    align-self: center;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+    color: #ffd9a3; background: rgba(255,126,0,.10);
+    border: 1px solid rgba(255,126,0,.45); border-radius: 999px; padding: 6px 12px; white-space: nowrap;
+  }
+  .badge.live {
+    color: #7ee0a0; border-color: rgba(126,224,160,.5); background: rgba(126,224,160,.10);
+  }
+
+  /* Console frame */
+  .console {
+    border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
+    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+    box-shadow: 0 24px 60px -30px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.03);
+  }
+
+  /* Map + overlays */
+  .stage { position: relative; height: min(58vh, 560px); min-height: 360px; background: #0a0f18; }
+  #map { position: absolute; inset: 0; background: #0a0f18; }
+  #field {
+    position: absolute; inset: 0; z-index: 450; pointer-events: none;
+    filter: blur(7px); opacity: .62; mix-blend-mode: screen;
+  }
+  #cityLabels { position: absolute; inset: 0; z-index: 460; pointer-events: none; overflow: hidden; }
+  .city {
+    position: absolute; transform: translate(-50%, -50%);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase;
+    color: rgba(231,237,245,.85); white-space: nowrap;
+    text-shadow: 0 1px 3px rgba(0,0,0,.9), 0 0 8px rgba(0,0,0,.7);
+  }
+  .city.major { font-size: 12.5px; font-weight: 700; letter-spacing: .18em; color: rgba(231,237,245,.95); }
+  .leaflet-container { background: #0a0f18; }
+  .leaflet-tile { filter: saturate(.55) brightness(.85); }
+  .aqi-tip {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px;
+    background: rgba(9,15,24,.92); color: var(--text); border: 1px solid var(--line);
+  }
+
+  /* Readout panel (top-left) */
+  .readout {
+    position: absolute; top: 12px; left: 12px; z-index: 700;
+    background: rgba(9,15,24,.82); backdrop-filter: blur(6px);
+    border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; min-width: 196px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  .readout .k { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--dim); }
+  .readout .aqi { display: flex; align-items: baseline; gap: 8px; margin: 2px 0 2px; }
+  .readout .aqi b { font-size: 34px; line-height: 1; letter-spacing: -.02em; }
+  .readout .cat { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; }
+  .readout .sub { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+  .readout .sub em { color: var(--text); font-style: normal; }
+
+  /* Legend (bottom-right) */
+  .legend {
+    position: absolute; right: 12px; bottom: 12px; z-index: 700;
+    background: rgba(9,15,24,.82); backdrop-filter: blur(6px);
+    border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 10.5px;
+  }
+  .legend .lh { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--dim); margin-bottom: 7px; }
+  .legend .row { display: flex; align-items: center; gap: 8px; margin: 3px 0; color: var(--muted); }
+  .legend .sw { width: 16px; height: 10px; border-radius: 2px; flex: none; }
+  @media (max-width: 560px) { .legend { display: none; } }
+
+  /* Controls */
+  .controls { border-top: 1px solid var(--line); padding: 14px 16px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .play {
+    width: 44px; height: 44px; flex: none; border-radius: 50%; cursor: pointer;
+    border: 1px solid var(--instrument-dim); background: rgba(76,201,240,.10); color: var(--instrument);
+    display: grid; place-items: center; transition: background .15s, transform .05s;
+  }
+  .play:hover { background: rgba(76,201,240,.20); }
+  .play:active { transform: scale(.94); }
+  .play svg { width: 18px; height: 18px; }
+  .timeline { flex: 1 1 320px; min-width: 240px; display: flex; flex-direction: column; gap: 6px; }
+  .ticks { display: flex; justify-content: space-between; font-family: ui-monospace, monospace; font-size: 9.5px; color: var(--dim); letter-spacing: .08em; }
+  input[type=range] {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 99px;
+    background: linear-gradient(90deg, var(--instrument) var(--pct, 0%), #22303f var(--pct, 0%)); cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--text);
+    border: 3px solid var(--instrument); box-shadow: 0 0 0 4px rgba(76,201,240,.15);
+  }
+  input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border: 3px solid var(--instrument); border-radius: 50%; background: var(--text); }
+  .clock {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; text-align: right; min-width: 190px;
+  }
+  .clock .t { font-size: 16px; font-weight: 700; letter-spacing: .01em; }
+  .clock .d { font-size: 10.5px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+  .speeds { display: flex; gap: 6px; }
+  .speeds button {
+    font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted); cursor: pointer;
+    background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px;
+  }
+  .speeds button.on { color: var(--instrument); border-color: var(--instrument-dim); background: rgba(76,201,240,.10); }
+
+  /* Footer: notes + live data */
+  .notes { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 720px) { .notes { grid-template-columns: 1fr; } }
+  .card { border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); padding: 14px 16px; }
+  .card h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--instrument); }
+  .card p, .card li { font-size: 13px; color: var(--muted); line-height: 1.55; margin: .35em 0; }
+  .card code { font-family: ui-monospace, monospace; font-size: 12px; color: #cfe; background: rgba(76,201,240,.08); padding: 1px 5px; border-radius: 5px; }
+  .live { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .live input {
+    flex: 1 1 180px; min-width: 150px; background: #0a121c; border: 1px solid var(--line); color: var(--text);
+    border-radius: 8px; padding: 9px 11px; font-family: ui-monospace, monospace; font-size: 16px;
+  }
+  .live button {
+    background: var(--instrument); color: #04212e; border: none; border-radius: 8px; padding: 9px 14px;
+    font-weight: 700; font-size: 12px; cursor: pointer; letter-spacing: .02em;
+  }
+  .status { margin-top: 9px; font-family: ui-monospace, monospace; font-size: 11px; color: var(--dim); line-height: 1.5; min-height: 1.2em; }
+  .status.ok { color: #7ee0a0; } .status.err { color: #ff9a9a; }
+  .forget { background: none; border: none; padding: 0; font: inherit; color: var(--dim); text-decoration: underline; cursor: pointer; }
+  a { color: var(--instrument); }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="title">
+      <div class="eyebrow">Air Quality Radar · Seven-County Metro</div>
+      <h1>Twin Cities AQI <span>— last 48 hours</span></h1>
+    </div>
+    <div class="badge" id="modeBadge">● Demo data — simulated</div>
+  </header>
+
+  <div class="console">
+    <div class="stage">
+      <div id="map"></div>
+      <canvas id="field"></canvas>
+      <div id="cityLabels"></div>
+
+      <div class="readout">
+        <div class="k">Metro peak now</div>
+        <div class="aqi"><b id="roVal">—</b><span class="cat" id="roCat">—</span></div>
+        <div class="sub" id="roSub">Hover or tap a station for its reading.</div>
+      </div>
+
+      <div class="legend">
+        <div class="lh">US EPA AQI (PM2.5)</div>
+        <div class="row"><span class="sw" style="background:var(--good)"></span>0–50 · Good</div>
+        <div class="row"><span class="sw" style="background:var(--mod)"></span>51–100 · Moderate</div>
+        <div class="row"><span class="sw" style="background:var(--usg)"></span>101–150 · Sensitive groups</div>
+        <div class="row"><span class="sw" style="background:var(--unh)"></span>151–200 · Unhealthy</div>
+        <div class="row"><span class="sw" style="background:var(--vunh)"></span>201–300 · Very unhealthy</div>
+        <div class="row"><span class="sw" style="background:var(--haz)"></span>301+ · Hazardous</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="play" id="playBtn" aria-label="Play or pause">
+        <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <div class="timeline">
+        <input type="range" id="scrub" min="0" max="4800" value="4800" step="1" aria-label="Time scrubber">
+        <div class="ticks">
+          <span>−48h</span><span>−36h</span><span>−24h</span><span>−12h</span><span>now</span>
+        </div>
+      </div>
+      <div class="speeds" role="group" aria-label="Playback speed">
+        <button data-s="4">4×</button>
+        <button data-s="8" class="on">8×</button>
+        <button data-s="16">16×</button>
+      </div>
+      <div class="clock">
+        <div class="t" id="clockT">—</div>
+        <div class="d" id="clockD">Central Time</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div class="card">
+      <h3>How to read it</h3>
+      <p>The colored field is an inverse-distance interpolation between monitoring stations (dots), so it estimates AQI <em>between</em> sensors the way a weather radar fills gaps between returns.</p>
+      <p>Press play (or hit space) to sweep through the 48-hour window, or drag the scrubber. Tap a station to pin its reading in the readout.</p>
+      <p style="color:var(--dim)" id="demoNote">Until you connect live data, <strong>values are simulated</strong> — the timestamps are real but the plume is fiction.</p>
+    </div>
+    <div class="card">
+      <h3>Connect live data (OpenAQ v3)</h3>
+      <p>Get a free key at <a href="https://explore.openaq.org" target="_blank" rel="noopener">openaq.org</a> and paste it below to pull real PM2.5 for the metro. The key is saved in your browser (localStorage) and reconnects automatically next visit.</p>
+      <div class="live">
+        <input id="apiKey" type="password" placeholder="OpenAQ API key (X-API-Key)" autocomplete="off">
+        <button id="liveBtn">Connect</button>
+      </div>
+      <div class="status" id="status"></div>
+      <p style="color:var(--dim);font-size:12px"><button class="forget" id="forgetBtn" hidden>Forget saved key</button></p>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+/* ------------------------------------------------------------------ *
+ *  Twin Cities AQI Radar
+ *  - Leaflet map + canvas IDW interpolation field
+ *  - 48h time-lapse animation
+ *  - Simulated demo data; live OpenAQ v3 when a key is connected
+ * ------------------------------------------------------------------ */
+
+const KEY_STORE = 'aqi-radar-openaq-key';
+
+// Representative metro monitoring points for demo mode (approximate)
+const STATIONS = [
+  {id:'mpls',  name:'Minneapolis (near-road)', lat:44.965, lng:-93.257, bias: 8},
+  {id:'stp',   name:'St. Paul (Ramsey)',        lat:44.945, lng:-93.093, bias: 6},
+  {id:'blaine',name:'Blaine (Anoka)',           lat:45.158, lng:-93.235, bias: 2},
+  {id:'shak',  name:'Shakopee (Scott)',         lat:44.798, lng:-93.527, bias:-2},
+  {id:'av',    name:'Apple Valley (Dakota)',    lat:44.735, lng:-93.218, bias: 0},
+  {id:'mw',    name:'Maplewood (east)',         lat:44.953, lng:-92.995, bias: 3},
+  {id:'anoka', name:'Anoka (northwest)',        lat:45.198, lng:-93.387, bias:-1},
+  {id:'ep',    name:'Eden Prairie (southwest)', lat:44.855, lng:-93.440, bias:-3},
+  {id:'still', name:'Stillwater (far east)',    lat:45.056, lng:-92.810, bias: 1},
+  {id:'bp',    name:'Brooklyn Park (north)',    lat:45.100, lng:-93.360, bias: 0},
+];
+
+// City labels drawn above the interpolation field so you can orient yourself
+const CITIES = [
+  {name:'Minneapolis',  lat:44.9778, lng:-93.2650, major:true},
+  {name:'St. Paul',     lat:44.9537, lng:-93.0900, major:true},
+  {name:'Bloomington',  lat:44.8408, lng:-93.2983},
+  {name:'Blaine',       lat:45.1608, lng:-93.2349},
+  {name:'Anoka',        lat:45.1977, lng:-93.3872},
+  {name:'Maple Grove',  lat:45.0725, lng:-93.4558},
+  {name:'Eden Prairie', lat:44.8547, lng:-93.4708},
+  {name:'Shakopee',     lat:44.7974, lng:-93.5269},
+  {name:'Apple Valley', lat:44.7319, lng:-93.2177},
+  {name:'Woodbury',     lat:44.9239, lng:-92.9594},
+  {name:'Stillwater',   lat:45.0566, lng:-92.8088},
+];
+
+const HOURS = 48;                 // window length
+const STEPS = HOURS;              // hourly samples -> STEPS+1 points
+let series = [];                  // series[stationIndex] = [v0..v48]
+
+/* ---------- simulated 48h series: a smoke plume drifts SE then clears ---------- */
+function kmBetween(aLat, aLng, bLat, bLng) {
+  const dLat = (aLat - bLat) * 111, dLng = (aLng - bLng) * 79; // ~45°N
+  return Math.hypot(dLat, dLng);
+}
+function buildSimulated() {
+  series = STATIONS.map(() => []);
+  const eventCenter = 28, eventWidth = 9, eventAmp = 155, spreadKm = 34;
+  for (let h = 0; h <= STEPS; h++) {
+    // plume travels from NW corner to SE corner across the event
+    const prog = Math.min(1, Math.max(0, (h - 14) / 24));
+    const pLat = 45.25 + (44.70 - 45.25) * prog;
+    const pLng = -93.60 + (-92.90 + 93.60) * prog;
+    const intensity = eventAmp * Math.exp(-((h - eventCenter) ** 2) / (2 * eventWidth ** 2));
+    const diurnal = 12 * Math.sin((h / 24) * 2 * Math.PI - 1.2);
+    const base = 30 + diurnal;
+    STATIONS.forEach((s, i) => {
+      const d = kmBetween(s.lat, s.lng, pLat, pLng);
+      const plume = intensity * Math.exp(-((d / spreadKm) ** 2));
+      const noise = (Math.sin(h * 1.7 + i * 2.1) + Math.cos(h * 0.9 + i)) * 3;
+      series[i].push(Math.max(6, Math.round(base + s.bias + plume + noise)));
+    });
+  }
+}
+buildSimulated();
+
+/* ---------- AQI helpers ---------- */
+const CATS = [
+  {max:50,   name:'Good',             c:[0,228,0]},
+  {max:100,  name:'Moderate',         c:[255,210,31]},
+  {max:150,  name:'Sensitive groups', c:[255,126,0]},
+  {max:200,  name:'Unhealthy',        c:[255,45,45]},
+  {max:300,  name:'Very unhealthy',   c:[143,63,151]},
+  {max:9999, name:'Hazardous',        c:[126,0,35]},
+];
+function catFor(v) { return CATS.find(c => v <= c.max) || CATS[CATS.length - 1]; }
+// smooth continuous color ramp across category anchors
+const ANCHORS = [[0,[0,180,0]],[50,[0,228,0]],[100,[255,210,31]],[150,[255,126,0]],
+                 [200,[255,45,45]],[300,[143,63,151]],[400,[126,0,35]]];
+function colorFor(v) {
+  v = Math.max(0, Math.min(400, v));
+  for (let i = 0; i < ANCHORS.length - 1; i++) {
+    const [a, ca] = ANCHORS[i], [b, cb] = ANCHORS[i + 1];
+    if (v <= b) {
+      const t = (v - a) / (b - a);
+      return ca.map((x, k) => Math.round(x + (cb[k] - x) * t));
+    }
+  }
+  return ANCHORS[ANCHORS.length - 1][1];
+}
+
+/* ---------- value at continuous time t (0..48) ---------- */
+function valAt(i, t) {
+  const j = Math.floor(t), f = t - j;
+  const a = series[i][Math.min(j, STEPS)], b = series[i][Math.min(j + 1, STEPS)];
+  return a + (b - a) * f;
+}
+
+/* ---------- map ---------- */
+const map = L.map('map', {zoomControl:false, attributionControl:true})
+  .setView([44.97, -93.235], 10);
+L.control.zoom({position: 'topright'}).addTo(map);  // top-left is the readout's spot
+// label-free dark tiles; city names are drawn by hand above the color field instead
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+  subdomains: 'abcd', maxZoom: 19,
+  attribution: '&copy; OpenStreetMap &copy; CARTO · data &copy; OpenAQ'
+}).addTo(map);
+map.fitBounds([[44.70, -93.62], [45.26, -92.78]]);
+
+let hoverIdx = -1, pinnedIdx = -1, markerClicked = false;
+let markers = [];
+function buildMarkers() {
+  markers.forEach(m => map.removeLayer(m));
+  // markerPane (z-index 600) keeps the dots above the interpolation canvas (450)
+  markers = STATIONS.map((s, i) => {
+    s._i = i;
+    const m = L.circleMarker([s.lat, s.lng], {
+      pane: 'markerPane', radius: 6, weight: 2, color: '#0a0f18', fillColor: '#888', fillOpacity: 1
+    }).addTo(map);
+    m.bindTooltip('', {direction:'top', offset:[0,-6], className:'aqi-tip'});
+    m.on('mouseover', () => { hoverIdx = i; refresh(playhead); });
+    m.on('mouseout',  () => { hoverIdx = -1; refresh(playhead); });
+    m.on('click',     () => {
+      markerClicked = true;  // Leaflet fires the map click right after; don't let it unpin
+      pinnedIdx = pinnedIdx === i ? -1 : i; refresh(playhead);
+    });
+    return m;
+  });
+}
+buildMarkers();
+map.on('click', () => {
+  if (markerClicked) { markerClicked = false; return; }
+  if (pinnedIdx >= 0) { pinnedIdx = -1; refresh(playhead); }
+});
+
+/* ---------- city labels ---------- */
+const labelWrap = document.getElementById('cityLabels');
+const labelEls = CITIES.map(c => {
+  const el = document.createElement('div');
+  el.className = 'city' + (c.major ? ' major' : '');
+  el.textContent = c.name;
+  labelWrap.appendChild(el);
+  return el;
+});
+function placeLabels() {
+  const size = map.getSize();
+  CITIES.forEach((c, i) => {
+    const p = map.latLngToContainerPoint([c.lat, c.lng]);
+    const el = labelEls[i];
+    const off = p.x > -40 && p.x < size.x + 40 && p.y > -20 && p.y < size.y + 20;
+    el.style.display = off ? '' : 'none';
+    el.style.left = p.x + 'px';
+    el.style.top = p.y + 'px';
+  });
+}
+map.on('move zoom viewreset resize', placeLabels);
+placeLabels();
+
+/* ---------- interpolation field on canvas ---------- */
+const cv = document.getElementById('field'), cx = cv.getContext('2d');
+let grid = []; const STEP = 16;
+function rebuildGrid() {
+  const r = map.getSize(); cv.width = r.x; cv.height = r.y;
+  grid = [];
+  for (let y = STEP / 2; y < r.y; y += STEP)
+    for (let x = STEP / 2; x < r.x; x += STEP) {
+      const ll = map.containerPointToLatLng([x, y]);
+      grid.push({x: x - STEP / 2, y: y - STEP / 2, lat: ll.lat, lng: ll.lng});
+    }
+}
+function drawField(t) {
+  if (!grid.length) rebuildGrid();
+  const vals = STATIONS.map((s, i) => valAt(i, t));
+  cx.clearRect(0, 0, cv.width, cv.height);
+  for (const g of grid) {
+    let num = 0, den = 0;
+    for (let i = 0; i < STATIONS.length; i++) {
+      const s = STATIONS[i];
+      const dLat = (g.lat - s.lat) * 111, dLng = (g.lng - s.lng) * 79;
+      const d2 = dLat * dLat + dLng * dLng + 0.5;
+      const w = 1 / (d2 * d2);            // IDW power 4 -> tighter, radar-like cells
+      num += w * vals[i]; den += w;
+    }
+    const c = colorFor(num / den);
+    cx.fillStyle = 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')';
+    cx.fillRect(g.x, g.y, STEP + 1, STEP + 1);
+  }
+}
+map.on('move zoom resize', () => { rebuildGrid(); drawField(playhead); });
+map.on('zoomanim', () => { cx.clearRect(0, 0, cv.width, cv.height); });
+
+/* ---------- UI wiring ---------- */
+const roVal = document.getElementById('roVal'), roCat = document.getElementById('roCat'),
+      roSub = document.getElementById('roSub'), clockT = document.getElementById('clockT'),
+      roK = document.querySelector('.readout .k'),
+      scrub = document.getElementById('scrub'), playBtn = document.getElementById('playBtn'),
+      playIcon = document.getElementById('playIcon');
+
+const NOW = Date.now(), WIN_START = NOW - HOURS * 3600e3;
+function fmtClock(t) {
+  const d = new Date(WIN_START + t * 3600e3);
+  clockT.textContent = d.toLocaleString('en-US',
+    {timeZone:'America/Chicago', hour:'numeric', minute:'2-digit', weekday:'short'});
+}
+
+function refresh(t) {
+  drawField(t);
+  const vals = STATIONS.map((s, i) => valAt(i, t));
+  // update markers
+  let peak = 0, peakName = '';
+  markers.forEach((m, i) => {
+    const v = Math.round(vals[i]), c = colorFor(v);
+    m.setStyle({fillColor: 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')'});
+    m.setTooltipContent('<b>' + v + '</b> · ' + STATIONS[i].name);
+    if (v > peak) { peak = v; peakName = STATIONS[i].name; }
+  });
+  // readout: pinned station wins, then hover, then metro peak
+  const focus = pinnedIdx >= 0 ? pinnedIdx : hoverIdx;
+  if (focus >= 0 && focus < STATIONS.length) {
+    const v = Math.round(vals[focus]), cat = catFor(v);
+    roK.textContent = pinnedIdx >= 0 ? 'Station (pinned)' : 'Station';
+    roVal.textContent = v; roVal.style.color = 'rgb(' + cat.c + ')';
+    roCat.textContent = cat.name; roCat.style.color = 'rgb(' + cat.c + ')';
+    roSub.innerHTML = '<em>' + STATIONS[focus].name + '</em>';
+  } else {
+    const cat = catFor(peak);
+    roK.textContent = 'Metro peak';
+    roVal.textContent = peak; roVal.style.color = 'rgb(' + cat.c + ')';
+    roCat.textContent = cat.name; roCat.style.color = 'rgb(' + cat.c + ')';
+    roSub.innerHTML = 'Highest: <em>' + peakName + '</em>';
+  }
+  fmtClock(t);
+  scrub.style.setProperty('--pct', (t / HOURS * 100) + '%');
+}
+
+/* ---------- animation ---------- */
+let playhead = HOURS, playing = false, speed = 8, last = 0;
+const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setPlaying(p) {
+  playing = p;
+  playIcon.innerHTML = p
+    ? '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>'
+    : '<path d="M8 5v14l11-7z"/>';
+  if (p) { last = performance.now(); requestAnimationFrame(loop); }
+}
+function loop(ts) {
+  if (!playing) return;
+  const dt = (ts - last) / 1000; last = ts;
+  playhead += dt * speed * (HOURS / 60);          // speed× real minutes -> hrs
+  if (playhead >= HOURS) { playhead = 0; }
+  scrub.value = Math.round(playhead / HOURS * 4800);
+  refresh(playhead);
+  requestAnimationFrame(loop);
+}
+playBtn.addEventListener('click', () => setPlaying(!playing));
+document.addEventListener('keydown', (e) => {
+  if (e.code !== 'Space' || e.target.matches('input, button, a')) return;
+  e.preventDefault();
+  setPlaying(!playing);
+});
+scrub.addEventListener('input', () => {
+  playhead = (+scrub.value / 4800) * HOURS;
+  if (playing) setPlaying(false);
+  refresh(playhead);
+});
+document.querySelectorAll('.speeds button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.speeds button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on'); speed = +b.dataset.s;
+  });
+});
+
+/* ---------- live OpenAQ v3 fetch ---------- */
+const statusEl = document.getElementById('status');
+const keyInput = document.getElementById('apiKey');
+const forgetBtn = document.getElementById('forgetBtn');
+const badge = document.getElementById('modeBadge');
+function setStatus(msg, cls) { statusEl.textContent = msg; statusEl.className = 'status ' + (cls || ''); }
+
+// US EPA PM2.5 -> AQI conversion (2024 breakpoints)
+function pm25ToAqi(c) {
+  if (c == null || isNaN(c)) return 0;
+  const bp = [[0,9.0,0,50],[9.1,35.4,51,100],[35.5,55.4,101,150],
+              [55.5,125.4,151,200],[125.5,225.4,201,300],[225.5,325.4,301,500]];
+  for (const [cl, ch, il, ih] of bp)
+    if (c <= ch) return Math.round((ih - il) / (ch - cl) * (Math.max(c, cl) - cl) + il);
+  return 500;
+}
+
+async function connectLive(key) {
+  setStatus('Fetching metro PM2.5 locations…');
+  const H = {'X-API-Key': key};
+  const bbox = '-93.62,44.70,-92.78,45.26';           // W,S,E,N
+  const isoFrom = new Date(WIN_START).toISOString();
+  const isoTo = new Date(NOW).toISOString();
+
+  // 1) find PM2.5 sensors in the metro box
+  const locRes = await fetch(
+    `https://api.openaq.org/v3/locations?bbox=${bbox}&parameters_id=2&limit=60`, {headers: H});
+  if (!locRes.ok) throw new Error('locations HTTP ' + locRes.status);
+  const locs = (await locRes.json()).results || [];
+  const sensors = [];
+  for (const loc of locs) {
+    const c = loc.coordinates || {};
+    (loc.sensors || []).forEach(sn => {
+      if ((sn.parameter?.name || '') === 'pm25')
+        sensors.push({id: sn.id, name: loc.name, lat: c.latitude, lng: c.longitude});
+    });
+  }
+  if (!sensors.length) throw new Error('no PM2.5 sensors returned');
+  setStatus(`Found ${sensors.length} sensors — pulling hourly history…`);
+
+  // 2) pull last-48h hourly averages per sensor (cap to keep it light)
+  const pick = sensors.slice(0, 12), live = [];
+  for (const s of pick) {
+    const r = await fetch(
+      `https://api.openaq.org/v3/sensors/${s.id}/hours?datetime_from=${isoFrom}&datetime_to=${isoTo}&limit=60`,
+      {headers: H});
+    if (!r.ok) continue;
+    const rows = (await r.json()).results || [];
+    const byHr = {};
+    rows.forEach(row => {
+      const dt = new Date(row.period?.datetimeFrom?.utc || row.datetime?.utc);
+      const hr = Math.round((dt.getTime() - WIN_START) / 3600e3);
+      if (hr >= 0 && hr <= STEPS) byHr[hr] = pm25ToAqi(row.value);
+    });
+    if (!Object.keys(byHr).length) continue;
+    const arr = []; let lastV = byHr[0] ?? 30;
+    for (let h = 0; h <= STEPS; h++) { if (byHr[h] != null) lastV = byHr[h]; arr.push(Math.round(lastV)); }
+    live.push({s, arr});
+  }
+  if (!live.length) throw new Error('no hourly data in window');
+
+  // 3) swap stations + series to the live set
+  STATIONS.length = 0;
+  series = [];
+  live.forEach((l, i) => {
+    STATIONS.push({id: 's' + i, name: l.s.name, lat: l.s.lat, lng: l.s.lng, _i: i});
+    series.push(l.arr);
+  });
+  hoverIdx = -1; pinnedIdx = -1;
+  buildMarkers();
+  badge.textContent = '● Live data — OpenAQ';
+  badge.classList.add('live');
+  document.getElementById('demoNote').textContent =
+    'Live PM2.5 from OpenAQ monitors, converted to US AQI. Gaps in a sensor’s history hold its last reading.';
+  setStatus(`Live: ${live.length} stations loaded.`, 'ok');
+  rebuildGrid(); refresh(playhead);
+}
+
+document.getElementById('liveBtn').addEventListener('click', async () => {
+  const key = keyInput.value.trim();
+  if (!key) { setStatus('Paste an OpenAQ API key first.', 'err'); return; }
+  try {
+    await connectLive(key);
+    localStorage.setItem(KEY_STORE, key);
+    forgetBtn.hidden = false;
+  } catch (e) {
+    setStatus('Live fetch failed: ' + e.message + ' — staying on demo data.', 'err');
+  }
+});
+
+forgetBtn.addEventListener('click', () => {
+  localStorage.removeItem(KEY_STORE);
+  keyInput.value = '';
+  forgetBtn.hidden = true;
+  setStatus('Key forgotten. Reload for demo data.', '');
+});
+
+/* ---------- boot ---------- */
+setTimeout(async () => {
+  rebuildGrid(); refresh(playhead);
+  if (!reduce) setPlaying(true);
+  const saved = localStorage.getItem(KEY_STORE);
+  if (saved) {
+    keyInput.value = saved;
+    forgetBtn.hidden = false;
+    try { await connectLive(saved); }
+    catch (e) { setStatus('Saved key reconnect failed: ' + e.message + ' — demo data shown.', 'err'); }
+  }
+}, 300);
+</script>
+</body>
+</html>
