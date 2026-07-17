@@ -20,6 +20,7 @@
     --grease-music:   #c08bff;
     --grease-games:   #6ee787;
     --grease-tv:      #ff8a3d;
+    --grease-art:     #ff6ec7;
   }
 
   html { background-color: #0d0c0b; }
@@ -82,6 +83,7 @@
   .chip[data-cat="music"].on   { background: var(--grease-music);   border-color: var(--grease-music); }
   .chip[data-cat="games"].on   { background: var(--grease-games);   border-color: var(--grease-games); }
   .chip[data-cat="tv"].on      { background: var(--grease-tv);      border-color: var(--grease-tv); }
+  .chip[data-cat="art"].on     { background: var(--grease-art);     border-color: var(--grease-art); }
 
   .find {
     margin-left: auto;
@@ -204,6 +206,7 @@
     <button class="chip" data-cat="music">Music</button>
     <button class="chip" data-cat="games">Games</button>
     <button class="chip" data-cat="tv">TV</button>
+    <button class="chip" data-cat="art">Art</button>
     <input class="find" id="find" type="text" placeholder="search, or type a name + ↵ — try “random”" autocomplete="off" autocapitalize="off" spellcheck="false">
   </div>
   <div class="cmdbar" id="cmdbar"></div>
@@ -214,6 +217,7 @@
 
 <script>
   const tools = [
+    { file: "sketchpad.html", title: "Sketchpad", cat: "art", desc: "A full-screen drawing canvas for your finger: three brush widths, any color, nothing else in the way. Screenshot it when you're done." },
     { file: "aqi-radar.html", title: "Twin Cities AQI Radar", cat: "science", desc: "A weather-radar-style map of metro air quality you can play back over the last 48 hours. Real station readings via a free WAQI token; every frame is labeled observed vs. model estimate." },
     { file: "album-publisher.html", title: "Album Publisher", cat: "music", desc: "Search your Plex library, pull an album's art, release date, and genres straight onto timbornholdt.com, then write the review from anywhere. Also edits reviews for albums already on the site." },
     { file: "snes-world.html", title: "SNES World", cat: "games", desc: "A website you walk through: side-scroll down a dusk street, jump, crouch, and swing at the shrubbery, then step into a midcentury den and drop the needle on the record player. Future home of the music library." },
@@ -234,7 +238,8 @@
   ];
   const greaseColor = {
     body: "var(--grease-body)", home: "var(--grease-home)", science: "var(--grease-science)",
-    music: "var(--grease-music)", games: "var(--grease-games)",
+    music: "var(--grease-music)", games: "var(--grease-games)", tv: "var(--grease-tv)",
+    art: "var(--grease-art)",
   };
 
   // Hand-drawn line-art icon per page. viewBox 0 0 96 96, stroke=currentColor
@@ -242,6 +247,11 @@
   const svg = (inner) =>
     `<svg viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
   const icons = {
+    // pencil drawing a squiggle
+    "sketchpad.html": svg(`
+      <path d="M64 18l14 14-38 38-18 4 4-18 38-38z"/>
+      <path d="M58 24l14 14"/>
+      <path d="M16 82c8-8 14 4 22-4" stroke-width="4"/>`),
     // radar dish: concentric rings, sweep arm, one hot blip
     "aqi-radar.html": svg(`
       <circle cx="48" cy="50" r="30"/>
