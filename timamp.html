@@ -281,6 +281,27 @@
     </div>
   </div>
 
+  <div class="grp" id="lfmGrp">
+    <div class="spread" style="align-items:flex-end;">
+      <label class="field" style="flex:1 1 180px;">
+        last.fm api key
+        <input id="lfmKey" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="paste api key">
+      </label>
+      <label class="field" style="flex:1 1 180px;">
+        last.fm shared secret
+        <input id="lfmSecret" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="paste shared secret">
+      </label>
+      <button class="txt primary" id="lfmConnectBtn">connect last.fm</button>
+    </div>
+    <div class="controls" style="margin-top:12px;">
+      <label class="toggle" title="Send now-playing and scrobbles for Plex tracks. Radio streams are never scrobbled.">
+        <input type="checkbox" id="lfmEnabled" checked> scrobble to last.fm
+      </label>
+      <span id="lfmStatus" style="font-size:13px; color:var(--dim);">not connected</span>
+      <button class="txt" id="lfmDisconnectBtn" style="display:none;">⏏ disconnect last.fm</button>
+    </div>
+  </div>
+
   <div class="grp">
     <div class="controls" style="margin-bottom:12px;">
       <label class="toggle" title="Cycle to a random skin from your fav-winamp-skins folder on a timer.">
@@ -302,6 +323,7 @@
         <p><strong>Server URL:</strong> use the HTTPS <code>plex.direct</code> address (e.g. <code>https://10-0-0-12.hash.plex.direct:32400</code>) so this HTTPS page isn't blocked by mixed-content rules. Find it via <code>https://plex.tv/api/resources?includeHttps=1&amp;X-Plex-Token=YOURTOKEN</code> — use the connection marked <code>local="1"</code> when the tablet shares Wi-Fi with the server.</p>
         <p><strong>Token (on iOS):</strong> at app.plex.tv → open any item → <em>···</em> → <em>Get Info</em> → <em>View XML</em>, then tap <em>Share → Copy</em> and grab the value after <code>X-Plex-Token=</code>. Stored only in this browser.</p>
         <p><strong>Won't play / no visualizer:</strong> almost always CORS. Add <code>https://junk.timbornholdt.com</code> under Plex → <em>Settings → Network → List of allowed CORS origins</em>, then reconnect.</p>
+        <p><strong>Last.fm scrobbling:</strong> create a free API account at <a href="https://www.last.fm/api/account/create" target="_blank" rel="noopener">last.fm/api/account/create</a> (the callback URL field can be anything — this page supplies its own). Paste the API key and shared secret above, hit <em>connect last.fm</em>, approve on last.fm, and you'll bounce back here signed in. Plex tracks scrobble at the usual halfway-or-4-minute mark; radio streams don't scrobble. Keys and the session live only in this browser.</p>
         <p><strong>Skins &amp; visualizer:</strong> right-click the player for <em>Skins</em>, <em>Visualizer → Milkdrop</em>, or <em>Double Size</em>. More skins at <a href="https://skins.webamp.org/" target="_blank" rel="noopener">the Skin Museum</a>.</p>
       </div>
     </details>
@@ -312,6 +334,7 @@
 <button id="reveal" title="Show controls">≡</button>
 
 <script src="https://cdn.jsdelivr.net/npm/webamp@1.5.0/built/webamp.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/blueimp-md5@2.19.0/js/md5.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/butterchurn@2.6.7/lib/butterchurn.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/butterchurn-presets@2.4.7/lib/butterchurnPresets.min.js"></script>
 
@@ -326,6 +349,8 @@ const els = {
   refreshBtn: $('refreshBtn'), disconnectBtn: $('disconnectBtn'), skinUrl: $('skinUrl'),
   autoRotate: $('autoRotate'), rotateSecs: $('rotateSecs'), diceBtn2: $('diceBtn2'),
   stations: $('stations'), saveStations: $('saveStations'), resetStations: $('resetStations'),
+  lfmKey: $('lfmKey'), lfmSecret: $('lfmSecret'), lfmConnectBtn: $('lfmConnectBtn'),
+  lfmEnabled: $('lfmEnabled'), lfmStatus: $('lfmStatus'), lfmDisconnectBtn: $('lfmDisconnectBtn'),
 };
 
 // Migrate any settings saved under the old "wallamp_" name.
@@ -339,6 +364,8 @@ const LS = {
   url: 'timamp_url', token: 'timamp_token', transcode: 'timamp_transcode', shuffle: 'timamp_shuffle',
   skin: 'timamp_skin', clientId: 'timamp_client_id', lastSource: 'timamp_last_source',
   autoRotate: 'timamp_autorotate', rotateSecs: 'timamp_rotatesecs', stations: 'timamp_stations',
+  lfmKey: 'timamp_lfm_key', lfmSecret: 'timamp_lfm_secret', lfmSession: 'timamp_lfm_sk',
+  lfmUser: 'timamp_lfm_user', lfmEnabled: 'timamp_lfm_enabled',
 };
 
 let clientId = localStorage.getItem(LS.clientId);
@@ -542,6 +569,150 @@ function hideNowPlaying() {
   document.title = 'Timamp — Plex Winamp player';
 }
 
+// ── Last.fm scrobbling ───────────────────────────────────────────────────
+// Bring-your-own API key + shared secret (created free at
+// last.fm/api/account/create, stored only in localStorage). Auth is the
+// standard web flow: bounce to last.fm with cb= pointing back at this page,
+// come back with ?token=, trade it for a session key via auth.getSession.
+// Every signed call needs an MD5 api_sig — that's what blueimp-md5 is for.
+// ws.audioscrobbler.com sends CORS headers, so it all works from the browser.
+const LFM_API = 'https://ws.audioscrobbler.com/2.0/';
+function lfmCreds() {
+  return {
+    key: localStorage.getItem(LS.lfmKey) || '',
+    secret: localStorage.getItem(LS.lfmSecret) || '',
+    sk: localStorage.getItem(LS.lfmSession) || '',
+    user: localStorage.getItem(LS.lfmUser) || '',
+  };
+}
+function lfmSign(params, secret) {
+  if (!window.md5) throw new Error('md5 lib failed to load from the CDN');
+  const s = Object.keys(params).sort().map((k) => k + params[k]).join('');
+  return window.md5(s + secret);
+}
+async function lfmCall(method, params, opts) {
+  opts = opts || {};
+  const { key, secret, sk } = lfmCreds();
+  if (!key || !secret) throw new Error('missing last.fm api key / shared secret');
+  const p = Object.assign({ method, api_key: key }, params);
+  if (opts.session) {
+    if (!sk) throw new Error('not signed in to last.fm');
+    p.sk = sk;
+  }
+  p.api_sig = lfmSign(p, secret);   // format is excluded from the signature
+  const qs = new URLSearchParams(Object.assign({}, p, { format: 'json' })).toString();
+  const res = opts.get
+    ? await fetch(LFM_API + '?' + qs)
+    : await fetch(LFM_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: qs,
+      });
+  const j = await res.json();
+  if (j.error) {
+    if (j.error === 9) {            // invalid session key — force a re-link
+      localStorage.removeItem(LS.lfmSession);
+      localStorage.removeItem(LS.lfmUser);
+      renderLfmState();
+    }
+    throw new Error(j.message || ('last.fm error ' + j.error));
+  }
+  return j;
+}
+function renderLfmState() {
+  const { sk, user } = lfmCreds();
+  if (sk) {
+    els.lfmStatus.textContent = 'scrobbling as ' + (user || '?');
+    els.lfmStatus.style.color = 'var(--ok)';
+    els.lfmDisconnectBtn.style.display = '';
+    els.lfmConnectBtn.textContent = 'reconnect last.fm';
+  } else {
+    els.lfmStatus.textContent = 'not connected';
+    els.lfmStatus.style.color = 'var(--dim)';
+    els.lfmDisconnectBtn.style.display = 'none';
+    els.lfmConnectBtn.textContent = 'connect last.fm';
+  }
+}
+function lfmBeginAuth() {
+  const key = els.lfmKey.value.trim(), secret = els.lfmSecret.value.trim();
+  if (!key || !secret) {
+    setStatus('Paste both a last.fm API key and shared secret first — create them free at last.fm/api/account/create (see setup notes).', 'bad');
+    return;
+  }
+  localStorage.setItem(LS.lfmKey, key);
+  localStorage.setItem(LS.lfmSecret, secret);
+  const cb = location.origin + location.pathname;
+  location.href = 'https://www.last.fm/api/auth/?api_key=' + encodeURIComponent(key) +
+    '&cb=' + encodeURIComponent(cb);
+}
+async function lfmFinishAuth(authToken) {
+  busy('Finishing last.fm sign-in…');
+  try {
+    const j = await lfmCall('auth.getSession', { token: authToken }, { get: true });
+    const sess = j.session || {};
+    if (!sess.key) throw new Error('no session key in the response');
+    localStorage.setItem(LS.lfmSession, sess.key);
+    localStorage.setItem(LS.lfmUser, sess.name || '');
+    setStatus('last.fm connected as ' + (sess.name || '?') + ' — Plex tracks will scrobble.', 'ok');
+  } catch (e) {
+    setStatus('last.fm sign-in failed: ' + e.message, 'bad');
+  }
+  renderLfmState();
+}
+function lfmDisconnect() {
+  localStorage.removeItem(LS.lfmSession);
+  localStorage.removeItem(LS.lfmUser);
+  renderLfmState();
+  setStatus('last.fm unlinked. Your API key stays saved — hit connect to re-link.', 'ok');
+}
+
+// The scrobble loop: every 5s peek at Webamp's store for the current track,
+// its tags, and playback position. New track → track.updateNowPlaying once;
+// past min(half, 4min) on a >30s track → track.scrobble once (the standard
+// last.fm rules). Radio is skipped: no reliable per-song start/duration.
+let lfmTrack = null;      // { sig, artist, title, album, startTs, sentNP, scrobbled }
+let radioActive = false;  // set when a radio source is playing
+function lfmTick() {
+  if (!webamp || radioActive) return;
+  if (!els.lfmEnabled.checked || !localStorage.getItem(LS.lfmSession)) return;
+  let st;
+  try { st = webamp.store.getState(); } catch (e) { return; }
+  const id = st.playlist && st.playlist.currentTrack;
+  if (id == null) { lfmTrack = null; return; }
+  const t = (st.tracks && st.tracks[id]) || {};
+  const artist = t.artist || '', title = t.title || '';
+  if (!artist || !title) return;  // nothing scrobble-worthy without tags
+  const sig = id + ' ' + artist + ' ' + title;
+  if (!lfmTrack || lfmTrack.sig !== sig) {
+    lfmTrack = {
+      sig, artist, title, album: t.album || '',
+      startTs: Math.floor(Date.now() / 1000), sentNP: false, scrobbled: false,
+    };
+  }
+  const media = st.media || {};
+  if (media.status !== 'PLAYING') return;
+  const cur = lfmTrack;
+  if (!cur.sentNP) {
+    cur.sentNP = true;
+    const p = { artist: cur.artist, track: cur.title };
+    if (cur.album) p.album = cur.album;
+    lfmCall('track.updateNowPlaying', p, { session: true })
+      .catch((e) => console.warn('[timamp] last.fm now-playing failed:', e.message));
+  }
+  const len = media.length || t.duration || 0;
+  const elapsed = media.timeElapsed || 0;
+  if (!cur.scrobbled && len > 30 && elapsed >= Math.min(len / 2, 240)) {
+    cur.scrobbled = true;
+    const p = { artist: cur.artist, track: cur.title, timestamp: String(cur.startTs) };
+    if (cur.album) p.album = cur.album;
+    if (len) p.duration = String(Math.round(len));
+    lfmCall('track.scrobble', p, { session: true })
+      .then(() => console.log('[timamp] scrobbled:', cur.artist, '—', cur.title))
+      .catch((e) => { cur.scrobbled = false; console.warn('[timamp] scrobble failed (will retry):', e.message); });
+  }
+}
+setInterval(lfmTick, 5000);
+
 // Tracks under any metadata id, recursing albums/artists down to tracks.
 // `diag` records the top-level child types; console logs help debug empties.
 async function childTracks(ratingKey, depth, diag) {
@@ -655,6 +826,7 @@ async function playSelected() {
       // Marquee shows the station name until the live song arrives (SomaFM),
       // then setMarquee replaces it with the actual artist / title.
       webamp.setTracksToPlay([{ url: opt.dataset.url, metaData: { title: opt.textContent } }]);
+      radioActive = true; lfmTrack = null; // radio never scrobbles
       startNowPlaying(opt.dataset.url);
       clearStatus(); // no success toast on tune-in (the marquee is the feedback)
       closePanel();
@@ -671,6 +843,7 @@ async function playSelected() {
       return;
     }
     hideNowPlaying(); // Plex sources show their own metadata in the Winamp marquee
+    radioActive = false; lfmTrack = null;
     // Collections always shuffle (per request); other sources honor the toggle.
     if (kind === 'collection' || els.shuffle.checked) shuffle(tracks);
     webamp.setTracksToPlay(tracks);
@@ -909,6 +1082,11 @@ els.saveStations.addEventListener('click', () => {
   renderRadioGroup(); applyFilter();
   setStatus('Saved ' + getStations().length + ' radio station(s) — they\'re in the Radio group up top.', 'ok');
 });
+els.lfmConnectBtn.addEventListener('click', lfmBeginAuth);
+els.lfmDisconnectBtn.addEventListener('click', lfmDisconnect);
+els.lfmEnabled.addEventListener('change', () => localStorage.setItem(LS.lfmEnabled, els.lfmEnabled.checked ? '1' : '0'));
+els.lfmKey.addEventListener('change', () => localStorage.setItem(LS.lfmKey, els.lfmKey.value.trim()));
+els.lfmSecret.addEventListener('change', () => localStorage.setItem(LS.lfmSecret, els.lfmSecret.value.trim()));
 els.resetStations.addEventListener('click', () => {
   els.stations.value = defaultStationsText();
   localStorage.setItem(LS.stations, els.stations.value);
@@ -927,6 +1105,10 @@ els.resetStations.addEventListener('click', () => {
   els.rotateSecs.value = localStorage.getItem(LS.rotateSecs) || '20';
   const savedStations = localStorage.getItem(LS.stations);
   els.stations.value = savedStations != null ? savedStations : defaultStationsText();
+  els.lfmKey.value = localStorage.getItem(LS.lfmKey) || '';
+  els.lfmSecret.value = localStorage.getItem(LS.lfmSecret) || '';
+  els.lfmEnabled.checked = localStorage.getItem(LS.lfmEnabled) !== '0'; // default on
+  renderLfmState();
   renderRadioGroup(); // radio is available even before connecting
   if (els.serverUrl.value && els.token.value) {
     closePanel();
@@ -934,6 +1116,20 @@ els.resetStations.addEventListener('click', () => {
   } else {
     openPanel();
     setStatus('Paste your Plex server URL and token to begin. (Setup notes are in this panel.)');
+  }
+})();
+
+// ── Last.fm auth callback ────────────────────────────────────────────────
+// Coming back from last.fm the URL carries ?token=… — trade it for a
+// session key, then scrub the token out of the address bar.
+(function lfmHandleCallback() {
+  const authToken = new URLSearchParams(location.search).get('token');
+  if (!authToken) return;
+  history.replaceState(null, '', location.pathname);
+  const { key, secret } = lfmCreds();
+  if (key && secret) {
+    openPanel();
+    lfmFinishAuth(authToken);
   }
 })();
 </script>
