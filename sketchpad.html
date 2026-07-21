@@ -64,6 +64,7 @@
     line-height: 1;
   }
   .bar button:active { background: rgba(255, 255, 255, 0.14); }
+  .bar button:disabled { color: rgba(232, 232, 232, 0.28); }
 
   .sep {
     width: 1px;
@@ -122,6 +123,7 @@
     <input type="color" id="color" value="#111111">
   </button>
   <div class="sep"></div>
+  <button id="undo" aria-label="Undo last stroke">&#8630;</button>
   <button id="clear" aria-label="Clear canvas">&#10005;</button>
 </div>
 
@@ -134,31 +136,47 @@ const chip = document.querySelector('#swatch .chip');
 let lineWidth = 8;
 let color = colorInput.value;
 
+// each stroke is one press-drag-release: { color, width, points: [{x,y}, ...] }
+const strokes = [];
+const undoBtn = document.getElementById('undo');
+
+function drawStroke(s) {
+  ctx.strokeStyle = s.color;
+  ctx.lineWidth = s.width;
+  ctx.beginPath();
+  ctx.moveTo(s.points[0].x, s.points[0].y);
+  if (s.points.length === 1) {
+    ctx.lineTo(s.points[0].x + 0.01, s.points[0].y);
+  } else {
+    for (let i = 1; i < s.points.length; i++) ctx.lineTo(s.points[i].x, s.points[i].y);
+  }
+  ctx.stroke();
+}
+
+function redraw() {
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
+  for (const s of strokes) drawStroke(s);
+  undoBtn.disabled = strokes.length === 0;
+}
+
 function resize() {
   const dpr = window.devicePixelRatio || 1;
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-  // preserve the drawing across resizes / rotation
-  let saved = null;
-  if (canvas.width > 0 && canvas.height > 0) {
-    saved = document.createElement('canvas');
-    saved.width = canvas.width;
-    saved.height = canvas.height;
-    saved.getContext('2d').drawImage(canvas, 0, 0);
-  }
-  canvas.width = Math.round(w * dpr);
-  canvas.height = Math.round(h * dpr);
+  canvas.width = Math.round(window.innerWidth * dpr);
+  canvas.height = Math.round(window.innerHeight * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  if (saved) ctx.drawImage(saved, 0, 0, saved.width / dpr, saved.height / dpr);
+  redraw();
 }
 resize();
 window.addEventListener('resize', resize);
 
 let drawing = false;
 let activeId = null;
-let last = null;
+let current = null;
 
 function pos(e) {
   return { x: e.clientX, y: e.clientY };
@@ -168,31 +186,24 @@ canvas.addEventListener('pointerdown', (e) => {
   if (drawing) return;
   drawing = true;
   activeId = e.pointerId;
-  last = pos(e);
+  current = { color, width: lineWidth, points: [pos(e)] };
   try { canvas.setPointerCapture(e.pointerId); } catch {}
-  // a bare tap leaves a dot
-  ctx.strokeStyle = color;
-  ctx.lineWidth = lineWidth;
-  ctx.beginPath();
-  ctx.moveTo(last.x, last.y);
-  ctx.lineTo(last.x + 0.01, last.y);
-  ctx.stroke();
+  drawStroke(current);
 });
 
 canvas.addEventListener('pointermove', (e) => {
   if (!drawing || e.pointerId !== activeId) return;
   const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
-  ctx.strokeStyle = color;
-  ctx.lineWidth = lineWidth;
+  ctx.strokeStyle = current.color;
+  ctx.lineWidth = current.width;
   for (const ev of events) {
+    const last = current.points[current.points.length - 1];
     const p = pos(ev);
-    const mid = { x: (last.x + p.x) / 2, y: (last.y + p.y) / 2 };
     ctx.beginPath();
     ctx.moveTo(last.x, last.y);
-    ctx.quadraticCurveTo(last.x, last.y, mid.x, mid.y);
     ctx.lineTo(p.x, p.y);
     ctx.stroke();
-    last = p;
+    current.points.push(p);
   }
 });
 
@@ -200,10 +211,18 @@ function endStroke(e) {
   if (e.pointerId !== activeId) return;
   drawing = false;
   activeId = null;
-  last = null;
+  strokes.push(current);
+  current = null;
+  undoBtn.disabled = false;
 }
 canvas.addEventListener('pointerup', endStroke);
 canvas.addEventListener('pointercancel', endStroke);
+
+undoBtn.addEventListener('click', () => {
+  if (!strokes.length) return;
+  strokes.pop();
+  redraw();
+});
 
 document.querySelectorAll('.w').forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -218,10 +237,8 @@ colorInput.addEventListener('input', () => {
 });
 
 document.getElementById('clear').addEventListener('click', () => {
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.restore();
+  strokes.length = 0;
+  redraw();
 });
 
 document.getElementById('back').addEventListener('click', () => {
