@@ -94,13 +94,12 @@ textarea#out{width:100%;min-height:170px;padding:14px;border:1px solid var(--lin
 <script>
 /* CONFIG — edit model names and colors here. */
 const MACHINES = {
-  neo:{ name:'MacBook Neo 13-inch', chip:'A18 Pro', ram:'8GB', storage:'512GB',
-        extras:'512GB SKU, includes Touch ID',
-        colors:[['Silver','#d8d9d6'],['Blush','#e9c9c4'],['Citrus','#e6d27a'],['Indigo','#4a5578']] },
   air13:{ name:'MacBook Air 13-inch', chip:'M5',
         colors:[['Sky Blue','#b6c6d6'],['Midnight','#2c3138'],['Starlight','#e7ded1'],['Silver','#dcdedd']] },
   air15:{ name:'MacBook Air 15-inch', chip:'M5',
-        colors:[['Sky Blue','#b6c6d6'],['Midnight','#2c3138'],['Starlight','#e7ded1'],['Silver','#dcdedd']] }
+        colors:[['Sky Blue','#b6c6d6'],['Midnight','#2c3138'],['Starlight','#e7ded1'],['Silver','#dcdedd']] },
+  mbp14:{ name:'MacBook Pro 14-inch', chip:'M5',
+        colors:[['Space Black','#26262a'],['Silver','#dcdedd']] }
 };
 
 const Q = [
@@ -108,16 +107,16 @@ const Q = [
   { key:'displays', type:'radio',
     title:'How many external displays are plugged into your desk right now?',
     hint:'Count what is physically connected today.',
-    opts:[['0','None — laptop screen only'],['1','One'],['2','Two or more']] },
-  { key:'ports', type:'multi',
-    title:'In a normal week, which of these do you plug into your machine?',
-    opts:[['usb','USB drive or external SSD'],['sd','SD or memory card'],
-          ['hdmi','HDMI cable to a TV or conference room display'],['eth','Wired ethernet'],
-          ['audio','Audio interface, USB mic, or capture device'],['none','None of these']] },
+    opts:[['0','None — laptop screen only'],['1','One'],['2','Two'],['3','Three or more']] },
   { key:'visual', type:'multi',
     title:'Do you do any of this work?',
     opts:[['video','Edit or export video'],['record','Produce screen recordings or webinars'],
           ['color','Create or approve brand assets where color accuracy matters'],['none','None of these']] },
+  { key:'videoFreq', type:'radio',
+    when:a => (a.visual||[]).includes('video') || (a.visual||[]).includes('record'),
+    title:'How often do you export video or publish recorded content?',
+    opts:[['weekly','Weekly or more — it is part of the job'],
+          ['monthly','Roughly monthly'],['rare','Less often than that']] },
   { key:'concurrent', type:'multi',
     title:'On a normal Tuesday afternoon, which of these are open at the same time?',
     hint:'Open, not in use. If it is running in the background, count it.',
@@ -125,49 +124,56 @@ const Q = [
           ['canva','Canva'],['hubspot','HubSpot'],['drive','Google Drive, Docs, or Sheets'],
           ['fathom','Fathom'],['sheets','Spreadsheets with heavy formulas or pivot tables'],
           ['asana','Asana'],['mail','A desktop mail app']] },
-  { key:'calls', type:'radio',
-    title:'How many customer- or district-facing video calls do you run in a typical week?',
-    hint:'Internal calls do not count.',
-    opts:[['low','Two or fewer'],['mid','Three to five'],['high','Six or more']] },
   { key:'disk', type:'radio',
     title:'Is your current machine more than 60% full with files that are NOT synced to Drive?',
     hint:'Check under \uF8FF menu \u2192 System Settings \u2192 General \u2192 Storage.',
     opts:[['yes','Yes'],['no','No'],['unsure','Not sure']] },
-  { key:'restart', type:'radio',
-    title:'How often do you restart your machine?',
-    opts:[['weekly','About weekly, and I quit apps when done'],['rarely','Rarely — I leave everything running']] },
   { key:'place', type:'radio',
     title:'Where do you work from?',
     opts:[['desk','The same desk almost every day'],['two','Two setups — office and home'],
-          ['travel','Travelling or on-site twice a month or more']] }
+          ['travel','Travelling or on-site twice a month or more']] },
+  { key:'present', type:'radio',
+    title:'How often do you present from a room you do not control?',
+    hint:'District conference rooms, hotels, conferences — anywhere you plug into a display that is not yours.',
+    opts:[['weekly','Weekly or more'],['monthly','Roughly monthly'],
+          ['rare','A few times a year'],['never','Effectively never']] },
+  { key:'carry', type:'multi',
+    title:'When you work somewhere other than your main desk, what do you bring?',
+    opts:[['dock','A dock or hub'],['dongle','A USB-C to HDMI or display adapter'],
+          ['monitor','A portable external monitor'],['laptop','Just the laptop and charger'],
+          ['never','I do not really work anywhere else']] }
 ];
 
-/* GATES — any one firing rules out the Neo. Invisible to the user. */
-const GATES = [
-  a => a.displays === '2',
-  a => { const p=a.ports||[], heavy=['sd','hdmi','eth','audio'];
-         return p.some(x=>heavy.includes(x)) || p.filter(x=>x!=='none').length >= 2; },
-  a => (a.visual||[]).some(x=>x!=='none'),
-  a => (a.concurrent||[]).length >= 4,
-  a => a.calls === 'mid' || a.calls === 'high',
-  a => a.disk === 'yes' || a.disk === 'unsure'
+/* A dock or adapter already in the bag solves the Pro's port advantage. */
+const carriesAdapter = a => (a.carry||[]).some(x => x === 'dock' || x === 'dongle');
+
+/* PRO GATES — any one returns a 14-inch Pro. Hard-capped at 14 inches:
+   no 16-inch config exists in this file. */
+const PRO_GATES = [
+  a => a.videoFreq === 'weekly',                                   // sustained load; Air is fanless
+  a => a.displays === '3',                                         // beyond Air display support
+  a => (a.present === 'weekly' || a.present === 'monthly')         // needs built-in HDMI...
+       && !carriesAdapter(a)                                       // ...unless already carrying one
 ];
 
+/* Everyone who is not a Pro is an Air. Specs follow from the same answers. */
 function decide(a){
-  const fired = GATES.filter(g => g(a)).length;
-  if(!fired) return { m:MACHINES.neo, ram:MACHINES.neo.ram, storage:MACHINES.neo.storage };
+  const heavy = (a.concurrent||[]).length >= 4 || (a.visual||[]).some(x => x !== 'none');
+  if(PRO_GATES.some(g => g(a)))
+    return { m:MACHINES.mbp14, ram: heavy ? '24GB' : '16GB', storage:'1TB' };
   const m = (a.place === 'travel' || a.displays !== '0') ? MACHINES.air13 : MACHINES.air15;
-  const heavy = (a.concurrent||[]).length >= 4 || (a.visual||[]).some(x=>x!=='none') || a.restart === 'rarely';
-  return { m, ram: heavy ? '24GB' : '16GB', storage: (a.disk === 'yes' || a.disk === 'unsure') ? '1TB' : '512GB' };
+  return { m, ram: heavy ? '24GB' : '16GB',
+           storage: (a.disk === 'yes' || a.disk === 'unsure') ? '1TB' : '512GB' };
 }
 
 const A = {};
 let step = 0, result = null, color = null;
+const active = () => Q.filter(q => !q.when || q.when(A));
 const app = document.getElementById('app'), prog = document.getElementById('prog');
 
 function drawProg(at){
   prog.innerHTML = '';
-  for(let i=0;i<Q.length+1;i++){
+  for(let i=0;i<active().length+1;i++){
     const b = document.createElement('i');
     if(i <= at) b.className = 'on';
     prog.appendChild(b);
@@ -180,8 +186,10 @@ function ready(q){
 }
 
 function render(){
-  if(result) return renderResult();
-  const q = Q[step];
+  if(result) return renderResult(true);
+  const QS = active();
+  if(step > QS.length - 1) step = QS.length - 1;
+  const q = QS[step];
   drawProg(step);
   const card = document.createElement('div');
   card.className = 'card';
@@ -196,6 +204,12 @@ function render(){
   } else {
     const box = document.createElement('div');
     box.className = 'opts';
+    const btns = [];
+    const sync = () => {
+      btns.forEach(([b,val]) => b.setAttribute('aria-pressed',
+        (q.type === 'radio' ? A[q.key] === val : (A[q.key]||[]).includes(val)) ? 'true' : 'false'));
+      next.disabled = !ready(q);
+    };
     q.opts.forEach(([val,lab])=>{
       const b = document.createElement('button');
       b.type = 'button';
@@ -210,8 +224,9 @@ function render(){
           else cur = cur.includes(val) ? cur.filter(x=>x!==val) : cur.filter(x=>x!=='none').concat(val);
           A[q.key] = cur;
         }
-        render();
+        sync();   // no re-render, so the page does not move and focus stays put
       };
+      btns.push([b,val]);
       box.appendChild(b);
     });
     card.appendChild(box);
@@ -221,9 +236,9 @@ function render(){
   nav.className = 'nav';
   const next = document.createElement('button');
   next.className = 'primary';
-  next.textContent = step === Q.length - 1 ? 'Done' : 'Continue';
+  next.textContent = step === QS.length - 1 ? 'Done' : 'Continue';
   next.disabled = !ready(q);
-  next.onclick = () => { if(step === Q.length-1){ result = decide(A); } else step++; render(); };
+  next.onclick = () => { if(step === QS.length-1){ result = decide(A); } else step++; render(); };
   nav.appendChild(next);
   if(step > 0){
     const back = document.createElement('button');
@@ -237,8 +252,8 @@ function render(){
   window.scrollTo(0,0);
 }
 
-function renderResult(){
-  drawProg(Q.length);
+function renderResult(scroll){
+  drawProg(active().length);
   document.getElementById('title').textContent = 'Your machine';
   document.getElementById('sub').textContent = 'Pick a color, then send the configuration over.';
   app.innerHTML = '';
@@ -260,7 +275,7 @@ function renderResult(){
     b.type = 'button'; b.className = 'sw';
     b.setAttribute('aria-pressed', color === nm ? 'true' : 'false');
     b.innerHTML = `<span class="chip" style="background:${hex}"></span><span>${nm}</span>`;
-    b.onclick = () => { color = nm; renderResult(); };
+    b.onclick = () => { color = nm; renderResult(false); };
     sws.appendChild(b);
   });
   cc.appendChild(sws);
@@ -293,7 +308,7 @@ function renderResult(){
     oc.appendChild(nav);
     app.appendChild(oc);
   }
-  window.scrollTo(0,0);
+  if(scroll) window.scrollTo(0,0);
 }
 
 function summary(){
