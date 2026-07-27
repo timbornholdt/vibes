@@ -141,7 +141,14 @@ const Q = [
     title:'When you work somewhere other than your main desk, what do you bring?',
     opts:[['dock','A dock or hub'],['dongle','A USB-C to HDMI or display adapter'],
           ['monitor','A portable external monitor'],['laptop','Just the laptop and charger'],
-          ['never','I do not really work anywhere else']] }
+          ['never','I do not really work anywhere else']] },
+  { key:'carryPain', type:'radio',
+    when:a => carriesAdapter(a),
+    title:'Is carrying that a hassle?',
+    hint:'Be honest — this decides whether built-in HDMI and SD are worth paying for.',
+    opts:[['fine','Not really — it lives in my bag and I barely think about it'],
+          ['mild','Mildly annoying, but manageable'],
+          ['pain','Yes — I have been caught without it, or it slows me down']] }
 ];
 
 /* A dock or adapter already in the bag solves the Pro's port advantage. */
@@ -153,7 +160,7 @@ const PRO_GATES = [
   a => a.videoFreq === 'weekly',                                   // sustained load; Air is fanless
   a => a.displays === '3',                                         // beyond Air display support
   a => (a.present === 'weekly' || a.present === 'monthly')         // needs built-in HDMI...
-       && !carriesAdapter(a)                                       // ...unless already carrying one
+       && (!carriesAdapter(a) || a.carryPain === 'pain')           // ...unless an adapter already works for them
 ];
 
 /* Everyone who is not a Pro is an Air. Specs follow from the same answers. */
@@ -209,6 +216,11 @@ function render(){
       btns.forEach(([b,val]) => b.setAttribute('aria-pressed',
         (q.type === 'radio' ? A[q.key] === val : (A[q.key]||[]).includes(val)) ? 'true' : 'false'));
       next.disabled = !ready(q);
+      // An answer can add or remove a conditional question, so anything derived
+      // from the active list has to be recomputed here.
+      const live = active();
+      next.textContent = step === live.length - 1 ? 'Done' : 'Continue';
+      drawProg(step);
     };
     q.opts.forEach(([val,lab])=>{
       const b = document.createElement('button');
@@ -238,7 +250,10 @@ function render(){
   next.className = 'primary';
   next.textContent = step === QS.length - 1 ? 'Done' : 'Continue';
   next.disabled = !ready(q);
-  next.onclick = () => { if(step === QS.length-1){ result = decide(A); } else step++; render(); };
+  next.onclick = () => {
+    if(step === active().length - 1){ result = decide(A); } else step++;
+    render();
+  };
   nav.appendChild(next);
   if(step > 0){
     const back = document.createElement('button');
