@@ -21,6 +21,7 @@
     --grease-games:   #6ee787;
     --grease-tv:      #ff8a3d;
     --grease-art:     #ff6ec7;
+    --grease-work:    #abd8b2;
   }
 
   html { background-color: #0d0c0b; }
@@ -84,6 +85,7 @@
   .chip[data-cat="games"].on   { background: var(--grease-games);   border-color: var(--grease-games); }
   .chip[data-cat="tv"].on      { background: var(--grease-tv);      border-color: var(--grease-tv); }
   .chip[data-cat="art"].on     { background: var(--grease-art);     border-color: var(--grease-art); }
+  .chip[data-cat="work"].on    { background: var(--grease-work);    border-color: var(--grease-work); }
 
   .find {
     margin-left: auto;
@@ -207,6 +209,7 @@
     <button class="chip" data-cat="games">Games</button>
     <button class="chip" data-cat="tv">TV</button>
     <button class="chip" data-cat="art">Art</button>
+    <button class="chip" data-cat="work">Work</button>
     <input class="find" id="find" type="text" placeholder="search, or type a name + ↵ — try “random”" autocomplete="off" autocapitalize="off" spellcheck="false">
   </div>
   <div class="cmdbar" id="cmdbar"></div>
@@ -217,6 +220,7 @@
 
 <script>
   const tools = [
+    { file: "cf-machine-spec-survey.html", title: "Machine Spec Survey", cat: "work", desc: "Nine questions about how you actually work — displays, peripherals, what's open on a Tuesday afternoon — then it recommends a machine and lets you pick a color. Copy the summary into Slack when you're done." },
     { file: "sketchpad.html", title: "Sketchpad", cat: "art", desc: "A full-screen drawing canvas for your finger: three brush widths, any color, nothing else in the way. Screenshot it when you're done." },
     { file: "aqi-radar.html", title: "Twin Cities AQI Radar", cat: "science", desc: "A weather-radar-style map of metro air quality you can play back over the last 48 hours. Real station readings via a free WAQI token; every frame is labeled observed vs. model estimate." },
     { file: "album-publisher.html", title: "Album Publisher", cat: "music", desc: "Search your Plex library, pull an album's art, release date, and genres straight onto timbornholdt.com, then write the review from anywhere. Also edits reviews for albums already on the site." },
@@ -239,7 +243,7 @@
   const greaseColor = {
     body: "var(--grease-body)", home: "var(--grease-home)", science: "var(--grease-science)",
     music: "var(--grease-music)", games: "var(--grease-games)", tv: "var(--grease-tv)",
-    art: "var(--grease-art)",
+    art: "var(--grease-art)", work: "var(--grease-work)",
   };
 
   // Hand-drawn line-art icon per page. viewBox 0 0 96 96, stroke=currentColor
@@ -247,6 +251,12 @@
   const svg = (inner) =>
     `<svg viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
   const icons = {
+    // laptop with a checked-off list on the screen
+    "cf-machine-spec-survey.html": svg(`
+      <path d="M26 22h44v36H26z"/>
+      <path d="M12 70h72l-8-12H20z"/>
+      <path d="M36 34l4 4 8-8"/>
+      <path d="M36 48h22"/>`),
     // pencil drawing a squiggle
     "sketchpad.html": svg(`
       <path d="M64 18l14 14-38 38-18 4 4-18 38-38z"/>
