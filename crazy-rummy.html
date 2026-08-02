@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crazy Rummy Scoresheet</title>
+<style>
+  * { box-sizing: border-box; }
+
+  :root {
+    --felt:       #0b2b1c;
+    --felt-deep:  #071e13;
+    --line:       #1e4a33;
+    --line-soft:  #16382777;
+    --cream:      #f0e8d8;
+    --cream-dim:  #b9ae96;
+    --gold:       #d9b45a;
+    --gold-soft:  #d9b45a33;
+    --red:        #e2564d;
+    --lead:       #7fd99a;
+    --cell-bg:    #0d3120;
+    --cell-now:   #124228;
+  }
+
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Courier New', 'Courier', ui-monospace, monospace;
+    background-color: var(--felt-deep);
+    background-image:
+      radial-gradient(130% 90% at 50% -20%, var(--felt) 0%, var(--felt-deep) 75%);
+    color: var(--cream);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 900px; margin: 0 auto; padding: 28px 16px 90px; }
+
+  header { text-align: center; margin-bottom: 18px; }
+  .kicker {
+    font-size: 11px; letter-spacing: 4px; text-transform: uppercase;
+    color: var(--cream-dim);
+  }
+  h1 {
+    font-size: clamp(30px, 8vw, 52px);
+    margin: 4px 0 0;
+    line-height: 1;
+    color: var(--cream);
+    text-transform: lowercase;
+    letter-spacing: 1px;
+  }
+  h1 .suit { color: var(--red); }
+
+  /* ── Setup screen ── */
+  .panel {
+    background: var(--cell-bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px 16px;
+    max-width: 460px;
+    margin: 0 auto;
+  }
+  .panel h2 {
+    margin: 0 0 4px;
+    font-size: 14px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--gold);
+  }
+  .panel p.hint { margin: 0 0 14px; font-size: 12px; color: var(--cream-dim); line-height: 1.5; }
+
+  .player-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 8px;
+  }
+  .player-row input[type="text"] {
+    flex: 1; min-width: 0;
+    font-family: inherit; font-size: 16px;
+    color: var(--cream);
+    background: var(--felt-deep);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 10px 12px;
+    outline: none;
+  }
+  .player-row input[type="text"]:focus { border-color: var(--gold); }
+
+  .deal-pick {
+    flex-shrink: 0;
+    font-family: inherit;
+    font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--cream-dim);
+    background: transparent;
+    border: 1px dashed var(--line);
+    border-radius: 6px;
+    padding: 10px 8px;
+    cursor: pointer;
+    min-width: 78px;
+  }
+  .deal-pick.on {
+    color: #12100a; font-weight: 700;
+    background: var(--gold);
+    border: 1px solid var(--gold);
+  }
+
+  .remove-p {
+    flex-shrink: 0;
+    font-family: inherit; font-size: 18px; line-height: 1;
+    color: var(--cream-dim);
+    background: transparent;
+    border: none;
+    padding: 8px 6px;
+    cursor: pointer;
+  }
+  .remove-p:disabled { opacity: 0.25; cursor: default; }
+
+  .btn {
+    font-family: inherit;
+    font-size: 13px; letter-spacing: 2px; text-transform: uppercase;
+    border-radius: 6px;
+    padding: 12px 18px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .btn.ghost {
+    color: var(--cream);
+    background: transparent;
+    border: 1px solid var(--line);
+    width: 100%;
+    margin-top: 4px;
+  }
+  .btn.ghost:hover { border-color: var(--gold); }
+  .btn.primary {
+    color: #12100a; font-weight: 700;
+    background: var(--gold);
+    border: 1px solid var(--gold);
+    width: 100%;
+    margin-top: 14px;
+  }
+  .btn.primary:disabled { opacity: 0.4; cursor: default; }
+
+  /* ── Game screen ── */
+  .topbar {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 10px; margin-bottom: 10px;
+  }
+  .roundinfo { font-size: 13px; color: var(--cream-dim); }
+  .roundinfo b { color: var(--gold); font-size: 15px; }
+  .newgame {
+    font-family: inherit;
+    font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--cream-dim);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 7px 11px;
+    cursor: pointer;
+  }
+  .newgame:hover { color: var(--red); border-color: var(--red); }
+
+  .banner {
+    display: none;
+    text-align: center;
+    background: var(--gold-soft);
+    border: 1px solid var(--gold);
+    border-radius: 10px;
+    padding: 14px 12px;
+    margin-bottom: 12px;
+    font-size: 15px;
+    color: var(--gold);
+  }
+  .banner.show { display: block; }
+  .banner b { color: var(--cream); }
+
+  .sheet-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--cell-bg);
+  }
+
+  table {
+    border-collapse: separate; border-spacing: 0;
+    table-layout: fixed;
+    width: 100%;
+    /* min-width set inline per player count so columns never crush */
+  }
+  th, td {
+    border-bottom: 1px solid var(--line-soft);
+    border-right: 1px solid var(--line-soft);
+    padding: 0;
+    text-align: center;
+    vertical-align: middle;
+  }
+  tr > *:last-child { border-right: none; }
+
+  thead th {
+    position: sticky; top: 0; z-index: 3;
+    background: var(--felt-deep);
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--cream);
+    padding: 10px 6px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  thead th.leader { color: var(--lead); }
+  thead th .crown { font-size: 11px; }
+
+  th.roundcol, td.roundcol {
+    position: sticky; left: 0; z-index: 2;
+    background: var(--felt-deep);
+    border-right: 1px solid var(--line);
+    padding: 6px 6px;
+    overflow: hidden;
+  }
+  thead th.roundcol { z-index: 4; }
+
+  .rlabel { font-size: 17px; font-weight: 700; color: var(--cream); }
+  .rlabel .wild { color: var(--red); }
+  .dealer-tag {
+    margin-top: 2px;
+    font-size: 9px; letter-spacing: 0.5px; text-transform: uppercase;
+    color: var(--cream-dim);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 90px;
+  }
+  .dealer-tag b { color: var(--gold); font-weight: 700; }
+
+  tr.now td { background: var(--cell-now); }
+  tr.now td.roundcol { background: #0d3527; }
+  tr.now .rlabel .wild { text-shadow: 0 0 12px #e2564d88; }
+
+  .cellwrap { display: flex; flex-direction: column; align-items: stretch; }
+  .cellwrap input {
+    width: 100%;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    text-align: center;
+    color: var(--cream);
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 8px 4px 2px;
+    -moz-appearance: textfield;
+  }
+  .cellwrap input::-webkit-outer-spin-button,
+  .cellwrap input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .cellwrap input:focus { background: #ffffff10; }
+  .cellwrap input::placeholder { color: #3d5c4a; font-weight: 400; }
+  .running {
+    font-size: 11px;
+    color: var(--cream-dim);
+    padding: 0 4px 6px;
+    min-height: 17px;
+  }
+  .running.has { color: var(--gold); }
+
+  tfoot td {
+    position: sticky; bottom: 0; z-index: 3;
+    background: var(--felt-deep);
+    border-top: 1px solid var(--line);
+    border-bottom: none;
+    font-size: 16px; font-weight: 700;
+    color: var(--cream);
+    padding: 10px 8px;
+  }
+  tfoot td.roundcol {
+    z-index: 4;
+    font-size: 10px; font-weight: 400;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--cream-dim);
+  }
+  tfoot td.leader { color: var(--lead); }
+
+  .footnote {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--cream-dim);
+    line-height: 1.6;
+  }
+
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="kicker">two decks &middot; jokers in &middot; low score wins</div>
+    <h1>crazy rummy <span class="suit">&#9829;</span></h1>
+  </header>
+
+  <!-- Setup -->
+  <section id="setup" class="panel hidden">
+    <h2>Who's playing?</h2>
+    <p class="hint">Add everyone in seating order, then tap DEALS next to whoever deals the first hand (3s). The deal rotates from there.</p>
+    <div id="playerList"></div>
+    <button class="btn ghost" id="addPlayer" type="button">+ add player</button>
+    <button class="btn primary" id="startGame" type="button">deal the 3s</button>
+  </section>
+
+  <!-- Game -->
+  <section id="game" class="hidden">
+    <div class="topbar">
+      <div class="roundinfo" id="roundInfo"></div>
+      <button class="newgame" id="newGame" type="button">new game</button>
+    </div>
+    <div class="banner" id="banner"></div>
+    <div class="sheet-scroll">
+      <table id="sheetTable"></table>
+    </div>
+    <p class="footnote">Enter each player's score for the round &mdash; the running total updates underneath.<br>Tap any earlier cell to fix a mistake. Everything saves on this device.</p>
+  </section>
+
+</div>
+
+<script type="module">
+const ROUNDS = ["3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+const STORE_KEY = "crazy-rummy-v1";
+const MAX_PLAYERS = 12;
+
+let state = null; // { players: [..], firstDealer: n, grid: [11][players] of number|null }
+
+// ---------- persistence ----------
+function save() {
+  localStorage.setItem(STORE_KEY, JSON.stringify(state));
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (!s || !Array.isArray(s.players) || s.players.length < 2 || !Array.isArray(s.grid)) return null;
+    return s;
+  } catch { return null; }
+}
+
+// ---------- setup screen ----------
+const setupEl = document.getElementById("setup");
+const gameEl = document.getElementById("game");
+const playerListEl = document.getElementById("playerList");
+let setupNames = ["", ""];
+let setupDealer = 0;
+
+function renderSetup() {
+  playerListEl.innerHTML = "";
+  setupNames.forEach((name, i) => {
+    const row = document.createElement("div");
+    row.className = "player-row";
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = `player ${i + 1}`;
+    input.value = name;
+    input.autocapitalize = "words";
+    input.addEventListener("input", () => {
+      setupNames[i] = input.value;
+      validateStart();
+    });
+
+    const deal = document.createElement("button");
+    deal.type = "button";
+    deal.className = "deal-pick" + (setupDealer === i ? " on" : "");
+    deal.textContent = setupDealer === i ? "deals 1st" : "deals?";
+    deal.addEventListener("click", () => {
+      setupDealer = i;
+      renderSetup();
+    });
+
+    const rm = document.createElement("button");
+    rm.type = "button";
+    rm.className = "remove-p";
+    rm.textContent = "×";
+    rm.disabled = setupNames.length <= 2;
+    rm.addEventListener("click", () => {
+      setupNames.splice(i, 1);
+      if (setupDealer >= setupNames.length) setupDealer = 0;
+      renderSetup();
+    });
+
+    row.append(input, deal, rm);
+    playerListEl.appendChild(row);
+  });
+  document.getElementById("addPlayer").disabled = setupNames.length >= MAX_PLAYERS;
+  validateStart();
+}
+
+function validateStart() {
+  const filled = setupNames.filter(n => n.trim()).length;
+  document.getElementById("startGame").disabled = filled < 2;
+}
+
+document.getElementById("addPlayer").addEventListener("click", () => {
+  if (setupNames.length < MAX_PLAYERS) setupNames.push("");
+  renderSetup();
+});
+
+document.getElementById("startGame").addEventListener("click", () => {
+  const names = setupNames.map(n => n.trim()).filter(Boolean);
+  if (names.length < 2) return;
+  // dealer index maps into the filtered list: count filled names at or before pick
+  let dealerName = setupNames[setupDealer] && setupNames[setupDealer].trim();
+  let firstDealer = dealerName ? names.indexOf(dealerName) : 0;
+  if (firstDealer < 0) firstDealer = 0;
+  state = {
+    players: names,
+    firstDealer,
+    grid: ROUNDS.map(() => names.map(() => null)),
+  };
+  save();
+  showGame();
+});
+
+// ---------- game screen ----------
+const tableEl = document.getElementById("sheetTable");
+const bannerEl = document.getElementById("banner");
+const roundInfoEl = document.getElementById("roundInfo");
+
+function dealerFor(round) {
+  return (state.firstDealer + round) % state.players.length;
+}
+
+function totals() {
+  return state.players.map((_, p) =>
+    state.grid.reduce((sum, row) => sum + (row[p] ?? 0), 0)
+  );
+}
+
+function runningAt(round, p) {
+  // cumulative total through this round, only if this cell is filled
+  if (state.grid[round][p] === null) return null;
+  let sum = 0;
+  for (let r = 0; r <= round; r++) sum += state.grid[r][p] ?? 0;
+  return sum;
+}
+
+function currentRound() {
+  // first round where not everyone has a score
+  for (let r = 0; r < ROUNDS.length; r++) {
+    if (state.grid[r].some(v => v === null)) return r;
+  }
+  return -1; // game over
+}
+
+function gameOver() {
+  return currentRound() === -1;
+}
+
+function leaders() {
+  const t = totals();
+  const anyEntered = state.grid.some(row => row.some(v => v !== null));
+  if (!anyEntered) return [];
+  const min = Math.min(...t);
+  return t.map((v, i) => v === min ? i : -1).filter(i => i >= 0);
+}
+
+const ROUND_COL_W = 92, PLAYER_COL_W = 90;
+
+function buildTable() {
+  const P = state.players;
+  const lead = leaders();
+
+  tableEl.style.minWidth = (ROUND_COL_W + PLAYER_COL_W * P.length) + "px";
+  let html = `<colgroup><col style="width:${ROUND_COL_W}px">` +
+    P.map(() => "<col>").join("") + "</colgroup>";
+  html += "<thead><tr><th class='roundcol'></th>";
+  P.forEach((name, i) => {
+    const isLead = lead.includes(i) && lead.length < P.length;
+    html += `<th class="${isLead ? "leader" : ""}">${isLead ? "<span class='crown'>♛</span> " : ""}${esc(name)}</th>`;
+  });
+  html += "</tr></thead><tbody>";
+
+  const now = currentRound();
+  ROUNDS.forEach((label, r) => {
+    const d = dealerFor(r);
+    html += `<tr class="${r === now ? "now" : ""}">`;
+    html += `<td class="roundcol">
+      <div class="rlabel"><span class="wild">${label}</span>s</div>
+      <div class="dealer-tag"><b>${esc(shortName(P[d]))}</b> deals</div>
+    </td>`;
+    P.forEach((_, p) => {
+      const v = state.grid[r][p];
+      const run = runningAt(r, p);
+      html += `<td class="score-cell"><div class="cellwrap">
+        <input type="number" inputmode="numeric" min="0" step="1"
+          data-r="${r}" data-p="${p}"
+          value="${v === null ? "" : v}" placeholder="&ndash;">
+        <div class="running ${run === null ? "" : "has"}">${run === null ? "" : "= " + run}</div>
+      </div></td>`;
+    });
+    html += "</tr>";
+  });
+  html += "</tbody><tfoot><tr><td class='roundcol'>total</td>";
+
+  const t = totals();
+  P.forEach((_, i) => {
+    const isLead = lead.includes(i) && lead.length < P.length;
+    html += `<td class="${isLead ? "leader" : ""}">${t[i]}</td>`;
+  });
+  html += "</tr></tfoot>";
+
+  tableEl.innerHTML = html;
+
+  tableEl.querySelectorAll("input").forEach(inp => {
+    inp.addEventListener("input", onScoreInput);
+    inp.addEventListener("keydown", e => {
+      if (e.key === "Enter") { e.preventDefault(); focusNext(inp); }
+    });
+  });
+}
+
+function onScoreInput(e) {
+  const inp = e.target;
+  const r = +inp.dataset.r, p = +inp.dataset.p;
+  const raw = inp.value.trim();
+  if (raw === "") {
+    state.grid[r][p] = null;
+  } else {
+    const n = parseInt(raw, 10);
+    state.grid[r][p] = Number.isFinite(n) ? Math.max(0, n) : null;
+  }
+  save();
+  refreshDerived();
+}
+
+// update running totals, totals row, leader marks, banner — without
+// rebuilding the table (keeps the focused input alive)
+function refreshDerived() {
+  const P = state.players;
+  const t = totals();
+  const lead = leaders();
+  const now = currentRound();
+
+  tableEl.querySelectorAll("tbody tr").forEach((tr, r) => {
+    tr.classList.toggle("now", r === now);
+    tr.querySelectorAll(".running").forEach((el, p) => {
+      const run = runningAt(r, p);
+      el.textContent = run === null ? "" : "= " + run;
+      el.classList.toggle("has", run !== null);
+    });
+  });
+
+  const headCells = tableEl.querySelectorAll("thead th:not(.roundcol)");
+  headCells.forEach((th, i) => {
+    const isLead = lead.includes(i) && lead.length < P.length;
+    th.classList.toggle("leader", isLead);
+    th.innerHTML = `${isLead ? "<span class='crown'>♛</span> " : ""}${esc(P[i])}`;
+  });
+
+  const footCells = tableEl.querySelectorAll("tfoot td:not(.roundcol)");
+  footCells.forEach((td, i) => {
+    td.textContent = t[i];
+    td.classList.toggle("leader", lead.includes(i) && lead.length < P.length);
+  });
+
+  updateRoundInfo();
+  updateBanner();
+}
+
+function focusNext(inp) {
+  const inputs = [...tableEl.querySelectorAll("input")];
+  const i = inputs.indexOf(inp);
+  if (i >= 0 && i < inputs.length - 1) inputs[i + 1].focus();
+  else inp.blur();
+}
+
+function updateRoundInfo() {
+  const now = currentRound();
+  if (now === -1) {
+    roundInfoEl.innerHTML = "game complete";
+    return;
+  }
+  const d = dealerFor(now);
+  roundInfoEl.innerHTML = `round: <b>${ROUNDS[now]}s wild</b> &middot; ${esc(shortName(state.players[d]))} deals`;
+}
+
+function updateBanner() {
+  if (!gameOver()) {
+    bannerEl.classList.remove("show");
+    return;
+  }
+  const t = totals();
+  const lead = leaders();
+  const names = lead.map(i => esc(state.players[i]));
+  const min = Math.min(...t);
+  bannerEl.innerHTML = lead.length > 1
+    ? `\u{1F3C6} It's a tie &mdash; <b>${names.join(" & ")}</b> at ${min}!`
+    : `\u{1F3C6} <b>${names[0]}</b> wins with ${min}!`;
+  bannerEl.classList.add("show");
+}
+
+document.getElementById("newGame").addEventListener("click", () => {
+  if (!confirm("Start a new game? This wipes the current scoresheet.")) return;
+  setupNames = state ? [...state.players] : ["", ""];
+  setupDealer = 0;
+  state = null;
+  localStorage.removeItem(STORE_KEY);
+  showSetup();
+});
+
+// ---------- helpers / boot ----------
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
+}
+function shortName(name) {
+  return name.length > 10 ? name.slice(0, 9) + "…" : name;
+}
+
+function showSetup() {
+  setupEl.classList.remove("hidden");
+  gameEl.classList.add("hidden");
+  renderSetup();
+}
+function showGame() {
+  setupEl.classList.add("hidden");
+  gameEl.classList.remove("hidden");
+  buildTable();
+  updateRoundInfo();
+  updateBanner();
+}
+
+state = load();
+if (state) showGame();
+else showSetup();
+</script>
+</body>
+</html>

@@ -220,6 +220,7 @@
 
 <script>
   const tools = [
+    { file: "crazy-rummy.html", title: "Crazy Rummy Scoresheet", cat: "games", desc: "Score sheet for crazy rummy nights: enter each round's score and the running total does the math for you. Tracks whose deal it is from 3s through Ks, crowns the leader, and remembers the game if you close the tab." },
     { file: "cf-machine-spec-survey.html", title: "Machine Spec Survey", cat: "work", desc: "Nine questions about how you actually work — displays, peripherals, what's open on a Tuesday afternoon — then it recommends a machine and lets you pick a color. Copy the summary into Slack when you're done." },
     { file: "sketchpad.html", title: "Sketchpad", cat: "art", desc: "A full-screen drawing canvas for your finger: three brush widths, any color, nothing else in the way. Screenshot it when you're done." },
     { file: "aqi-radar.html", title: "Twin Cities AQI Radar", cat: "science", desc: "A weather-radar-style map of metro air quality you can play back over the last 48 hours. Real station readings via a free WAQI token; every frame is labeled observed vs. model estimate." },
@@ -251,6 +252,11 @@
   const svg = (inner) =>
     `<svg viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
   const icons = {
+    // fanned pair of playing cards, heart pip on the front one
+    "crazy-rummy.html": svg(`
+      <rect x="38" y="26" width="34" height="48" rx="5" transform="rotate(10 55 50)"/>
+      <rect x="22" y="22" width="34" height="48" rx="5"/>
+      <path d="M39 40c-3-5-10-3-10 3 0 5 7 8 10 12 3-4 10-7 10-12 0-6-7-8-10-3z" fill="currentColor" stroke="none"/>`),
     // laptop with a checked-off list on the screen
     "cf-machine-spec-survey.html": svg(`
       <path d="M26 22h44v36H26z"/>
