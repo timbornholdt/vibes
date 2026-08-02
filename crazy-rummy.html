@@ -37,10 +37,6 @@
   .wrap { max-width: 900px; margin: 0 auto; padding: 28px 16px 90px; }
 
   header { text-align: center; margin-bottom: 18px; }
-  .kicker {
-    font-size: 11px; letter-spacing: 4px; text-transform: uppercase;
-    color: var(--cream-dim);
-  }
   h1 {
     font-size: clamp(30px, 8vw, 52px);
     margin: 4px 0 0;
@@ -272,14 +268,6 @@
   }
   tfoot td.leader { color: var(--lead); }
 
-  .footnote {
-    margin-top: 12px;
-    text-align: center;
-    font-size: 11px;
-    color: var(--cream-dim);
-    line-height: 1.6;
-  }
-
   .hidden { display: none; }
 </style>
 </head>
@@ -287,7 +275,6 @@
 <div class="wrap">
 
   <header>
-    <div class="kicker">two decks &middot; jokers in &middot; low score wins</div>
     <h1>crazy rummy <span class="suit">&#9829;</span></h1>
   </header>
 
@@ -310,7 +297,6 @@
     <div class="sheet-scroll">
       <table id="sheetTable"></table>
     </div>
-    <p class="footnote">Enter each player's score for the round &mdash; the running total updates underneath.<br>Tap any earlier cell to fix a mistake. Everything saves on this device.</p>
   </section>
 
 </div>
