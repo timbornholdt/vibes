@@ -220,6 +220,7 @@
 
 <script>
   const tools = [
+    { file: "comics.html", title: "Comics", cat: "art", desc: "Flip through the latest strips from 400+ smallweb webcomics, courtesy of Kagi's smallcomic list. Each comic links to its site and RSS feed; remove the ones that aren't for you." },
     { file: "crazy-rummy.html", title: "Crazy Rummy Scoresheet", cat: "games", desc: "Score sheet for crazy rummy nights: enter each round's score and the running total does the math for you. Tracks whose deal it is from 3s through Ks, crowns the leader, and remembers the game if you close the tab." },
     { file: "cf-machine-spec-survey.html", title: "Machine Spec Survey", cat: "work", desc: "Nine questions about how you actually work — displays, peripherals, what's open on a Tuesday afternoon — then it recommends a machine and lets you pick a color. Copy the summary into Slack when you're done." },
     { file: "sketchpad.html", title: "Sketchpad", cat: "art", desc: "A full-screen drawing canvas for your finger: three brush widths, any color, nothing else in the way. Screenshot it when you're done." },
@@ -252,6 +253,13 @@
   const svg = (inner) =>
     `<svg viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
   const icons = {
+    // comic panel with a speech bubble
+    "comics.html": svg(`
+      <rect x="18" y="20" width="60" height="56" rx="4"/>
+      <path d="M48 20v56M18 48h30"/>
+      <path d="M54 34c0-4 4-6 9-6s9 2 9 6-4 6-9 6l-6 4 2-5c-3-1-5-2-5-5z" fill="currentColor" stroke="none"/>
+      <circle cx="30" cy="36" r="3" fill="currentColor" stroke="none"/>
+      <path d="M26 58c1-3 7-3 8 0"/>`),
     // fanned pair of playing cards, heart pip on the front one
     "crazy-rummy.html": svg(`
       <rect x="38" y="26" width="34" height="48" rx="5" transform="rotate(10 55 50)"/>
