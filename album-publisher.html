@@ -76,10 +76,31 @@
   @keyframes blink { 50% { opacity: 0; } }
   .blink { animation: blink 1s steps(1) infinite; }
 
+  /* ── diagnostics log ── */
+  #logWrap { margin-top: 22px; border-top: 1px dashed var(--g2); padding-top: 10px; }
+  .logbar { display: flex; align-items: center; gap: 12px; }
+  .logbar button { background: none; border: none; color: var(--g2); padding: 0;
+    font-family: var(--pix); font-size: 7px; letter-spacing: 1px; }
+  .logbar .spacer { flex: 1; }
+  .logbar #logCount { color: var(--g3); }
+  .logbar #logCount.bad { background: var(--g3); color: var(--g0); padding: 2px 4px; }
+  #logBody { margin-top: 8px; border: 2px solid var(--g3); padding: 8px; max-height: 38vh;
+    overflow-y: auto; font-size: 12px; line-height: 1.45; }
+  .logline { padding: 4px 0; border-bottom: 1px dotted var(--g1); overflow-wrap: anywhere; }
+  .logline:last-child { border-bottom: none; }
+  .logline .ts { color: var(--g2); margin-right: 6px; }
+  .logline.err .msg { font-weight: 700; }
+  .logline.err .ts::after { content: " !"; }
+  .logline .note { display: block; color: var(--g2); font-size: 11px; margin-top: 3px;
+    text-align: left; }
+  .logempty { color: var(--g2); font-size: 12px; }
+
   /* ── results ── */
   .section-label { font-family: var(--pix); font-size: 7px; letter-spacing: 1px; color: var(--g2);
     margin: 18px 2px 8px; text-transform: uppercase; }
   .section-label::before { content: "▶ "; }
+  .section-label.bad { color: var(--g3); }
+  .section-label.bad::before { content: "! "; }
   .result { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
     background: var(--g0); border: 2px solid var(--g3); padding: 8px; margin-bottom: 8px;
     color: var(--g3); font-family: var(--mono); }
@@ -133,7 +154,7 @@
   .panel { border: 2px solid var(--g3); padding: 12px; margin-bottom: 16px; }
   .panel.hidden { display: none; }
   .panel .hint { font-size: 12px; color: var(--g2); margin: 6px 0 0; }
-  .panel .row { display: flex; gap: 8px; margin-top: 14px; }
+  .panel .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
   .hidden { display: none; }
 
   /* ── shell chrome below the screen ── */
@@ -188,8 +209,10 @@
           <p class="hint">Shared with Timamp — prefilled if that's set up on this device.</p>
           <div class="row">
             <button class="primary" id="saveSettings">Save</button>
+            <button class="ghost" id="testPlex">Test</button>
             <button class="ghost" id="closeSettings">Close</button>
           </div>
+          <div class="status" id="settingsStatus"></div>
         </div>
 
         <div id="searchView">
@@ -216,6 +239,16 @@
         </div>
       </div>
 
+      <div id="logWrap">
+        <div class="logbar">
+          <button id="logToggle" aria-expanded="false">&#9654; log <span id="logCount">0</span></button>
+          <span class="spacer"></span>
+          <button id="logCopy">copy</button>
+          <button id="logClear">clear</button>
+        </div>
+        <div id="logBody" class="hidden"></div>
+      </div>
+
     </div>
   </div>
   <div class="chrome">
@@ -236,18 +269,151 @@ const LS = { plexUrl: 'timamp_url', plexToken: 'timamp_token', siteToken: 'album
   siteBase: 'album-api-base' };
 const SITE = localStorage.getItem(LS.siteBase) || 'https://timbornholdt.com';
 
+// every network call gets a deadline — without one a dead Plex box leaves the
+// browser hanging for minutes and the screen stuck on SEARCHING…
+const TIMEOUT = { plex: 12000, site: 15000, art: 30000 };
+
 let plexBase = (localStorage.getItem(LS.plexUrl) || '').replace(/\/+$/, '');
 let plexToken = localStorage.getItem(LS.plexToken) || '';
 let siteToken = localStorage.getItem(LS.siteToken) || '';
 let current = null; // plex album selected for import
 
-// ── boot gate ──
-async function tokenValid() {
+// ── diagnostics log ──
+const LOG_MAX = 60;
+const logLines = [];
+let logErrors = 0;
+let logAutoOpened = false;
+
+function stamp() {
+  const d = new Date();
+  return [d.getHours(), d.getMinutes(), d.getSeconds()]
+    .map((n) => String(n).padStart(2, '0')).join(':');
+}
+function log(kind, msg, detail) {
+  logLines.push({ kind, msg, detail, ts: stamp() });
+  if (logLines.length > LOG_MAX) logLines.shift();
+  if (kind === 'err') {
+    logErrors++;
+    if (!logAutoOpened) { logAutoOpened = true; setLogOpen(true); } // first failure opens itself
+  }
+  renderLog();
+}
+// log an interpreted failure and hand back the Error to throw
+function logged(msg, detail) {
+  log('err', msg, detail);
+  const e = new Error(msg);
+  e.detail = detail;
+  return e;
+}
+function renderLog() {
+  const count = $('logCount');
+  count.textContent = logErrors ? logErrors + ' ERR' : String(logLines.length);
+  count.className = logErrors ? 'bad' : '';
+  const body = $('logBody');
+  body.innerHTML = logLines.map((l) => `<div class="logline ${l.kind}">
+      <span class="ts">${l.ts}</span><span class="msg">${esc(l.msg)}</span>
+      ${l.detail ? `<span class="note">${esc(l.detail)}</span>` : ''}
+    </div>`).join('') || '<div class="logempty">nothing logged yet</div>';
+  body.scrollTop = body.scrollHeight;
+}
+function setLogOpen(open) {
+  $('logBody').classList.toggle('hidden', !open);
+  $('logToggle').setAttribute('aria-expanded', String(open));
+  $('logToggle').innerHTML = (open ? '&#9660;' : '&#9654;') + ' log <span id="logCount"></span>';
+  renderLog();
+}
+$('logToggle').addEventListener('click', () =>
+  setLogOpen($('logBody').classList.contains('hidden')));
+$('logClear').addEventListener('click', () => {
+  logLines.length = 0; logErrors = 0; renderLog();
+});
+$('logCopy').addEventListener('click', async () => {
+  const text = logLines.map((l) =>
+    `[${l.ts}] ${l.kind.toUpperCase()} ${l.msg}${l.detail ? '\n    ' + l.detail : ''}`).join('\n');
   try {
-    const res = await fetch(SITE + '/api/v1/albums?q=a',
-      { headers: { Authorization: 'Bearer ' + siteToken } });
-    return res.ok ? true : (res.status === 401 ? false : null); // null = site unreachable/erroring
-  } catch (e) { return null; }
+    await navigator.clipboard.writeText(text);
+    $('logCopy').textContent = 'copied';
+  } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    $('logCopy').textContent = 'copied';
+  }
+  setTimeout(() => { $('logCopy').textContent = 'copy'; }, 1500);
+});
+
+// ── fetch with a deadline + human-readable failures ──
+// tokens are stripped from anything that reaches the log, so it's safe to paste
+function redact(url) {
+  try {
+    const u = new URL(url, location.href);
+    if (u.searchParams.has('X-Plex-Token')) u.searchParams.set('X-Plex-Token', '***');
+    return u.origin + u.pathname + u.search;
+  } catch (e) { return String(url); }
+}
+
+function fetchError(e, tag, what, url, ms, elapsed) {
+  const target = redact(url);
+  const plex = tag === 'PLEX';
+  let msg, detail;
+  if (e && (e.name === 'AbortError' || e.name === 'TimeoutError')) {
+    msg = `${tag}: NO ANSWER AFTER ${Math.round(ms / 1000)}S`;
+    detail = `${what}: gave up waiting on ${target}. ` + (plex
+      ? 'Nothing answered, which usually means the server is off/asleep, is on a different LAN address than the saved URL, or you are not on a network that can reach it (off the LAN, no VPN).'
+      : 'The site did not respond in time.');
+  } else if (e instanceof TypeError) {
+    if (location.protocol === 'https:' && /^http:/i.test(url)) {
+      msg = `${tag}: BLOCKED — INSECURE URL`;
+      detail = `${what}: this page is served over HTTPS, so the browser refuses to call the plain http:// address ${target}. ` + (plex
+        ? 'Use the https://…plex.direct:32400 URL that Plex shows under Settings → Remote Access.' : '');
+    } else {
+      msg = `${tag}: UNREACHABLE`;
+      detail = `${what}: the browser could not complete the request to ${target} (${elapsed}ms). It refuses to say which reason, but it is one of: nothing listening on that host/port, ` + (plex
+        ? 'the .plex.direct hostname no longer pointing at your server (it encodes the LAN IP, so it goes stale when that IP changes), an expired or untrusted certificate, or Plex refusing the cross-origin request. Opening the URL in a browser tab shows the real error.'
+        : 'DNS failure, a certificate problem, or CORS being refused.');
+    }
+  } else {
+    msg = `${tag}: ${String((e && e.message) || e).slice(0, 60).toUpperCase()}`;
+    detail = `${what}: ${String((e && e.stack) || e)}`;
+  }
+  return logged(msg, detail);
+}
+
+async function timedFetch(tag, what, url, opts = {}, ms = TIMEOUT.site) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), ms);
+  const t0 = Date.now();
+  let res;
+  try {
+    res = await fetch(url, { ...opts, signal: ctl.signal });
+  } catch (e) {
+    throw fetchError(e, tag, what, url, ms, Date.now() - t0);
+  } finally {
+    clearTimeout(timer);
+  }
+  log('info', `${tag} ${what} → ${res.status} in ${Date.now() - t0}ms`,
+    res.ok ? '' : `${opts.method || 'GET'} ${redact(url)}`);
+  return res;
+}
+
+// ── boot gate ──
+// true = good, false = wrong password, Error = couldn't tell (already logged)
+async function tokenValid() {
+  let res;
+  try {
+    res = await timedFetch('SITE', 'password check', SITE + '/api/v1/albums?q=a',
+      { headers: { Authorization: 'Bearer ' + siteToken } }, TIMEOUT.site);
+  } catch (e) { return e; }
+  if (res.ok) return true;
+  if (res.status === 401) {
+    log('err', 'SITE: 401 UNAUTHORIZED', 'password check: the album API token was rejected.');
+    return false;
+  }
+  return logged(`SITE: HTTP ${res.status}`,
+    `password check: ${SITE} answered ${res.status} ${res.statusText}. The site is up but the album API is erroring.`);
 }
 function gateMsg(msg, kind) {
   $('gateStatus').className = 'status ' + (kind || '');
@@ -278,14 +444,16 @@ async function tryUnlock() {
   } else if (ok === false) {
     gateMsg('WRONG PASSWORD', 'err');
   } else {
-    gateMsg('CANNOT REACH SITE', 'err');
+    gateMsg(esc(ok.message) + '<br>SEE LOG BELOW', 'err');
   }
 }
 (async function boot() {
+  log('info', 'album boy start',
+    `page ${location.origin} · site ${SITE} · plex ${plexBase || '(not set)'} · plex token ${plexToken ? 'saved' : 'MISSING'}`);
   if (!siteToken) { lock(); return; }
   const ok = await tokenValid();
   if (ok === true) unlock();
-  else lock(ok === false ? 'PASSWORD EXPIRED' : 'CANNOT REACH SITE');
+  else lock(ok === false ? 'PASSWORD EXPIRED' : esc(ok.message) + '<br>SEE LOG BELOW');
 })();
 
 // ── settings (plex only — the gate owns the site token) ──
@@ -305,26 +473,54 @@ $('saveSettings').addEventListener('click', () => {
   plexToken = $('plexToken').value.trim();
   localStorage.setItem(LS.plexUrl, plexBase);
   localStorage.setItem(LS.plexToken, plexToken);
+  log('info', 'plex settings saved', `${plexBase || '(no url)'} · token ${plexToken ? 'set' : 'MISSING'}`);
   closeSettings();
   setStatus('SETTINGS SAVED', 'ok');
   if ($('q').value.trim()) runSearch($('q').value.trim());
 });
 
-// ── status ──
-function setStatus(msg, kind = '') { const s = $('status'); s.textContent = msg; s.className = 'status ' + kind; }
+// ── status (ticking, so a slow call never looks like a frozen one) ──
+let ticker = null;
+function paintStatus(msg, kind = '') { const s = $('status'); s.textContent = msg; s.className = 'status ' + kind; }
+function stopTicker() { clearInterval(ticker); ticker = null; }
+function setStatus(msg, kind = '') { stopTicker(); paintStatus(msg, kind); }
+function startTicker(label) {
+  stopTicker();
+  const t0 = Date.now();
+  paintStatus(label);
+  ticker = setInterval(() => paintStatus(`${label} ${Math.round((Date.now() - t0) / 1000)}S`), 1000);
+}
 
 // ── plex helpers (token in query + safelisted Accept header = no preflight, same as timamp) ──
-function plexUrl(path, extra = {}) {
-  const u = new URL(plexBase + path);
-  u.searchParams.set('X-Plex-Token', plexToken);
+function plexUrlFor(base, token, path, extra = {}) {
+  const u = new URL(base + path);
+  u.searchParams.set('X-Plex-Token', token);
   for (const [k, v] of Object.entries(extra)) u.searchParams.set(k, v);
   return u.toString();
 }
-async function plexJson(path, extra) {
-  const res = await fetch(plexUrl(path, extra), { headers: { Accept: 'application/json' } });
-  if (res.status === 401) throw new Error('PLEX: BAD TOKEN');
-  if (!res.ok) throw new Error('PLEX: ' + res.status);
-  return res.json();
+function plexUrl(path, extra) { return plexUrlFor(plexBase, plexToken, path, extra); }
+
+async function plexJson(what, path, extra) {
+  const url = plexUrl(path, extra);
+  const res = await timedFetch('PLEX', what, url, { headers: { Accept: 'application/json' } }, TIMEOUT.plex);
+  if (res.status === 401) {
+    throw logged('PLEX: BAD TOKEN',
+      `${what}: Plex answered 401. The saved X-Plex-Token is wrong or has been revoked — grab a fresh one and save it under SELECT.`);
+  }
+  if (res.status === 404) {
+    throw logged('PLEX: NOT FOUND (404)',
+      `${what}: ${redact(url)} does not exist on this server. If this was an album, it may have been removed from the library.`);
+  }
+  if (!res.ok) {
+    throw logged(`PLEX: HTTP ${res.status}`,
+      `${what}: ${redact(url)} answered ${res.status} ${res.statusText}.`);
+  }
+  try {
+    return await res.json();
+  } catch (e) {
+    throw logged('PLEX: BAD RESPONSE',
+      `${what}: expected JSON, got ${res.headers.get('content-type') || 'no content-type'}. Something other than Plex is answering on that address — a router page, a reverse proxy, or the wrong port.`);
+  }
 }
 function artUrl(thumb, size) {
   if (!thumb) return null;
@@ -332,17 +528,30 @@ function artUrl(thumb, size) {
 }
 
 // ── site API helpers ──
-async function siteFetch(path, opts = {}) {
-  const res = await fetch(SITE + path, {
+async function siteFetch(what, path, opts = {}) {
+  const res = await timedFetch('SITE', what, SITE + path, {
     ...opts,
     headers: { Authorization: 'Bearer ' + siteToken, ...(opts.headers || {}) },
-  });
-  if (res.status === 401) { lock('PASSWORD EXPIRED'); throw new Error('SITE: 401'); }
-  if (!res.ok) throw new Error('SITE: ' + res.status);
-  return res.status === 204 ? null : res.json();
+  }, TIMEOUT.site);
+  if (res.status === 401) {
+    lock('PASSWORD EXPIRED');
+    throw logged('SITE: 401 UNAUTHORIZED', `${what}: the album API token was rejected.`);
+  }
+  if (!res.ok) {
+    let body = '';
+    try { body = (await res.text()).trim().slice(0, 200); } catch (e) { /* body already gone */ }
+    throw logged(`SITE: HTTP ${res.status}`,
+      `${what}: ${SITE + path} answered ${res.status} ${res.statusText}${body ? ' — ' + body : ''}`);
+  }
+  if (res.status === 204) return null;
+  try {
+    return await res.json();
+  } catch (e) {
+    throw logged('SITE: BAD RESPONSE', `${what}: the album API returned something that is not JSON.`);
+  }
 }
-const siteSearch = (q) => siteFetch('/api/v1/albums?q=' + encodeURIComponent(q));
-const siteShow = (slug) => siteFetch('/api/v1/albums/' + encodeURIComponent(slug));
+const siteSearch = (q) => siteFetch('site search', '/api/v1/albums?q=' + encodeURIComponent(q));
+const siteShow = (slug) => siteFetch('load album', '/api/v1/albums/' + encodeURIComponent(slug));
 
 // ── views ──
 function show(view) {
@@ -361,33 +570,59 @@ $('q').addEventListener('input', () => {
   debounce = setTimeout(() => runSearch(q), 350);
 });
 
+const reasonOf = (r) => String((r.reason && r.reason.message) || r.reason);
+
 async function runSearch(q) {
-  if (!plexBase || !plexToken) { openSettings(); setStatus('SET PLEX URL + TOKEN FIRST', 'err'); return; }
+  if (!plexBase || !plexToken) {
+    openSettings();
+    setStatus('SET PLEX URL + TOKEN FIRST', 'err');
+    log('err', 'SEARCH SKIPPED — NO PLEX SETTINGS',
+      `Missing ${!plexBase ? 'server URL' : ''}${!plexBase && !plexToken ? ' and ' : ''}${!plexToken ? 'token' : ''}. Press SELECT to fill them in.`);
+    return;
+  }
   const seq = ++searchSeq;
-  setStatus('SEARCHING…');
+  log('info', `search "${q}"`);
+  startTicker('SEARCHING…');
   const [site, plex] = await Promise.allSettled([siteSearch(q), plexSearch(q)]);
   if (seq !== searchSeq) return; // a newer search superseded this one
-  const errs = [site, plex].filter((r) => r.status === 'rejected').map((r) => r.reason.message);
-  setStatus(errs.join(' · '), errs.length ? 'err' : '');
-  renderResults(site.status === 'fulfilled' ? site.value.albums : [],
-    plex.status === 'fulfilled' ? plex.value : []);
+  stopTicker();
+
+  const siteAlbums = site.status === 'fulfilled' ? (site.value.albums || []) : [];
+  const plexAlbums = plex.status === 'fulfilled' ? plex.value : [];
+  const errs = [site, plex].filter((r) => r.status === 'rejected').map(reasonOf);
+  if (errs.length) {
+    // one side can still be useful — say plainly which half is missing
+    const half = errs.length === 1
+      ? (plex.status === 'rejected' ? ' — SITE RESULTS ONLY' : ' — PLEX RESULTS ONLY') : '';
+    paintStatus(errs.join(' · ') + half, 'err');
+  } else {
+    paintStatus(`${siteAlbums.length + plexAlbums.length} RESULT(S)`, 'ok');
+  }
+  renderResults(siteAlbums, plexAlbums, {
+    site: site.status === 'rejected' ? reasonOf(site) : null,
+    plex: plex.status === 'rejected' ? reasonOf(plex) : null,
+  });
 }
 
 async function plexSearch(q) {
-  const data = await plexJson('/hubs/search', { query: q, limit: 12 });
+  const data = await plexJson('search', '/hubs/search', { query: q, limit: 12 });
   const hubs = (data.MediaContainer && data.MediaContainer.Hub) || [];
   const hub = (type) => (hubs.find((h) => h.type === type) || {}).Metadata || [];
   const albums = hub('album');
   // fold in albums by matching artists, skipping ones the album hub already found
   for (const artist of hub('artist').slice(0, 3)) {
     try {
-      const kids = await plexJson('/library/metadata/' + artist.ratingKey + '/children');
+      const kids = await plexJson('artist albums', '/library/metadata/' + artist.ratingKey + '/children');
       const seen = new Set(albums.map((a) => a.ratingKey));
       for (const kid of (kids.MediaContainer && kids.MediaContainer.Metadata) || []) {
         if (!seen.has(kid.ratingKey)) albums.push(kid);
       }
-    } catch (e) { /* artist expansion is best-effort */ }
+    } catch (e) {
+      // best-effort: the hub results still stand, but say so rather than swallowing it
+      log('info', `skipped albums for artist "${artist.title || artist.ratingKey}"`, e.message);
+    }
   }
+  log('info', `plex search returned ${albums.length} album(s)`);
   return albums;
 }
 
@@ -402,13 +637,17 @@ function resultRow({ art, title, artist, badge, badgeClass }) {
     <span class="badge ${badgeClass || ''}">${badge}</span>`;
 }
 
-function renderResults(siteAlbums, plexAlbums) {
+function renderResults(siteAlbums, plexAlbums, errors = {}) {
   const box = $('results');
   box.innerHTML = '';
   const onSite = (title, artist) => siteAlbums.find((a) =>
     a.title.toLowerCase() === String(title).toLowerCase() &&
     a.artist.toLowerCase() === String(artist).toLowerCase());
 
+  if (errors.site) {
+    box.insertAdjacentHTML('beforeend',
+      `<div class="section-label bad">site unavailable — ${esc(errors.site)}</div>`);
+  }
   if (siteAlbums.length) {
     box.insertAdjacentHTML('beforeend', '<div class="section-label">on the site — edit review</div>');
     for (const a of siteAlbums) {
@@ -419,6 +658,10 @@ function renderResults(siteAlbums, plexAlbums) {
       btn.addEventListener('click', () => openEditor(a.slug));
       box.appendChild(btn);
     }
+  }
+  if (errors.plex) {
+    box.insertAdjacentHTML('beforeend',
+      `<div class="section-label bad">plex unavailable — ${esc(errors.plex)}<br>open the log below for the full story</div>`);
   }
   const fresh = plexAlbums.filter((p) => !onSite(p.title, p.parentTitle));
   if (fresh.length) {
@@ -432,18 +675,20 @@ function renderResults(siteAlbums, plexAlbums) {
       box.appendChild(btn);
     }
   }
-  if (!siteAlbums.length && !fresh.length) {
+  if (!siteAlbums.length && !fresh.length && !errors.site && !errors.plex) {
     box.innerHTML = '<div class="section-label">no results in plex or on the site</div>';
   }
 }
 
 // ── import detail ──
 async function openDetail(ratingKey) {
-  setStatus('LOADING…');
+  startTicker('LOADING…');
   let meta;
   try {
-    const data = await plexJson('/library/metadata/' + ratingKey);
+    const data = await plexJson('album detail', '/library/metadata/' + ratingKey);
     meta = data.MediaContainer.Metadata[0];
+    if (!meta) throw logged('PLEX: EMPTY DETAIL',
+      `album detail: Plex returned no metadata for ratingKey ${ratingKey}.`);
   } catch (e) { setStatus(e.message, 'err'); return; }
   setStatus('');
 
@@ -483,14 +728,22 @@ async function importCurrent() {
     for (const g of current.genres) fd.append('album[genre_names][]', g);
     if (current.thumb) {
       st.textContent = 'PULLING ART FROM PLEX…';
-      const art = await fetch(artUrl(current.thumb, 1600));
-      if (art.ok) {
-        const blob = await art.blob();
-        fd.append('album[album_art]', blob, 'album-art.jpg');
+      try {
+        const art = await timedFetch('PLEX', 'album art', artUrl(current.thumb, 1600), {}, TIMEOUT.art);
+        if (art.ok) {
+          const blob = await art.blob();
+          fd.append('album[album_art]', blob, 'album-art.jpg');
+        } else {
+          log('err', 'ART SKIPPED — PLEX HTTP ' + art.status,
+            'album art: importing without cover art. You can add it on the site later.');
+        }
+      } catch (e) {
+        log('err', 'ART SKIPPED', 'album art: ' + e.message + ' — importing without cover art.');
       }
     }
     st.textContent = 'UPLOADING…';
-    const created = await siteFetch('/api/v1/albums', { method: 'POST', body: fd });
+    const created = await siteFetch('create album', '/api/v1/albums', { method: 'POST', body: fd });
+    log('info', `imported "${current.title}" as ${created.slug}`);
     st.textContent = 'IMPORTED!';
     st.className = 'status ok';
     await openEditor(created.slug);
@@ -501,10 +754,65 @@ async function importCurrent() {
   }
 }
 
+// ── plex connection test ──
+// runs against whatever is typed in the settings boxes, not what's saved
+$('testPlex').addEventListener('click', async () => {
+  const st = $('settingsStatus');
+  const base = $('plexUrl').value.trim().replace(/\/+$/, '');
+  const token = $('plexToken').value.trim();
+  const fail = (m) => { st.textContent = m; st.className = 'status err'; };
+  setLogOpen(true);
+  st.className = 'status';
+  st.textContent = 'TESTING…';
+  log('info', 'plex connection test', `${base || '(no url)'} · token ${token ? 'set' : 'MISSING'}`);
+
+  if (!base) { logged('TEST: NO URL', 'Enter the Plex server URL first.'); fail('NO URL'); return; }
+  let u;
+  try { u = new URL(base); } catch (e) {
+    logged('TEST: URL LOOKS WRONG',
+      `"${base}" is not a URL the browser can parse. It should look like https://10-0-0-12.abc123.plex.direct:32400`);
+    fail('BAD URL'); return;
+  }
+  if (location.protocol === 'https:' && u.protocol === 'http:') {
+    logged('TEST: INSECURE URL',
+      'This page is HTTPS, so every call to an http:// Plex address is blocked by the browser before it leaves the page. Use the https://…plex.direct:32400 URL from Plex → Settings → Remote Access.');
+    fail('INSECURE URL'); return;
+  }
+  if (!token) log('err', 'TEST: NO TOKEN', 'Reachability will be checked, but library calls need an X-Plex-Token.');
+
+  try {
+    const res = await timedFetch('PLEX', 'identity', plexUrlFor(base, token, '/identity'),
+      { headers: { Accept: 'application/json' } }, TIMEOUT.plex);
+    if (!res.ok) { logged(`TEST: IDENTITY HTTP ${res.status}`, `${redact(res.url)} answered ${res.status}.`); fail('HTTP ' + res.status); return; }
+    const id = await res.json();
+    const mc = (id && id.MediaContainer) || {};
+    log('info', 'server reachable', `version ${mc.version || '?'} · machine ${mc.machineIdentifier || '?'}`);
+  } catch (e) { fail('SERVER UNREACHABLE'); return; }
+
+  if (!token) { fail('REACHABLE, BUT NO TOKEN'); return; }
+  try {
+    const res = await timedFetch('PLEX', 'library sections', plexUrlFor(base, token, '/library/sections'),
+      { headers: { Accept: 'application/json' } }, TIMEOUT.plex);
+    if (res.status === 401) {
+      logged('TEST: BAD TOKEN', 'The server is reachable but rejected this X-Plex-Token (401).');
+      fail('BAD TOKEN'); return;
+    }
+    if (!res.ok) { logged(`TEST: SECTIONS HTTP ${res.status}`, `Library listing answered ${res.status}.`); fail('HTTP ' + res.status); return; }
+    const data = await res.json();
+    const dirs = ((data.MediaContainer || {}).Directory) || [];
+    const music = dirs.filter((d) => d.type === 'artist');
+    log('info', `${dirs.length} librar${dirs.length === 1 ? 'y' : 'ies'}, ${music.length} music`,
+      music.map((d) => d.title).join(', ') || 'no music library found on this server');
+    if (!music.length) { fail('NO MUSIC LIBRARY'); return; }
+    st.textContent = 'ALL GOOD';
+    st.className = 'status ok';
+  } catch (e) { fail('SECTIONS FAILED'); }
+});
+
 // ── review editor ──
 let editing = null;
 async function openEditor(slug) {
-  setStatus('LOADING…');
+  startTicker('LOADING…');
   let album;
   try { album = await siteShow(slug); } catch (e) { setStatus(e.message, 'err'); return; }
   setStatus('');
@@ -524,11 +832,12 @@ $('saveReview').addEventListener('click', async () => {
   st.textContent = 'SAVING…';
   st.className = 'status';
   try {
-    await siteFetch('/api/v1/albums/' + encodeURIComponent(editing.slug), {
+    await siteFetch('save review', '/api/v1/albums/' + encodeURIComponent(editing.slug), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ album: { review: $('review').value } }),
     });
+    log('info', `saved review for ${editing.slug}`);
     st.textContent = 'SAVED';
     st.className = 'status ok';
   } catch (e) {
