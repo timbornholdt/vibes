@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="vibes">
-<meta name="theme-color" content="#050505">
+<meta name="theme-color" content="#03040b">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.svg">
 <title>vibes</title>
@@ -15,18 +15,22 @@
   * { box-sizing: border-box; }
   * { margin: 0; padding: 0; }
 
-  /* A backlit museum panel on a black gallery wall, circa 1980: one long
-     gradient (sun orange → red → pale → cyan → green → orange) broken into
-     numbered cells, black silhouettes, heavy grotesk numerals, and soft
-     Souvenir-ish serif captions (Fraunces with its SOFT axis maxed). */
+  /* A backlit museum panel, circa 1980, airbrushed in deep space: black
+     and navy starfield, violet nebula haze, cells that run indigo → violet →
+     royal blue → teal and back, glowing white type, heavy grotesk numerals,
+     and soft Souvenir-ish serif captions (Fraunces with its SOFT axis maxed).
+     Orange survives only as a pinprick accent, like the molten core. */
   :root {
-    --wall:  #050505;
-    --frame: #0f0f0e;
-    --ink:   #121212;
-    --ink-2: #2a2a28;
-    --white: #f4f1e8;
-    --muted: #a7a398;
-    --dim:   #67645c;
+    --wall:  #03040b;
+    --frame: #0a0d1f;
+    --seam:  #01020a;
+    --edge:  #1e2550;
+    --white: #f2f5ff;
+    --soft:  rgba(236,242,255,0.86);
+    --muted: #9aa6d0;
+    --dim:   #5b6594;
+    --glow:  #7fd8f0;
+    --core:  #ff8a4c;
 
     --serif: 'Fraunces Variable', 'ITC Souvenir', 'Souvenir', 'Cooper Black', Georgia, serif;
     --grot:  'Helvetica Neue', Helvetica, Arial, sans-serif;
@@ -39,10 +43,58 @@
     font-family: var(--serif);
     font-variation-settings: "SOFT" 100, "WONK" 0;
     background-color: var(--wall);
+    background-image:
+      radial-gradient(60% 45% at 8% 20%, rgba(110, 60, 190, 0.22), transparent 70%),
+      radial-gradient(55% 40% at 95% 60%, rgba(40, 90, 200, 0.18), transparent 70%),
+      radial-gradient(70% 50% at 40% 110%, rgba(90, 40, 150, 0.22), transparent 70%);
+    background-attachment: fixed;
     color: var(--white);
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
   }
+
+  /* starfield: a dense dusting plus a few bright blue-white points */
+  .stars, .stars::before, .stars::after {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .stars {
+    background-image:
+      radial-gradient(1px 1px at 12px 18px, #cfe0ff, transparent),
+      radial-gradient(1px 1px at 47px 92px, #fff, transparent),
+      radial-gradient(1px 1px at 88px 40px, #b9c8ff, transparent),
+      radial-gradient(1px 1px at 120px 130px, #fff, transparent),
+      radial-gradient(1px 1px at 150px 70px, #d8ccff, transparent),
+      radial-gradient(1px 1px at 30px 150px, #cfe0ff, transparent),
+      radial-gradient(1px 1px at 170px 10px, #fff, transparent);
+    background-size: 180px 170px;
+    opacity: 0.55;
+  }
+  .stars::before {
+    content: "";
+    background-image:
+      radial-gradient(1.2px 1.2px at 60px 20px, #fff, transparent),
+      radial-gradient(1.2px 1.2px at 210px 160px, #bfe6ff, transparent),
+      radial-gradient(1.2px 1.2px at 320px 70px, #fff, transparent),
+      radial-gradient(1.2px 1.2px at 140px 290px, #d6c8ff, transparent);
+    background-size: 380px 340px;
+    opacity: 0.8;
+  }
+  .stars::after {
+    content: "";
+    background-image:
+      radial-gradient(2px 2px at 140px 120px, #fff, rgba(140,200,255,0.4) 2px, transparent 6px),
+      radial-gradient(2px 2px at 560px 380px, #fff, rgba(140,200,255,0.4) 2px, transparent 6px),
+      radial-gradient(2px 2px at 420px 60px, #fff, rgba(180,160,255,0.4) 2px, transparent 6px);
+    background-size: 700px 520px;
+    animation: twinkle 6s ease-in-out infinite alternate;
+  }
+  @keyframes twinkle { from { opacity: 0.4; } to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    .stars::after { animation: none; opacity: 0.8; }
+  }
+  .wrap, .clock { position: relative; z-index: 1; }
 
   /* ── Clock: top-left, small, Chicago time ── */
   .clock {
@@ -64,6 +116,7 @@
   }
 
   .wrap {
+    position: relative;
     max-width: 1080px; margin: 0 auto; padding: 64px 20px 100px;
   }
 
@@ -77,6 +130,7 @@
     color: var(--dim);
   }
   h1 {
+    text-shadow: 0 0 22px rgba(150, 200, 255, 0.45);
     font-weight: 700;
     font-size: clamp(56px, 14vw, 104px);
     letter-spacing: -0.02em;
@@ -123,9 +177,10 @@
   .chip:hover { border-color: var(--muted); }
   /* the active chip lights up like one cell of the panel */
   .chip.on {
-    color: var(--ink);
+    color: var(--white);
     border-color: transparent;
-    background: linear-gradient(135deg, #fbd8a2, #cfe9e4);
+    background: linear-gradient(135deg, #2a6fc4, #6a3fb0);
+    box-shadow: 0 0 14px rgba(110, 120, 255, 0.35);
   }
   .chip .n {
     margin-left: 6px;
@@ -166,7 +221,7 @@
   }
   .cmdbar .key {
     font-family: var(--grot); font-weight: 700; font-size: 12px;
-    color: var(--ink); background: var(--white);
+    color: var(--wall); background: var(--glow);
     padding: 0 6px; border-radius: 2px;
   }
   .cmdbar b { color: var(--white); font-weight: 650; }
@@ -177,13 +232,13 @@
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
     gap: 3px;
     padding: 3px;
-    background: #0a0a0a;
-    border: 6px solid #1a1916;
+    background: var(--seam);
+    border: 6px solid #10132a;
     border-radius: 2px;
     box-shadow:
       0 0 0 1px #000,
-      0 0 90px rgba(150, 210, 220, 0.12),
-      0 0 30px rgba(255, 170, 90, 0.08);
+      0 0 100px rgba(80, 140, 255, 0.16),
+      0 0 40px rgba(130, 80, 220, 0.12);
   }
 
   .tile {
@@ -193,11 +248,13 @@
     min-height: 230px;
     padding: 12px 14px 14px;
     text-decoration: none;
-    color: var(--ink);
-    /* --a/--b are set per tile from its slot in the gradient */
+    color: var(--white);
+    /* --a/--b are set per tile from its slot in the gradient; the radial
+       layers are the airbrushed glow and the darkened rim */
     background:
-      radial-gradient(120% 90% at 50% 40%, rgba(255,255,255,0.22), transparent 70%),
-      linear-gradient(135deg, var(--a), var(--b));
+      radial-gradient(90% 70% at 30% 18%, rgba(170, 225, 255, 0.20), transparent 70%),
+      radial-gradient(140% 120% at 50% 40%, transparent 55%, rgba(2, 3, 12, 0.45) 100%),
+      linear-gradient(150deg, var(--a), var(--b));
     overflow: hidden;
     transition: filter 0.15s;
   }
@@ -206,11 +263,11 @@
     content: "";
     position: absolute; inset: 0;
     pointer-events: none;
-    opacity: 0.18;
-    mix-blend-mode: multiply;
+    opacity: 0.22;
+    mix-blend-mode: overlay;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
-  .tile:hover { filter: brightness(1.08) saturate(1.05); }
+  .tile:hover { filter: brightness(1.15) saturate(1.1); }
   .tile.lead { outline: 3px solid var(--white); outline-offset: -3px; z-index: 1; }
 
   .num {
@@ -221,15 +278,16 @@
     font-size: 30px;
     letter-spacing: -0.03em;
     line-height: 1;
-    color: var(--ink);
+    color: var(--white);
+    text-shadow: 0 0 12px rgba(160, 210, 255, 0.45);
   }
 
   .pict {
     width: 72px; height: 72px;
     margin: 4px 0 10px -4px;
-    color: var(--ink);
+    color: var(--white);
   }
-  .pict svg { width: 100%; height: 100%; }
+  .pict svg { width: 100%; height: 100%; filter: drop-shadow(0 0 6px rgba(150, 210, 255, 0.55)); }
 
   .title {
     font-weight: 700;
@@ -237,13 +295,14 @@
     line-height: 1.15;
     letter-spacing: -0.005em;
     padding-right: 8px;
+    text-shadow: 0 0 10px rgba(160, 210, 255, 0.35);
   }
   .desc {
     margin-top: 6px;
     font-weight: 450;
     font-size: 15px;
     line-height: 1.4;
-    color: var(--ink-2);
+    color: var(--soft);
   }
   .tags {
     margin-top: auto;
@@ -251,15 +310,15 @@
     font-style: italic;
     font-weight: 500;
     font-size: 13px;
-    color: rgba(18,18,18,0.6);
+    color: rgba(200, 220, 255, 0.6);
   }
 
   .none {
     grid-column: 1 / -1;
     padding: 50px 20px; text-align: center;
     font-weight: 600; font-size: 18px;
-    color: var(--ink);
-    background: linear-gradient(135deg, #f6b06a, #d8e6e2);
+    color: var(--white);
+    background: linear-gradient(135deg, #1d2a78, #3a2470);
   }
 
   /* the black caption block that fills out the panel's last row */
@@ -269,13 +328,22 @@
     justify-content: flex-end;
     min-height: 150px;
     padding: 18px 20px;
-    background: #050505;
+    background: radial-gradient(120% 100% at 80% 100%, rgba(90, 50, 170, 0.25), transparent 70%), #03040b;
     color: var(--white);
   }
   .label h2 { font-weight: 700; font-size: 24px; line-height: 1.1; }
   .label .sub { font-weight: 650; font-size: 18px; margin-top: 4px; }
   .label p { font-weight: 500; font-size: 15px; line-height: 1.35; color: var(--muted); margin-top: 10px; }
   .label .big { font-weight: 650; font-size: 18px; color: var(--white); }
+  .label .big::before {
+    content: "";
+    display: inline-block;
+    width: 8px; height: 8px; margin-right: 8px;
+    border-radius: 50%;
+    vertical-align: 2px;
+    background: var(--core);
+    box-shadow: 0 0 8px 2px rgba(255, 138, 76, 0.6);
+  }
 
   /* one column on phones: let short panels stay short */
   @media (max-width: 500px) {
@@ -286,6 +354,7 @@
 </style>
 </head>
 <body>
+<div class="stars" aria-hidden="true"></div>
 <div class="clock" id="clock" role="timer" aria-label="Central time"></div>
 <div class="wrap">
 
@@ -415,11 +484,13 @@
     });
   }
 
-  // The panel's color run, sampled from the museum's geologic-time calendar.
-  // Tiles take evenly spaced slots along it, so any filter still reads as one sweep.
+  // The panel's color run, after the museum's airbrushed Earth-in-space panel:
+  // indigo → violet → royal blue → ocean teal → blue → purple. Kept dark enough
+  // for white text. Tiles take evenly spaced slots along it, so any filter
+  // still reads as one sweep.
   const panelStops = [
-    "#f59a3c", "#e9573b", "#e2d8cc", "#d6e6e3", "#e1eccf", "#9fdbe3",
-    "#45bcdc", "#5ccac6", "#a3d9b6", "#cfe4a6", "#c9d78b", "#f3b45e", "#f29043",
+    "#1c1f66", "#35237a", "#4c2a8c", "#2f3fa3", "#1f57ad",
+    "#14709a", "#0f7f8c", "#165f9e", "#2c3c96", "#45288a", "#5a2384",
   ];
   const hex = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
   function panelColor(t) {
