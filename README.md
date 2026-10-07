@@ -35,7 +35,7 @@ Every page on the index gets a hand-made SVG icon representing what it does —
 For tools that need their data on phone + laptop. Backed by `server/vibes-store.py`
 (single-user `/api/store/<key>` JSON KV, one shared bearer token). See
 `server/README.md` for the backend. Used by `house-gripes.html`,
-`tattoo-care.html`, `home-improvement-todo.html`.
+`tattoo-care.html`.
 
 How to add it to a tool:
 
