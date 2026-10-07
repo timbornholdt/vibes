@@ -309,16 +309,10 @@
   const tools = [
     { file: "comics.html", title: "Comics", tags: ["art"], desc: "Flip through the latest strips from 400+ smallweb webcomics, courtesy of Kagi's smallcomic list. Each comic links to its site and RSS feed; remove the ones that aren't for you." },
     { file: "crazy-rummy.html", title: "Crazy Rummy Scoresheet", tags: ["games"], desc: "Score sheet for crazy rummy nights: enter each round's score and the running total does the math for you. Tracks whose deal it is from 3s through Ks, crowns the leader, and remembers the game if you close the tab." },
-    { file: "cf-machine-spec-survey.html", title: "Machine Spec Survey", tags: ["work"], desc: "Nine questions about how you actually work — displays, peripherals, what's open on a Tuesday afternoon — then it recommends a machine and lets you pick a color. Copy the summary into Slack when you're done." },
     { file: "sketchpad.html", title: "Sketchpad", tags: ["art"], desc: "A full-screen drawing canvas for your finger: three brush widths, any color, nothing else in the way. Screenshot it when you're done." },
-    { file: "aqi-radar.html", title: "Twin Cities AQI Radar", tags: ["science"], desc: "A weather-radar-style map of metro air quality you can play back over the last 48 hours. Real station readings via a free WAQI token; every frame is labeled observed vs. model estimate." },
     { file: "album-publisher.html", title: "Album Publisher", tags: ["music", "work"], desc: "Search your Plex library, pull an album's art, release date, and genres straight onto timbornholdt.com, then write the review from anywhere. Also edits reviews for albums already on the site." },
-    { file: "snes-world.html", title: "SNES World", tags: ["games", "music"], desc: "A website you walk through: side-scroll down a dusk street, jump, crouch, and swing at the shrubbery, then step into a midcentury den and drop the needle on the record player. Future home of the music library." },
     { file: "timamp.html", title: "Timamp", tags: ["music"], desc: "A Winamp for your wall: streams a Plex playlist, album, or collection — or a live internet-radio station — through the classic skinned player, with a real Milkdrop visualizer, shuffle-able skins, and last.fm scrobbling. Paste your server URL and token, pick a source, mount the tablet." },
-    { file: "90s-lunch-wheel.html", title: "Wheel of Lunch", tags: ["body", "games"], desc: "Spin a cheesy 90s game-show wheel rendered on a low-res tube TV to pick a balanced, high-protein lunch. Synth ticking and a win fanfare included." },
     { file: "simpsons-episode-rater.html", title: "The Simpsons Episode Rater", tags: ["tv"], desc: "Rate every episode from the golden-age seasons 1-8, with synopses. Export your scores and pool them with friends." },
-    { file: "back-routine.html",   title: "Nightly Back Routine",     tags: ["body"],    desc: "Guided back mobility with hold timers and a daily streak." },
-    { file: "tattoo-care.html",    title: "Skull / Marshmallow Care", tags: ["body"],    desc: "Tattoo aftercare timeline that auto-hides past phases." },
     { file: "house-gripes.html",   title: "Stuff That Sucks",         tags: ["home"],    desc: "Household annoyances that climb the list each time they bug you." },
     { file: "anatomy-lab.html",    title: "Anatomy Lab",              tags: ["education", "science", "body"], desc: "Tap any bone, muscle, or organ to learn what it does." },
     { file: "lofi-guide.html",     title: "A Field Guide to Lo-Fi",   tags: ["education", "music"],   desc: "A checkable listening path through the genre's foundations." },
@@ -345,25 +339,11 @@
       <rect x="38" y="26" width="34" height="48" rx="5" transform="rotate(10 55 50)"/>
       <rect x="22" y="22" width="34" height="48" rx="5"/>
       <path d="M39 40c-3-5-10-3-10 3 0 5 7 8 10 12 3-4 10-7 10-12 0-6-7-8-10-3z" fill="currentColor" stroke="none"/>`),
-    // laptop with a checked-off list on the screen
-    "cf-machine-spec-survey.html": svg(`
-      <path d="M26 22h44v36H26z"/>
-      <path d="M12 70h72l-8-12H20z"/>
-      <path d="M36 34l4 4 8-8"/>
-      <path d="M36 48h22"/>`),
     // pencil drawing a squiggle
     "sketchpad.html": svg(`
       <path d="M64 18l14 14-38 38-18 4 4-18 38-38z"/>
       <path d="M58 24l14 14"/>
       <path d="M16 82c8-8 14 4 22-4" stroke-width="4"/>`),
-    // radar dish: concentric rings, sweep arm, one hot blip
-    "aqi-radar.html": svg(`
-      <circle cx="48" cy="50" r="30"/>
-      <circle cx="48" cy="50" r="18" opacity="0.6"/>
-      <circle cx="48" cy="50" r="7" opacity="0.4"/>
-      <path d="M48 50 L72 30"/>
-      <circle cx="48" cy="50" r="2.6" fill="currentColor" stroke="none"/>
-      <circle cx="36" cy="62" r="4" fill="currentColor" stroke="none"/>`),
     // record sliding out of its sleeve, pencil underneath for the review
     "album-publisher.html": svg(`
       <rect x="14" y="18" width="42" height="42" rx="4"/>
@@ -371,15 +351,6 @@
       <circle cx="60" cy="39" r="2.6" fill="currentColor" stroke="none"/>
       <path d="M24 78l32-32"/>
       <path d="M24 78l3-9 6 6-9 3z" fill="currentColor" stroke="none"/>`),
-    // little hero jumping toward a flat-roof house, side-scroller style
-    "snes-world.html": svg(`
-      <path d="M8 76h80"/>
-      <path d="M42 32h40"/>
-      <rect x="47" y="32" width="30" height="44"/>
-      <rect x="56" y="54" width="11" height="22"/>
-      <rect x="16" y="38" width="13" height="13" rx="3"/>
-      <path d="M18 55h9M22 55v9M22 58l-7 7M22 58l7 7" stroke-width="4"/>
-      <path d="M30 30c4-6 10-6 13 0" stroke-width="4" stroke-dasharray="1 7"/>`),
     // player window with an equalizer/visualizer readout
     "timamp.html": svg(`
       <rect x="16" y="28" width="64" height="40" rx="5"/>
@@ -387,12 +358,6 @@
       <circle cx="23" cy="33.5" r="1.8" fill="currentColor" stroke="none"/>
       <circle cx="29" cy="33.5" r="1.8" fill="currentColor" stroke="none"/>
       <path d="M27 60V49M35 60V44M43 60V52M51 60V46M59 60V50M67 60V43" stroke-width="4"/>`),
-    // game-show wheel with a fork pointer
-    "90s-lunch-wheel.html": svg(`
-      <circle cx="48" cy="50" r="24"/>
-      <path d="M48 26v48M24 50h48M31 33l34 34M65 33 31 67"/>
-      <path d="M48 14v9" stroke-width="6"/>
-      <circle cx="48" cy="50" r="4" fill="currentColor" stroke="none"/>`),
     // retro television set
     "simpsons-episode-rater.html": svg(`
       <rect x="20" y="38" width="56" height="40" rx="5"/>
@@ -400,18 +365,6 @@
       <rect x="28" y="46" width="30" height="24" rx="2"/>
       <circle cx="68" cy="52" r="2.6" fill="currentColor" stroke="none"/>
       <circle cx="68" cy="62" r="2.6" fill="currentColor" stroke="none"/>`),
-    // spine + crescent moon
-    "back-routine.html": svg(`
-      <path d="M68 14a16 16 0 1 0 13 25 13 13 0 0 1-13-25z" fill="currentColor" stroke="none"/>
-      <path d="M40 24c-7 16-7 36 0 52"/>
-      <path d="M33 32h15M32 44h15M33 56h15M35 68h14"/>`),
-    // skull
-    "tattoo-care.html": svg(`
-      <path d="M26 46a22 22 0 0 1 44 0c0 9-4 13-4 19 0 4-3 6-7 6H37c-4 0-7-2-7-6 0-6-4-10-4-19z"/>
-      <circle cx="39" cy="46" r="5.5" fill="currentColor" stroke="none"/>
-      <circle cx="57" cy="46" r="5.5" fill="currentColor" stroke="none"/>
-      <path d="M48 56l-3 6h6z" fill="currentColor" stroke="none"/>
-      <path d="M42 72v5M48 72v5M54 72v5"/>`),
     // house with an exclamation
     "house-gripes.html": svg(`
       <path d="M22 46 48 24l26 22"/>
@@ -518,7 +471,8 @@
     `<button class="chip${tag === activeCat ? " on" : ""}" data-cat="${tag}">${label}<span class="n">${n}</span></button>`;
   rail.insertAdjacentHTML("afterbegin",
     chipFor("all", "All", tools.length) +
-    tagOrder.map(g => chipFor(g, g, tools.filter(t => t.tags.includes(g)).length)).join(""));
+    tagOrder.map(g => [g, tools.filter(t => t.tags.includes(g)).length])
+      .filter(([, n]) => n).map(([g, n]) => chipFor(g, g, n)).join(""));
 
   rail.addEventListener("click", (e) => {
     const chip = e.target.closest(".chip");
