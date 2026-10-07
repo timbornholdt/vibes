@@ -1,7 +1,7 @@
 # vibes-store
 
 A tiny single-user JSON key-value API that backs the *gated* tools on
-junk.timbornholdt.com (currently `house-gripes` and `tattoo-care`), so their
+junk.timbornholdt.com (currently `house-gripes`), so its
 data syncs across your phone and laptop.
 
 There is exactly one account: you. Auth is a single secret bearer token —
@@ -80,13 +80,13 @@ curl -s -o /dev/null -w '%{http_code}\n' https://junk.timbornholdt.com/api/store
 
 ## Using it
 
-Open `house-gripes` or `tattoo-care`, paste the token once per device. The
+Open `house-gripes`, paste the token once per device. The
 token is remembered in `localStorage`; data syncs on load and on every change.
 Once loaded, the tools keep working offline (PWA) from the local cache and
 re-sync when you're back online. Conflicts are last-write-wins.
 
-> **Note:** the value keys (`house-gripes-v1`, `tattoo-care-v1`) must match the
-> `KEY` constant in each tool's HTML. If you rename one, rename both.
+> **Note:** the value key (`house-gripes-v1`) must match the
+> `KEY` constant in the tool's HTML. If you rename one, rename both.
 
 ## Ops
 
