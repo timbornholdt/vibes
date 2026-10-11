@@ -5,9 +5,17 @@ https://junk.timbornholdt.com/ via auto-deploy.
 
 ## Where new tools go
 
-- HTML tools live in `vibes/` and are accessible at `junk.timbornholdt.com/vibes/<filename>.html`.
-- Use lowercase, hyphenated filenames (e.g. `image-cropper.html`, not `ImageCropper.html`).
-- One file per tool. No subdirectories inside `vibes/` unless explicitly asked.
+- Single-file HTML tools live at the repo root and are served at `junk.timbornholdt.com/<filename>.html`.
+- Use lowercase, hyphenated names (e.g. `image-cropper.html`, not `ImageCropper.html`).
+- **Tools with more than one file get their own folder**, named like a tool file
+  without the extension: `<tool-name>/index.html` is the page (served at
+  `junk.timbornholdt.com/<tool-name>/`), and its supporting files (STLs, data,
+  generator scripts, images) sit next to it in that folder. Link to it from the
+  root `index.html` as `file: "<tool-name>/"`. Example: `gravestone-base/`.
+- The page itself still follows the single-file rules below (inline CSS/JS, no
+  build step); the folder is for assets and source the page loads or links to,
+  not for splitting the page's own code.
+- Don't migrate existing single-file tools into folders unless asked.
 
 ## Hard rules for tool files
 
@@ -115,4 +123,4 @@ in-scope work described above.
 - Not a place for anything I'd be embarrassed to have break.
 - Not a portfolio piece in the traditional sense — these are experiments.
 
-If a request would push beyond these constraints (needs a server, secrets, persistence beyond localStorage, multi-file structure), stop and ask before proceeding.
+If a request would push beyond these constraints (needs a server, secrets, persistence beyond localStorage, a build step), stop and ask before proceeding.

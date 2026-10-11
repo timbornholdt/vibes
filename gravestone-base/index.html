@@ -43,6 +43,8 @@
   .ok { color: var(--ok); }
   .bad { color: var(--bad); }
   .muted { color: var(--muted); font-size: 13px; line-height: 1.45; }
+  a.btn + a.btn { margin-top: 8px; }
+  a.btn.alt { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
   a.btn { display: block; text-align: center; padding: 11px; border-radius: 8px; background: var(--accent); color: #1a1006; font-weight: 700; text-decoration: none; }
   ul { margin: 0; padding-left: 18px; }
   li { margin: 4px 0; }
@@ -65,6 +67,7 @@
         <button data-mode="yard" class="on">In the yard</button>
         <button data-mode="part">One part</button>
         <button data-mode="bed">P1S bed</button>
+        <button data-mode="test">Fit test</button>
       </div>
       <div style="margin-top:8px">
         <label class="tog"><input type="checkbox" id="showStone" checked> Ghost gravestone</label>
@@ -81,6 +84,8 @@
     <div class="card">
       <h2>Print it</h2>
       <a class="btn" href="gravestone-base.stl" download>Download gravestone-base.stl</a>
+      <a class="btn alt" href="fit-test.stl" download>Download fit-test.stl</a>
+      <p class="muted" style="margin:10px 0 0">Print the fit test first (~20 g, well under an hour). It's a 30 mm slice of the real socket: same slot, wall, bolt hole and nut slot. Slide a gravestone in, drop the nut in from the top, run the bolt in. Too tight or too sloppy? Change <code>SLOT</code> in <code>generate.py</code> and re-run.</p>
       <ul class="muted" style="margin-top:10px">
         <li>Print flat side down, as-is. No supports needed.</li>
         <li>PETG or ASA for outdoors; PLA works but can sag in hot sun.</li>
@@ -238,9 +243,11 @@ function measure(g) {
     const n = hitsAlong(new THREE.Vector3(cx, y, z), new THREE.Vector3(-1, 0, 0))[0];
     return p != null && n != null ? p + n : null;
   };
-  const slotW = slotAt(cy + 25, bb.min.z + size.z * 0.5);
+  // probe 80% of the way along y, clear of the screw and nut slot at y=0
+  const py = bb.min.y + size.y * 0.8;
+  const slotW = slotAt(py, bb.min.z + size.z * 0.5);
   // slot depth: shoot down the middle of the slot
-  const down = hitsAlong(new THREE.Vector3(cx, cy + 25, bb.max.z + 5), new THREE.Vector3(0, 0, -1))[0];
+  const down = hitsAlong(new THREE.Vector3(cx, py, bb.max.z + 5), new THREE.Vector3(0, 0, -1))[0];
   const floorZ = down != null ? bb.max.z + 5 - down : null;
   return { size, vol: Math.abs(vol) / 1000, tris: pos.count / 3, slotW, floorZ, bb };
 }
@@ -249,7 +256,7 @@ function renderStats(name) {
   const s = info.size;
   const gap = info.slotW != null ? info.slotW - STONE_T : null;
   const fits = s.x <= BED && s.y <= BED && s.z <= 256;
-  const lever = s.x / 2;
+  const isBase = current.kind === "base";
   // grams at ~25% infill + 4 walls is roughly 45% of solid for a part this chunky; PETG ~1.27 g/cm3
   const grams = info.vol * 1.27 * 0.45;
   const rows = [
@@ -261,9 +268,9 @@ function renderStats(name) {
     ["Stone thickness (1 18/32″)", `${STONE_T.toFixed(2)} mm`],
     ["Clearance for set screw", gap != null ? `<span class="${gap > 0.5 && gap < 5 ? "ok" : "bad"}">${gap.toFixed(2)} mm</span>` : "—"],
     ["Slot grip depth", info.floorZ != null ? `${(s.z - info.floorZ).toFixed(1)} mm (${((s.z - info.floorZ) / 25.4).toFixed(2)}″)` : "—"],
-    ["Tip lever arm (centre → toe)", `${lever.toFixed(0)} mm`],
+    ...(isBase ? [["Tip lever arm (centre → toe)", `${(s.x / 2).toFixed(0)} mm`]] : []),
     ["Solid volume", `${info.vol.toFixed(0)} cm³`],
-    ["Est. filament per base", `~${Math.round(grams / 10) * 10} g`],
+    [isBase ? "Est. filament per base" : "Est. filament", `~${Math.max(5, Math.round(grams / 5) * 5)} g`],
     ["Triangles", info.tris.toLocaleString()],
   ];
   document.getElementById("stats").innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("");
@@ -271,6 +278,10 @@ function renderStats(name) {
 
 // --- scene assembly ------------------------------------------------------------
 let mode = "yard";
+// Loaded parts by kind; the fit test loads on first visit to its tab. A dropped file replaces the current one.
+const SCREW_Z = { base: 7 + 35, test: 7 + 12 };
+const parts = {};
+let current = null;
 const BASE_Y = STONE_W / 2 - 45;   // two bases, one under each end of the stone
 
 function partMeshes() {
@@ -283,20 +294,22 @@ function partMeshes() {
 
 function buildExtras(at) {
   const g = new THREE.Group();
-  // staples in the four stake slots (if this is our part, slots are at x=±108, y=±22)
-  const looksLikeOurs = Math.abs(info.size.x - 240) < 1 && Math.abs(info.size.y - 90) < 1;
-  if (looksLikeOurs) {
+  // staples in the four stake slots (slots are at x=±108, y=±22) plus the bolt and nut
+  const screwZ = SCREW_Z[current.kind];
+  if (current.kind === "base") {
     for (const sx of [-108, 108]) for (const sy of [-22, 22]) {
       const s = stapleMesh();
       s.position.set(sx, sy, 7);
       g.add(s);
     }
+  }
+  if (screwZ) {
     const b = boltMesh();
-    b.position.set(STONE_T / 2 + 12.5, 0, 7 + 35);   // tightened: tip on the stone face
+    b.position.set(STONE_T / 2 + 12.5, 0, screwZ);   // tightened: tip on the stone face
     g.add(b);
     const nut = new THREE.Mesh(new THREE.CylinderGeometry(5.77, 5.77, 5, 6), steelMat);
     nut.rotation.z = Math.PI / 2;
-    nut.position.set(21.25 + 7, 0, 7 + 35);
+    nut.position.set(21.25 + 7, 0, screwZ);
     g.add(nut);
   }
   g.position.copy(at);
@@ -309,7 +322,8 @@ function rebuild() {
   const showStone = document.getElementById("showStone").checked;
   const showStakes = document.getElementById("showStakes").checked;
   const bb = info.bb;
-  const center = new THREE.Vector3((bb.min.x + bb.max.x) / 2, (bb.min.y + bb.max.y) / 2, 0);
+  // the fit test is a crop of the base, so keep its own coordinates (screw at y=0)
+  const center = current.kind === "test" ? new THREE.Vector3() : new THREE.Vector3((bb.min.x + bb.max.x) / 2, (bb.min.y + bb.max.y) / 2, 0);
   const placements = mode === "yard" ? [new THREE.Vector3(0, -BASE_Y, 0), new THREE.Vector3(0, BASE_Y, 0)] : [new THREE.Vector3()];
   for (const p of placements) {
     const part = partMeshes();
@@ -338,8 +352,8 @@ function applyClip() {
 }
 
 function frame() {
-  const target = new THREE.Vector3(0, 0, mode === "yard" ? 160 : 35);
-  const dist = mode === "yard" ? 1250 : mode === "bed" ? 520 : 420;
+  const target = new THREE.Vector3(0, mode === "test" ? 7 : 0, mode === "yard" ? 160 : mode === "test" ? 15 : 35);
+  const dist = mode === "yard" ? 1250 : mode === "bed" ? 520 : mode === "test" ? 190 : 420;
   camera.position.set(target.x + dist * 0.75, target.y - dist * 0.85, target.z + dist * 0.45);
   controls.target.copy(target);
   controls.update();
@@ -353,21 +367,39 @@ function resize() {
 }
 new ResizeObserver(resize).observe(view);
 
-function load(buffer, name) {
+function parse(buffer, name, kind) {
   const g = new STLLoader().parse(buffer);
   g.computeVertexNormals();
-  geom = g;
-  info = measure(g);
-  renderStats(name);
+  return { geom: g, info: measure(g), name, kind };
+}
+
+function show(part) {
+  current = part;
+  ({ geom, info } = part);
+  renderStats(part.name);
   rebuild();
   frame();
+}
+
+const files = { base: "gravestone-base.stl", test: "fit-test.stl" };
+async function showKind(kind) {
+  if (!parts[kind]) {
+    try {
+      const r = await fetch(files[kind]);
+      if (!r.ok) throw new Error(r.status);
+      parts[kind] = parse(await r.arrayBuffer(), files[kind], kind);
+    } catch (err) {
+      document.getElementById("stats").innerHTML = `<tr><td class="bad">Couldn't load ${files[kind]} (${err.message}). Drop one on the viewer.</td><td></td></tr>`;
+      return;
+    }
+  }
+  show(parts[kind]);
 }
 
 document.querySelectorAll("#mode button").forEach(b => b.addEventListener("click", () => {
   document.querySelectorAll("#mode button").forEach(x => x.classList.toggle("on", x === b));
   mode = b.dataset.mode;
-  rebuild();
-  frame();
+  showKind(mode === "test" ? "test" : "base");
 }));
 for (const id of ["showStone", "showStakes", "showGround", "section"]) document.getElementById(id).addEventListener("change", rebuild);
 document.getElementById("cut").addEventListener("input", applyClip);
@@ -378,13 +410,14 @@ view.addEventListener("drop", async e => {
   e.preventDefault();
   view.classList.remove("dragging");
   const f = e.dataTransfer.files[0];
-  if (f) load(await f.arrayBuffer(), f.name);
+  if (f) {
+    const kind = mode === "test" ? "test" : "base";
+    parts[kind] = parse(await f.arrayBuffer(), f.name, "custom");
+    show(parts[kind]);
+  }
 });
 
-fetch("gravestone-base.stl")
-  .then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
-  .then(buf => load(buf, "gravestone-base.stl"))
-  .catch(err => { document.getElementById("stats").innerHTML = `<tr><td class="bad">Couldn't load gravestone-base.stl (${err.message}). Drop one on the viewer.</td><td></td></tr>`; });
+showKind("base");
 
 renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
 </script>
