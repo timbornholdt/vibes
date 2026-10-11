@@ -329,6 +329,7 @@
 
 <script>
   const tools = [
+    { file: "gravestone-base.html", title: "Gravestone Base", tags: ["home"], desc: "A 3D-printable, staked-down foot that keeps plastic yard gravestones upright in the wind. Inspect the STL in 3D, cut a cross-section, and download it for Bambu Studio." },
     { file: "comics.html", title: "Comics", tags: ["art"], desc: "Flip through the latest strips from 400+ smallweb webcomics, courtesy of Kagi's smallcomic list. Each comic links to its site and RSS feed; remove the ones that aren't for you." },
     { file: "crazy-rummy.html", title: "Crazy Rummy Scoresheet", tags: ["games"], desc: "Score sheet for crazy rummy nights: enter each round's score and the running total does the math for you. Tracks whose deal it is from 3s through Ks, crowns the leader, and remembers the game if you close the tab." },
     { file: "sketchpad.html", title: "Sketchpad", tags: ["art"], desc: "A full-screen drawing canvas for your finger: three brush widths, any color, nothing else in the way. Screenshot it when you're done." },
@@ -349,6 +350,11 @@
   const svg = (inner) =>
     `<svg viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
   const icons = {
+    // tombstone on a wedge-shaped foot
+    "gravestone-base.html": svg(`
+      <path d="M36 66V34c0-9 5-14 12-14s12 5 12 14v32"/>
+      <path d="M44 38h8M48 32v14"/>
+      <path d="M14 76l20-12h28l20 12z"/>`),
     // comic panel with a speech bubble
     "comics.html": svg(`
       <rect x="18" y="20" width="60" height="56" rx="4"/>
