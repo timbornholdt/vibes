@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gravestone Base</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --bg: #101114;
+    --panel: #1a1c21;
+    --line: #2c2f37;
+    --text: #e9e6df;
+    --muted: #9a978f;
+    --accent: #ff8a2b;
+    --ok: #7fd18b;
+    --bad: #ff6b6b;
+  }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { padding: 16px 16px 8px; }
+  h1 { margin: 0; font-size: 22px; letter-spacing: 0.02em; }
+  h1 span { color: var(--accent); }
+  .sub { color: var(--muted); font-size: 14px; margin-top: 4px; line-height: 1.4; }
+  main { display: grid; grid-template-columns: 1fr 320px; gap: 12px; padding: 8px 16px 16px; }
+  @media (max-width: 820px) { main { grid-template-columns: 1fr; } }
+  #view { position: relative; min-height: 60vh; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #0b0c0f; touch-action: none; }
+  #view canvas { display: block; width: 100%; height: 100%; position: absolute; inset: 0; }
+  #drop { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(255,138,43,0.15); border: 2px dashed var(--accent); font-size: 18px; pointer-events: none; }
+  #view.dragging #drop { display: flex; }
+  #hint { position: absolute; left: 10px; bottom: 8px; font-size: 12px; color: var(--muted); pointer-events: none; }
+  aside { display: flex; flex-direction: column; gap: 12px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .card h2 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+  .seg { display: flex; gap: 6px; flex-wrap: wrap; }
+  .seg button { flex: 1; min-height: 40px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: #22252c; color: var(--text); font-size: 14px; cursor: pointer; }
+  .seg button.on { background: var(--accent); color: #1a1006; border-color: var(--accent); font-weight: 600; }
+  label.tog { display: flex; align-items: center; gap: 10px; min-height: 36px; font-size: 15px; cursor: pointer; }
+  label.tog input { width: 20px; height: 20px; accent-color: var(--accent); }
+  input[type=range] { width: 100%; accent-color: var(--accent); height: 32px; font-size: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  td { padding: 4px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+  .ok { color: var(--ok); }
+  .bad { color: var(--bad); }
+  .muted { color: var(--muted); font-size: 13px; line-height: 1.45; }
+  a.btn { display: block; text-align: center; padding: 11px; border-radius: 8px; background: var(--accent); color: #1a1006; font-weight: 700; text-decoration: none; }
+  ul { margin: 0; padding-left: 18px; }
+  li { margin: 4px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Gravestone <span>Base</span></h1>
+  <div class="sub">A 3D-printed, staked-down foot for 1 18/32″-thick yard gravestones. This page renders the actual STL file and measures it, so you can check the work before printing.</div>
+</header>
+<main>
+  <div id="view">
+    <div id="drop">drop an .stl to inspect it</div>
+    <div id="hint">drag to orbit · pinch/scroll to zoom · right-drag to pan · drop any .stl here</div>
+  </div>
+  <aside>
+    <div class="card">
+      <h2>View</h2>
+      <div class="seg" id="mode">
+        <button data-mode="yard" class="on">In the yard</button>
+        <button data-mode="part">One part</button>
+        <button data-mode="bed">P1S bed</button>
+      </div>
+      <div style="margin-top:8px">
+        <label class="tog"><input type="checkbox" id="showStone" checked> Ghost gravestone</label>
+        <label class="tog"><input type="checkbox" id="showStakes" checked> Stakes &amp; set screw</label>
+        <label class="tog"><input type="checkbox" id="showGround" checked> Lawn</label>
+        <label class="tog"><input type="checkbox" id="section"> Cross-section cut</label>
+        <input type="range" id="cut" min="-50" max="50" step="0.5" value="0" disabled aria-label="cut position">
+      </div>
+    </div>
+    <div class="card">
+      <h2>Measured from the STL</h2>
+      <table id="stats"><tr><td>loading…</td><td></td></tr></table>
+    </div>
+    <div class="card">
+      <h2>Print it</h2>
+      <a class="btn" href="gravestone-base.stl" download>Download gravestone-base.stl</a>
+      <ul class="muted" style="margin-top:10px">
+        <li>Print flat side down, as-is. No supports needed.</li>
+        <li>PETG or ASA for outdoors; PLA works but can sag in hot sun.</li>
+        <li>4 walls, 20–25% gyroid infill. Two fit on one plate.</li>
+        <li>Per base: one M6 hex nut + one M6×25 bolt or wing screw.</li>
+        <li>Stakes: 6″+ landscape staples (straddle the slot) or 7–9 mm tent stakes / spikes.</li>
+      </ul>
+    </div>
+  </aside>
+</main>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { STLLoader } from "three/addons/loaders/STLLoader.js";
+
+// Design intent, in mm. The stats panel checks the STL against these.
+const STONE_T = 39.69;     // 1 18/32"
+const STONE_W = 254;       // ~10"
+const STONE_H = 610;       // ~2 ft
+const BED = 256;           // P1S
+
+const view = document.getElementById("view");
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.localClippingEnabled = true;
+view.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b0c0f);
+THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
+const camera = new THREE.PerspectiveCamera(40, 1, 1, 10000);
+camera.up.set(0, 0, 1);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x2a2018, 1.1));
+const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+sun.position.set(400, -600, 900);
+scene.add(sun);
+const moon = new THREE.DirectionalLight(0x8899ff, 0.5);
+moon.position.set(-500, 400, 300);
+scene.add(moon);
+
+// keeps y >= cut, so the half nearest the default camera is removed
+const clip = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+const baseMat = new THREE.MeshStandardMaterial({ color: 0xff8a2b, roughness: 0.55, metalness: 0.05 });
+const capMat = new THREE.MeshBasicMaterial({ color: 0xffd23f, side: THREE.BackSide });
+const stoneMat = new THREE.MeshStandardMaterial({ color: 0x9aa0a8, transparent: true, opacity: 0.28, roughness: 0.9, depthWrite: false });
+const steelMat = new THREE.MeshStandardMaterial({ color: 0xc8ccd2, metalness: 0.8, roughness: 0.35 });
+
+const world = new THREE.Group();
+scene.add(world);
+
+// lawn: translucent so stakes show below grade
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(1400, 1400),
+  new THREE.MeshStandardMaterial({ color: 0x2f5a2a, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false })
+);
+ground.position.z = -0.2;
+scene.add(ground);
+
+const bedGroup = new THREE.Group();
+{
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(BED, BED, 2), new THREE.MeshStandardMaterial({ color: 0x2b2d33, roughness: 0.7 }));
+  plate.position.z = -1.01;
+  bedGroup.add(plate);
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(BED, BED, 256)), new THREE.LineBasicMaterial({ color: 0x555a66 }));
+  edges.position.z = 128;
+  bedGroup.add(edges);
+  const grid = new THREE.GridHelper(BED, 16, 0x444852, 0x383b44);
+  grid.rotation.x = Math.PI / 2;
+  bedGroup.add(grid);
+}
+scene.add(bedGroup);
+
+let geom = null;   // the loaded STL geometry
+let info = null;   // measurements
+
+function tombstoneGeometry() {
+  // rounded-top slab, standing in XZ-ish: shape drawn in (y,z), extruded along x
+  const s = new THREE.Shape();
+  const w = STONE_W / 2, r = w;
+  s.moveTo(-w, 0);
+  s.lineTo(w, 0);
+  s.lineTo(w, STONE_H - r);
+  s.absarc(0, STONE_H - r, r, 0, Math.PI, false);
+  s.lineTo(-w, 0);
+  const g = new THREE.ExtrudeGeometry(s, { depth: STONE_T, bevelEnabled: false, curveSegments: 48 });
+  // shape x -> world y (width), shape y -> world z (height), extrusion -> world x (thickness)
+  g.applyMatrix4(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(1, 0, 0)));
+  g.computeBoundingBox();
+  const b = g.boundingBox;
+  g.translate(-(b.min.x + b.max.x) / 2, -(b.min.y + b.max.y) / 2, -b.min.z);
+  return g;
+}
+
+function stapleMesh() {
+  // U landscape staple: 3 mm wire, 25 mm wide, 150 mm legs, top resting on the plate
+  const g = new THREE.Group();
+  const leg = new THREE.CylinderGeometry(1.6, 1.6, 150, 10);
+  leg.rotateX(Math.PI / 2);
+  for (const y of [-12.5, 12.5]) {
+    const m = new THREE.Mesh(leg, steelMat);
+    m.position.set(0, y, -75);
+    g.add(m);
+  }
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 28, 10), steelMat);
+  top.position.z = 1.6;
+  g.add(top);
+  return g;
+}
+
+function boltMesh() {
+  const g = new THREE.Group();
+  const shank = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 25, 16), steelMat);
+  shank.rotation.z = Math.PI / 2;
+  g.add(shank);
+  const head = new THREE.Mesh(new THREE.CylinderGeometry(5.8, 5.8, 4, 6), steelMat);
+  head.rotation.z = Math.PI / 2;
+  head.position.x = 14.5;
+  g.add(head);
+  return g;
+}
+
+// --- measure the STL by casting rays at it -----------------------------------
+function measure(g) {
+  g.computeBoundingBox();
+  const bb = g.boundingBox;
+  const size = new THREE.Vector3(); bb.getSize(size);
+  const pos = g.attributes.position;
+  let vol = 0;
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i += 3) {
+    a.fromBufferAttribute(pos, i); b.fromBufferAttribute(pos, i + 1); c.fromBufferAttribute(pos, i + 2);
+    vol += a.dot(b.clone().cross(c)) / 6;
+  }
+  const probe = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }));
+  probe.updateMatrixWorld();
+  const ray = new THREE.Raycaster();
+  const hitsAlong = (origin, dir) => {
+    ray.set(origin, dir);
+    return ray.intersectObject(probe).map(h => h.distance);
+  };
+  // slot: from the centre line, shoot +x and -x at 1/2 and 3/4 wall height (off the screw line)
+  const cx = (bb.min.x + bb.max.x) / 2, cy = (bb.min.y + bb.max.y) / 2;
+  const slotAt = (y, z) => {
+    const p = hitsAlong(new THREE.Vector3(cx, y, z), new THREE.Vector3(1, 0, 0))[0];
+    const n = hitsAlong(new THREE.Vector3(cx, y, z), new THREE.Vector3(-1, 0, 0))[0];
+    return p != null && n != null ? p + n : null;
+  };
+  const slotW = slotAt(cy + 25, bb.min.z + size.z * 0.5);
+  // slot depth: shoot down the middle of the slot
+  const down = hitsAlong(new THREE.Vector3(cx, cy + 25, bb.max.z + 5), new THREE.Vector3(0, 0, -1))[0];
+  const floorZ = down != null ? bb.max.z + 5 - down : null;
+  return { size, vol: Math.abs(vol) / 1000, tris: pos.count / 3, slotW, floorZ, bb };
+}
+
+function renderStats(name) {
+  const s = info.size;
+  const gap = info.slotW != null ? info.slotW - STONE_T : null;
+  const fits = s.x <= BED && s.y <= BED && s.z <= 256;
+  const lever = s.x / 2;
+  // grams at ~25% infill + 4 walls is roughly 45% of solid for a part this chunky; PETG ~1.27 g/cm3
+  const grams = info.vol * 1.27 * 0.45;
+  const rows = [
+    ["File", name],
+    ["Footprint (front–back × wide)", `${s.x.toFixed(1)} × ${s.y.toFixed(1)} mm`],
+    ["Height", `${s.z.toFixed(1)} mm`],
+    ["Fits P1S bed (256³)", fits ? `<span class="ok">yes</span>` : `<span class="bad">no</span>`],
+    ["Slot width (ray-measured)", info.slotW != null ? `${info.slotW.toFixed(2)} mm` : "—"],
+    ["Stone thickness (1 18/32″)", `${STONE_T.toFixed(2)} mm`],
+    ["Clearance for set screw", gap != null ? `<span class="${gap > 0.5 && gap < 5 ? "ok" : "bad"}">${gap.toFixed(2)} mm</span>` : "—"],
+    ["Slot grip depth", info.floorZ != null ? `${(s.z - info.floorZ).toFixed(1)} mm (${((s.z - info.floorZ) / 25.4).toFixed(2)}″)` : "—"],
+    ["Tip lever arm (centre → toe)", `${lever.toFixed(0)} mm`],
+    ["Solid volume", `${info.vol.toFixed(0)} cm³`],
+    ["Est. filament per base", `~${Math.round(grams / 10) * 10} g`],
+    ["Triangles", info.tris.toLocaleString()],
+  ];
+  document.getElementById("stats").innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("");
+}
+
+// --- scene assembly ------------------------------------------------------------
+let mode = "yard";
+const BASE_Y = STONE_W / 2 - 45;   // two bases, one under each end of the stone
+
+function partMeshes() {
+  const g = new THREE.Group();
+  const solid = new THREE.Mesh(geom, baseMat);
+  const cap = new THREE.Mesh(geom, capMat);
+  g.add(solid, cap);
+  return g;
+}
+
+function buildExtras(at) {
+  const g = new THREE.Group();
+  // staples in the four stake slots (if this is our part, slots are at x=±108, y=±22)
+  const looksLikeOurs = Math.abs(info.size.x - 240) < 1 && Math.abs(info.size.y - 90) < 1;
+  if (looksLikeOurs) {
+    for (const sx of [-108, 108]) for (const sy of [-22, 22]) {
+      const s = stapleMesh();
+      s.position.set(sx, sy, 7);
+      g.add(s);
+    }
+    const b = boltMesh();
+    b.position.set(STONE_T / 2 + 12.5, 0, 7 + 35);   // tightened: tip on the stone face
+    g.add(b);
+    const nut = new THREE.Mesh(new THREE.CylinderGeometry(5.77, 5.77, 5, 6), steelMat);
+    nut.rotation.z = Math.PI / 2;
+    nut.position.set(21.25 + 7, 0, 7 + 35);
+    g.add(nut);
+  }
+  g.position.copy(at);
+  return g;
+}
+
+function rebuild() {
+  world.clear();
+  if (!geom) return;
+  const showStone = document.getElementById("showStone").checked;
+  const showStakes = document.getElementById("showStakes").checked;
+  const bb = info.bb;
+  const center = new THREE.Vector3((bb.min.x + bb.max.x) / 2, (bb.min.y + bb.max.y) / 2, 0);
+  const placements = mode === "yard" ? [new THREE.Vector3(0, -BASE_Y, 0), new THREE.Vector3(0, BASE_Y, 0)] : [new THREE.Vector3()];
+  for (const p of placements) {
+    const part = partMeshes();
+    part.position.set(p.x - center.x, p.y - center.y, -bb.min.z);
+    world.add(part);
+    if (showStakes && mode !== "bed") world.add(buildExtras(new THREE.Vector3(p.x - center.x, p.y - center.y, -bb.min.z)));
+  }
+  if (showStone && mode !== "bed" && info.floorZ != null) {
+    const stone = new THREE.Mesh(tombstoneGeometry(), stoneMat);
+    stone.position.set(0, 0, info.floorZ - bb.min.z);
+    world.add(stone);
+  }
+  ground.visible = document.getElementById("showGround").checked && mode !== "bed";
+  bedGroup.visible = mode === "bed";
+  applyClip();
+}
+
+function applyClip() {
+  const on = document.getElementById("section").checked;
+  document.getElementById("cut").disabled = !on;
+  // in the yard view, cut through the near base
+  clip.constant = -(Number(document.getElementById("cut").value) - (mode === "yard" ? BASE_Y : 0));
+  const planes = on ? [clip] : [];
+  for (const m of [baseMat, capMat, stoneMat, steelMat]) { m.clippingPlanes = planes; m.needsUpdate = true; }
+  capMat.visible = on;
+}
+
+function frame() {
+  const target = new THREE.Vector3(0, 0, mode === "yard" ? 160 : 35);
+  const dist = mode === "yard" ? 1250 : mode === "bed" ? 520 : 420;
+  camera.position.set(target.x + dist * 0.75, target.y - dist * 0.85, target.z + dist * 0.45);
+  controls.target.copy(target);
+  controls.update();
+}
+
+function resize() {
+  const r = view.getBoundingClientRect();
+  renderer.setSize(r.width, r.height, false);
+  camera.aspect = r.width / r.height;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(view);
+
+function load(buffer, name) {
+  const g = new STLLoader().parse(buffer);
+  g.computeVertexNormals();
+  geom = g;
+  info = measure(g);
+  renderStats(name);
+  rebuild();
+  frame();
+}
+
+document.querySelectorAll("#mode button").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll("#mode button").forEach(x => x.classList.toggle("on", x === b));
+  mode = b.dataset.mode;
+  rebuild();
+  frame();
+}));
+for (const id of ["showStone", "showStakes", "showGround", "section"]) document.getElementById(id).addEventListener("change", rebuild);
+document.getElementById("cut").addEventListener("input", applyClip);
+
+view.addEventListener("dragover", e => { e.preventDefault(); view.classList.add("dragging"); });
+view.addEventListener("dragleave", () => view.classList.remove("dragging"));
+view.addEventListener("drop", async e => {
+  e.preventDefault();
+  view.classList.remove("dragging");
+  const f = e.dataTransfer.files[0];
+  if (f) load(await f.arrayBuffer(), f.name);
+});
+
+fetch("gravestone-base.stl")
+  .then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+  .then(buf => load(buf, "gravestone-base.stl"))
+  .catch(err => { document.getElementById("stats").innerHTML = `<tr><td class="bad">Couldn't load gravestone-base.stl (${err.message}). Drop one on the viewer.</td><td></td></tr>`; });
+
+renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+</script>
+</body>
+</html>
