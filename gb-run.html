@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#03040b">
+<title>GB Run — Game Boy Backlog Tracker</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/anton@5.2.5/index.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/oswald@5.2.5/index.css">
+<style>
+  * { box-sizing: border-box; }
+  * { margin: 0; padding: 0; }
+
+  /* 1987 prime-time death-sport broadcast: near-black studio, hot magenta,
+     electric cyan, warning yellow, CRT scanlines over everything. Display
+     type is Anton; labels are Oswald; long notes fall back to a plain sans
+     so they stay easy to read on a phone. */
+  :root {
+    --void:    #03040b;
+    --panel:   #0b0c1a;
+    --panel-2: #12142a;
+    --edge:    #2a2d55;
+    --text:    #eef0fa;
+    --soft:    #c3c7dd;
+    --muted:   #9ba0c0;
+    --magenta: #ff3dd8;
+    --cyan:    #2ef2ff;
+    --yellow:  #ffe23d;
+    --red:     #ff4d5e;
+    --lime:    #7dff8a;
+
+    --display: 'Anton', 'Impact', 'Haettenschweiler', 'Arial Narrow Bold', sans-serif;
+    --label:   'Oswald Variable', 'Oswald', 'Arial Narrow', 'Roboto Condensed', sans-serif;
+    --body:    system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  html { background-color: var(--void); }
+  body {
+    background-color: var(--void);
+    background-image:
+      radial-gradient(70% 40% at 50% -5%, rgba(255, 61, 216, 0.20), transparent 70%),
+      radial-gradient(60% 40% at 110% 40%, rgba(46, 242, 255, 0.10), transparent 70%),
+      radial-gradient(60% 40% at -10% 80%, rgba(255, 61, 216, 0.10), transparent 70%);
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.45;
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* CRT: scanlines plus a soft vignette. Sits above everything, never
+     catches taps. */
+  .crt {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    background:
+      repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0 2px, rgba(0,0,0,0.22) 2px 3px),
+      radial-gradient(120% 90% at 50% 50%, transparent 60%, rgba(0,0,0,0.55) 100%);
+  }
+  /* a slow rolling bar, like a camera feed slightly out of sync */
+  .crt::after {
+    content: "";
+    position: absolute; left: 0; right: 0; top: -20%;
+    height: 18%;
+    background: linear-gradient(to bottom, transparent, rgba(46, 242, 255, 0.045), transparent);
+    animation: roll 9s linear infinite;
+  }
+  @keyframes roll { to { transform: translateY(700%); } }
+
+  .wrap {
+    position: relative;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 14px 16px 80px;
+  }
+
+  /* ── On-air bug ── */
+  .bug {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 10px;
+    font-family: var(--label);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .bug a { color: var(--muted); text-decoration: none; }
+  .bug a:hover { color: var(--text); }
+  .live {
+    display: inline-flex; align-items: center; gap: 7px;
+    color: var(--text);
+  }
+  .live::before {
+    content: "";
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 8px var(--red);
+    animation: blink 1.6s steps(2, start) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0.25; } }
+
+  /* ── Title ── */
+  header { margin: 22px 0 18px; }
+  .kicker {
+    font-family: var(--label);
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    text-shadow: 0 0 10px rgba(46, 242, 255, 0.55);
+  }
+  h1 {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: clamp(64px, 21vw, 150px);
+    line-height: 0.88;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    color: #ffd6f6;
+    text-shadow:
+      0 0 2px #fff,
+      0 0 14px rgba(255, 61, 216, 0.9),
+      0 0 38px rgba(255, 61, 216, 0.55),
+      4px 4px 0 #5a0f4c;
+    margin: 4px 0 8px;
+    animation: flicker 7s infinite;
+  }
+  h1 .run { color: var(--yellow); text-shadow: 0 0 2px #fff, 0 0 16px rgba(255, 226, 61, 0.8), 0 0 40px rgba(255, 150, 40, 0.45), 4px 4px 0 #5a3a0f; }
+  @keyframes flicker {
+    0%, 92%, 100% { opacity: 1; }
+    93% { opacity: 0.72; }
+    94% { opacity: 1; }
+    96% { opacity: 0.85; }
+  }
+  .tagline {
+    font-family: var(--label);
+    font-weight: 500;
+    font-size: clamp(17px, 4.6vw, 22px);
+    line-height: 1.25;
+    color: var(--text);
+    max-width: 34em;
+  }
+
+  /* ── Scoreboard ── */
+  .board {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 3px;
+    padding: 3px;
+    background: #000;
+    border: 2px solid var(--magenta);
+    box-shadow: 0 0 0 1px #000, 0 0 22px rgba(255, 61, 216, 0.35), inset 0 0 18px rgba(255, 61, 216, 0.15);
+    margin: 0 0 10px;
+  }
+  .board div {
+    background: linear-gradient(to bottom, #15061a, #07020b);
+    padding: 8px 4px 9px;
+    text-align: center;
+    min-width: 0;
+  }
+  .board b {
+    display: block;
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: clamp(32px, 10vw, 54px);
+    line-height: 1;
+    color: var(--yellow);
+    text-shadow: 0 0 12px rgba(255, 226, 61, 0.6);
+    font-variant-numeric: tabular-nums;
+  }
+  .board span {
+    display: block;
+    margin-top: 4px;
+    font-family: var(--label);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    line-height: 1.15;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+  @media (min-width: 560px) {
+    .board span { font-size: 13px; letter-spacing: 0.14em; }
+  }
+
+  .drift {
+    font-size: 14px;
+    color: var(--soft);
+    margin: 0 0 16px;
+  }
+  .drift strong { color: var(--yellow); font-weight: 700; }
+
+  .notice {
+    font-size: 14px;
+    color: var(--void);
+    background: var(--yellow);
+    padding: 8px 12px;
+    margin: 0 0 14px;
+    font-weight: 600;
+  }
+
+  /* ── Before you buy ── */
+  details.tips {
+    border: 1px solid var(--edge);
+    border-left: 6px solid var(--yellow);
+    background: var(--panel);
+    margin: 0 0 22px;
+  }
+  details.tips summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+    min-height: 48px;
+    padding: 10px 14px;
+    font-family: var(--label);
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--yellow);
+  }
+  details.tips summary::-webkit-details-marker { display: none; }
+  details.tips summary::after {
+    content: "+";
+    font-family: var(--display);
+    font-size: 24px;
+    line-height: 1;
+    color: var(--yellow);
+  }
+  details.tips[open] summary::after { content: "–"; }
+  details.tips summary:focus-visible { outline: 3px solid var(--cyan); outline-offset: -3px; }
+  .tips ul {
+    list-style: none;
+    padding: 0 14px 14px;
+    display: grid;
+    gap: 10px;
+  }
+  .tips li {
+    position: relative;
+    padding-left: 22px;
+    font-size: 15px;
+    color: var(--text);
+  }
+  .tips li::before {
+    content: "▲";
+    position: absolute; left: 0; top: 1px;
+    font-size: 12px;
+    color: var(--yellow);
+  }
+
+  /* ── Filters ── */
+  .controls {
+    display: grid;
+    gap: 12px;
+    margin: 0 0 18px;
+    padding: 14px;
+    background: var(--panel);
+    border: 1px solid var(--edge);
+    border-top: 3px solid var(--cyan);
+  }
+  .controls h2 {
+    font-family: var(--label);
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--cyan);
+  }
+  fieldset { border: 0; min-width: 0; }
+  legend, .flabel {
+    display: block;
+    font-family: var(--label);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    font-family: var(--label);
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text);
+    background: var(--panel-2);
+    border: 1px solid var(--edge);
+    border-radius: 0;
+    min-height: 40px;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+  .chip:hover { border-color: var(--cyan); }
+  .chip:focus-visible, select:focus-visible, .seg button:focus-visible, a:focus-visible {
+    outline: 3px solid var(--cyan); outline-offset: 2px;
+  }
+  .chip[aria-pressed="true"] {
+    color: #00151a;
+    background: var(--cyan);
+    border-color: var(--cyan);
+    box-shadow: 0 0 14px rgba(46, 242, 255, 0.45);
+  }
+  .chip .n { margin-left: 6px; opacity: 0.7; font-weight: 500; }
+  select {
+    width: 100%;
+    font-family: var(--label);
+    font-weight: 500;
+    font-size: 16px;
+    color: var(--text);
+    background: var(--panel-2);
+    border: 1px solid var(--edge);
+    border-radius: 0;
+    min-height: 44px;
+    padding: 8px 10px;
+  }
+  .fhint { margin-top: 6px; font-size: 13px; color: var(--muted); }
+  .frow {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    flex-wrap: wrap;
+  }
+  .showing {
+    font-family: var(--label);
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+  .reset {
+    font-family: var(--label);
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--magenta);
+    background: none;
+    border: 1px solid var(--magenta);
+    min-height: 40px;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+  .reset:disabled { opacity: 0.4; cursor: default; }
+  @media (min-width: 760px) {
+    .controls { grid-template-columns: 1fr 1fr; }
+    .controls h2, .controls .frow { grid-column: 1 / -1; }
+  }
+
+  /* ── Rounds (sections) ── */
+  .round { margin: 0 0 28px; }
+  .round-head {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px;
+    margin: 0 0 12px;
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: clamp(24px, 7vw, 34px);
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--text);
+    text-shadow: 0 0 14px rgba(46, 242, 255, 0.5);
+  }
+  .round-head small {
+    font-family: var(--label);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.18em;
+    color: var(--cyan);
+    text-shadow: none;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+    gap: 14px;
+  }
+
+  /* ── Contestant card ── */
+  .card {
+    --accent: var(--edge);
+    position: relative;
+    display: flex; flex-direction: column;
+    min-width: 0;
+    background: linear-gradient(to bottom, var(--panel-2), var(--panel));
+    border: 1px solid var(--edge);
+    border-top: 4px solid var(--accent);
+    box-shadow: 0 0 0 1px #000;
+  }
+  .card[data-status="playing"] { --accent: var(--magenta); box-shadow: 0 0 0 1px #000, 0 0 22px rgba(255, 61, 216, 0.3); }
+  .card[data-status="beat"]    { --accent: var(--lime); }
+  .card[data-status="bought"]  { --accent: var(--yellow); }
+
+  .card-top {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 8px;
+    padding: 10px 14px 0;
+    font-family: var(--label);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .plat {
+    flex: none;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 2px 7px;
+    border: 1px solid currentColor;
+  }
+  .plat.gb   { color: #c9cbd6; }
+  .plat.gbc  { color: var(--cyan); }
+  .plat.both { color: var(--yellow); }
+
+  /* lower-third nameplate */
+  .nameplate {
+    margin: 8px 0 0;
+    padding: 0 14px 0 0;
+  }
+  .nameplate h3 {
+    display: inline;
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 25px;
+    line-height: 1.32;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    color: #14001a;
+    background: var(--magenta);
+    padding: 1px 10px 1px 14px;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+  .genre-bar {
+    display: inline-block;
+    margin-top: 2px;
+    font-family: var(--label);
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #00151a;
+    background: var(--cyan);
+    padding: 2px 10px 2px 14px;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    margin: 12px 14px 0;
+    background: var(--edge);
+    border: 1px solid var(--edge);
+  }
+  .stats div { background: var(--panel); padding: 6px 8px; min-width: 0; }
+  .stats dt {
+    font-family: var(--label);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .stats dd {
+    font-family: var(--label);
+    font-weight: 600;
+    font-size: 15px;
+    line-height: 1.2;
+    color: var(--text);
+    overflow-wrap: anywhere;
+  }
+
+  .why {
+    margin: 12px 14px 0;
+    font-size: 16px;
+    color: var(--text);
+  }
+  .why::before {
+    content: "Why you'd like it";
+    display: block;
+    font-family: var(--label);
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--magenta);
+    margin-bottom: 2px;
+  }
+
+  .buy {
+    margin: 12px 14px 0;
+    padding: 8px 10px;
+    font-size: 14px;
+    color: var(--text);
+    background: rgba(255, 226, 61, 0.08);
+    border-left: 4px solid var(--yellow);
+  }
+  .buy b {
+    font-family: var(--label);
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--yellow);
+    margin-right: 6px;
+  }
+
+  .price {
+    display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px;
+    margin: 12px 14px 0;
+  }
+  .price .amt {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 22px;
+    line-height: 1.1;
+    color: var(--yellow);
+  }
+  .price .tag {
+    font-family: var(--label);
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .price a {
+    font-family: var(--label);
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.06em;
+    color: var(--cyan);
+    text-underline-offset: 3px;
+    padding: 6px 0;
+  }
+
+  /* status: a 4-way segmented switch along the bottom of the card */
+  .seg {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    margin-top: auto;
+    border-top: 1px solid var(--edge);
+    background: var(--edge);
+  }
+  .card .seg { margin-top: 14px; }
+  .card-body { flex: 1; padding-bottom: 2px; }
+  .seg button {
+    font-family: var(--label);
+    font-weight: 600;
+    font-size: 13px;
+    line-height: 1.1;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--soft);
+    background: var(--panel);
+    border: 0;
+    border-radius: 0;
+    min-height: 48px;
+    padding: 6px 2px;
+    cursor: pointer;
+  }
+  .seg button:hover { color: var(--text); background: var(--panel-2); }
+  .seg button[aria-checked="true"][data-v="want"]    { background: #d9dcf0; color: #050614; }
+  .seg button[aria-checked="true"][data-v="playing"] { background: var(--magenta); color: #14001a; }
+  .seg button[aria-checked="true"][data-v="beat"]    { background: var(--lime); color: #021004; }
+  .seg button[aria-checked="true"][data-v="bought"]  { background: var(--yellow); color: #171200; }
+
+  .empty {
+    padding: 40px 16px;
+    text-align: center;
+    border: 1px dashed var(--edge);
+    font-family: var(--label);
+    font-weight: 600;
+    font-size: 18px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+  .empty small { display: block; margin-top: 6px; font-size: 14px; color: var(--muted); letter-spacing: 0.04em; text-transform: none; font-weight: 500; }
+
+  footer {
+    margin-top: 30px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .sr {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .crt::after { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="crt" aria-hidden="true"></div>
+<div class="wrap">
+
+  <div class="bug">
+    <span class="live">Live · Ch. 87</span>
+    <a href="./">← vibes</a>
+  </div>
+
+  <header>
+    <div class="kicker">Tonight's broadcast</div>
+    <h1>GB <span class="run">Run</span></h1>
+    <p class="tagline">A Game Boy backlog. Emulate them first. Only the survivors get bought on cart.</p>
+  </header>
+
+  <div class="board" id="board" aria-live="polite"></div>
+
+  <p class="drift"><strong>Prices drift.</strong> Every price here is an approximate loose-cart price in USD as of Oct 2026. Tap “check price” to verify on PriceCharting.</p>
+
+  <div class="notice" id="notice" hidden>Storage is unavailable in this browser, so your statuses will reset when you close the page.</div>
+
+  <details class="tips" id="tips" open>
+    <summary>Before you buy</summary>
+    <ul>
+      <li>Pokémon and Zelda carts are heavily counterfeited. Check the label, the board, and the stamped number on the cart front.</li>
+      <li>Old carts with save batteries can die; Gold, Silver and Crystal especially (their clock battery too). Ask the seller if the save is tested, or budget for a battery swap.</li>
+      <li>“Works on both” (black) carts run on an original Game Boy. GBC-only (clear) carts don't.</li>
+    </ul>
+  </details>
+
+  <section class="controls" aria-label="Filters">
+    <h2>Pick your runners</h2>
+    <fieldset>
+      <legend>Platform</legend>
+      <div class="chips" id="f-platform"></div>
+    </fieldset>
+    <fieldset>
+      <legend>Session fit</legend>
+      <div class="chips" id="f-session"></div>
+    </fieldset>
+    <fieldset>
+      <legend>Status</legend>
+      <div class="chips" id="f-status"></div>
+    </fieldset>
+    <div>
+      <label class="flabel" for="f-genre">Genre</label>
+      <select id="f-genre"></select>
+    </div>
+    <div class="frow">
+      <span class="showing" id="showing"></span>
+      <button class="reset" id="reset" type="button">Clear filters</button>
+    </div>
+  </section>
+
+  <main id="list"></main>
+
+  <footer>Short = 10–20 minute friendly. Statuses are saved in this browser only.</footer>
+
+</div>
+
+<script type="module">
+// ── The roster ──────────────────────────────────────────────────────────
+// Add games here; the layout reads everything from this array.
+//   platform: "gb" | "gbc" | "both"   session: "short" | "medium"
+//   round: which section the card sits in (see ROUNDS below)
+//   pcQuery: optional PriceCharting search text (defaults to the title)
+const GAMES = [
+  { id: "links-awakening-dx", round: "story", title: "The Legend of Zelda: Link's Awakening DX", platform: "both", genre: "Action-adventure", story: "Heavy", difficulty: "Moderate", session: "short", price: "$35–50", pcQuery: "Zelda Link's Awakening DX",
+    why: "The immersive island story you're after. Batman-style action, Pokémon-style exploration, and dungeons that break into short chunks. Save anywhere. Start here.",
+    buy: "Commonly faked." },
+  { id: "oracle-of-seasons", round: "story", title: "The Legend of Zelda: Oracle of Seasons", platform: "both", genre: "Action-adventure", story: "Heavy", difficulty: "Moderate", session: "short", price: "$40–55", pcQuery: "Zelda Oracle of Seasons",
+    why: "Link's Awakening's sibling, a little more combat-focused. Links with Oracle of Ages for a true ending.",
+    buy: "Commonly faked." },
+  { id: "oracle-of-ages", round: "story", title: "The Legend of Zelda: Oracle of Ages", platform: "both", genre: "Action-adventure", story: "Heavy", difficulty: "Moderate (puzzle-heavy)", session: "short", price: "$40–55", pcQuery: "Zelda Oracle of Ages",
+    why: "The puzzle-leaning Oracle game. Scratches the same brain itch as Dr. Mario.",
+    buy: "Commonly faked." },
+  { id: "final-fantasy-adventure", round: "story", title: "Final Fantasy Adventure", platform: "gb", genre: "Action RPG", story: "Heavy", difficulty: "Moderate", session: "medium", price: "$30–50",
+    why: "A real-time RPG with a surprisingly emotional story and no turn-based menus. Origin of the Mana series." },
+  { id: "metal-gear-solid", round: "story", title: "Metal Gear Solid", platform: "gbc", genre: "Stealth action", story: "Heavy", difficulty: "Moderate", session: "short", price: "$40–70",
+    why: "A full spy-thriller plot told in short missions. Plays to the Batman stealth-and-gadgets fantasy." },
+  { id: "shantae", round: "story", title: "Shantae", platform: "gbc", genre: "Platformer / adventure", story: "Medium", difficulty: "Moderate–Hard", session: "medium", price: "$650–700", priceFlag: "original cart", priceExtra: "2021 Limited Run reprint ~$25–100",
+    why: "Gorgeous late-era GBC adventure with a charming hero and a big world to explore.",
+    buy: "The original is collector-priced. The reprint is the sensible buy." },
+
+  { id: "pokemon-crystal", round: "poke", title: "Pokémon Crystal", platform: "gbc", genre: "RPG", story: "Medium", difficulty: "Easy–Moderate", session: "short", price: "$150+", pcQuery: "Pokemon Crystal",
+    why: "The best version of what you already love, with two regions to explore.",
+    buy: "Gold (~$57) and Silver (~$65) are nearly the same game for less. Crystal is the most faked GB cart, and the save battery is often dead." },
+  { id: "pokemon-tcg", round: "poke", title: "Pokémon Trading Card Game", platform: "both", genre: "Card battler", story: "Light", difficulty: "Easy–Moderate", session: "short", price: "$25–40", pcQuery: "Pokemon Trading Card Game",
+    why: "Short card duels with a light adventure wrapper. A perfect 10-minute game." },
+  { id: "dragon-warrior-monsters", round: "poke", title: "Dragon Warrior Monsters", platform: "both", genre: "Monster-raising RPG", story: "Light–Medium", difficulty: "Moderate", session: "short", price: "$25–40",
+    why: "If Pokémon was the hook, this is the deeper version. A good test of whether you like RPGs." },
+  { id: "mario-tennis", round: "poke", title: "Mario Tennis", platform: "gbc", genre: "Sports RPG", story: "Medium", difficulty: "Moderate", session: "short", price: "$15–25",
+    why: "A story mode where you level up a player at a tennis academy. RPG progression in bite-sized matches." },
+  { id: "mario-golf", round: "poke", title: "Mario Golf", platform: "gbc", genre: "Sports RPG", story: "Medium", difficulty: "Moderate", session: "short", price: "$10–20",
+    why: "Same idea as Mario Tennis, with golf. Very relaxing." },
+
+  { id: "tmnt-2", round: "action", title: "Teenage Mutant Ninja Turtles II: Back from the Sewers", platform: "gb", genre: "Action platformer", story: "Light", difficulty: "Moderate", session: "short", price: "$25–40", pcQuery: "Back from the Sewers",
+    why: "The direct sequel to Fall of the Foot Clan. Easy pick." },
+  { id: "wario-land-3", round: "action", title: "Wario Land 3", platform: "gbc", genre: "Puzzle platformer", story: "Light", difficulty: "Moderate", session: "short", price: "$30",
+    why: "Wario can't die, so it's encouraging by design, but the puzzles make you work." },
+  { id: "metroid-2", round: "action", title: "Metroid II: Return of Samus", platform: "gb", genre: "Exploration action", story: "Light (atmospheric)", difficulty: "Moderate", session: "medium", price: "$20–30", pcQuery: "Metroid II",
+    why: "Moody and lonely. The immersion comes from atmosphere instead of dialogue." },
+  { id: "kirbys-dream-land-2", round: "action", title: "Kirby's Dream Land 2", platform: "gb", genre: "Platformer", story: "Light", difficulty: "Easy–Moderate", session: "short", price: "$20–30",
+    why: "A friendly warm-up, with hidden secrets that add some challenge." },
+  { id: "super-mario-land-2", round: "action", title: "Super Mario Land 2: 6 Golden Coins", platform: "gb", genre: "Platformer", story: "Light", difficulty: "Easy–Moderate", session: "short", price: "$15–25", pcQuery: "Super Mario Land 2",
+    why: "Short themed worlds and a save system. Classic comfort food." },
+
+  { id: "survival-kids", round: "chill", title: "Survival Kids", platform: "gbc", genre: "Survival adventure", story: "Medium", difficulty: "Moderate", session: "short", price: "$40–80", priceFlag: "verify",
+    why: "Stranded on an island, crafting and exploring. An underrated hidden gem." },
+  { id: "harvest-moon-gbc", round: "chill", title: "Harvest Moon GBC", platform: "both", genre: "Farming sim", story: "Light", difficulty: "Easy", session: "short", price: "$20–35", pcQuery: "Harvest Moon",
+    why: "Days in short loops. Low pressure, very “one more day.”" },
+  { id: "tetris-dx", round: "chill", title: "Tetris DX", platform: "both", genre: "Puzzle", story: "None", difficulty: "Scales", session: "short", price: "$10–15",
+    why: "The obvious Dr. Mario companion." },
+  { id: "donkey-kong-94", round: "chill", title: "Donkey Kong (1994)", platform: "gb", genre: "Puzzle platformer", story: "Light", difficulty: "Moderate", session: "short", price: "$20–30", pcQuery: "Donkey Kong",
+    why: "Starts as the arcade game, then turns into 100 puzzle stages. Great for short bursts." },
+];
+
+const ROUNDS = [
+  { id: "story",  name: "Story & Adventure" },
+  { id: "poke",   name: "Pokémon-adjacent", note: "Gentle intro to RPGs" },
+  { id: "action", name: "Action & Platforming" },
+  { id: "chill",  name: "Chill & Puzzle" },
+];
+
+// Stored values stay plain; the broadcast names are display-only.
+const STATUSES = [
+  { v: "want",    label: "Queued" },
+  { v: "playing", label: "In the Arena" },
+  { v: "beat",    label: "Survived" },
+  { v: "bought",  label: "Acquired" },
+];
+const PLATFORMS = [
+  { v: "gb",   label: "GB",            card: "GB" },
+  { v: "gbc",  label: "GBC",           card: "GBC only" },
+  { v: "both", label: "Works on both", card: "Works on both" },
+];
+const SESSIONS = [
+  { v: "short",  label: "Short" },
+  { v: "medium", label: "Medium" },
+];
+const DEFAULT_STATUS = "want";
+
+// ── Storage (best effort; the page works without it) ────────────────────
+const KEY = "gb-run:v1";
+let storageOk = true;
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    storageOk = false;
+    return {};
+  }
+}
+function save() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify({ status, filters }));
+  } catch {
+    storageOk = false;
+    notice.hidden = false;
+  }
+}
+
+const saved = load();
+const status = (saved.status && typeof saved.status === "object") ? saved.status : {};
+const blankFilters = { platform: "all", session: "all", status: "all", genre: "all" };
+const filters = { ...blankFilters, ...(saved.filters || {}) };
+
+const statusOf = (g) => STATUSES.some(s => s.v === status[g.id]) ? status[g.id] : DEFAULT_STATUS;
+
+// ── DOM ─────────────────────────────────────────────────────────────────
+const $ = (id) => document.getElementById(id);
+const board = $("board"), list = $("list"), notice = $("notice");
+const genreSel = $("f-genre"), showing = $("showing"), resetBtn = $("reset");
+
+// probe once so the notice shows up before the first tap, not after
+try { const t = "__gb_run_probe"; localStorage.setItem(t, "1"); localStorage.removeItem(t); }
+catch { storageOk = false; }
+notice.hidden = storageOk;
+
+const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const label = (arr, v) => (arr.find(x => x.v === v) || {}).label || v;
+
+const genres = [...new Set(GAMES.map(g => g.genre))].sort((a, b) => a.localeCompare(b));
+genreSel.innerHTML = `<option value="all">All genres</option>` +
+  genres.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join("");
+if (filters.genre !== "all" && !genres.includes(filters.genre)) filters.genre = "all";
+
+function matches(g, except) {
+  return (except === "platform" || filters.platform === "all" || g.platform === filters.platform)
+    && (except === "session" || filters.session === "all" || g.session === filters.session)
+    && (except === "status" || filters.status === "all" || statusOf(g) === filters.status)
+    && (except === "genre" || filters.genre === "all" || g.genre === filters.genre);
+}
+
+// chip counts reflect the other active filters, so you can see what a tap will leave
+function chipRow(el, key, opts) {
+  const pool = GAMES.filter(g => matches(g, key));
+  const count = (v) => pool.filter(g => (key === "status" ? statusOf(g) : g[key]) === v).length;
+  el.innerHTML = [{ v: "all", label: "All" }, ...opts].map(o => {
+    const n = o.v === "all" ? pool.length : count(o.v);
+    return `<button class="chip" type="button" data-key="${key}" data-v="${o.v}" aria-pressed="${filters[key] === o.v}">${esc(o.label)}<span class="n">${n}</span></button>`;
+  }).join("");
+}
+
+function renderBoard() {
+  const n = (v) => GAMES.filter(g => statusOf(g) === v).length;
+  const cells = [
+    ["Runners", GAMES.length],
+    ["In the Arena", n("playing")],
+    ["Survived", n("beat")],
+    ["Acquired", n("bought")],
+  ];
+  board.innerHTML = cells.map(([k, v]) => `<div><b>${String(v).padStart(2, "0")}</b><span>${k}</span></div>`).join("");
+  board.setAttribute("aria-label", cells.map(([k, v]) => `${k}: ${v}`).join(", "));
+}
+
+const pcUrl = (g) => `https://www.pricecharting.com/search-products?type=prices&q=${encodeURIComponent(g.pcQuery || g.title)}`;
+
+function card(g, num) {
+  const st = statusOf(g);
+  const plat = PLATFORMS.find(p => p.v === g.platform);
+  return `
+  <article class="card" data-status="${st}" data-id="${g.id}">
+    <div class="card-body">
+      <div class="card-top">
+        <span>Contestant #${String(num).padStart(2, "0")}</span>
+        <span class="plat ${g.platform}">${esc(plat.card)}</span>
+      </div>
+      <div class="nameplate"><h3>${esc(g.title)}</h3></div>
+      <div class="genre-bar">${esc(g.genre)}</div>
+      <dl class="stats">
+        <div><dt>Story</dt><dd>${esc(g.story)}</dd></div>
+        <div><dt>Difficulty</dt><dd>${esc(g.difficulty)}</dd></div>
+        <div><dt>Session</dt><dd>${esc(label(SESSIONS, g.session))}</dd></div>
+      </dl>
+      <p class="why">${esc(g.why)}</p>
+      <div class="price">
+        <span class="amt">~${esc(g.price)}</span>
+        <span class="tag">approx. loose${g.priceFlag ? " · " + esc(g.priceFlag) : ""}</span>
+        <a href="${pcUrl(g)}" target="_blank" rel="noopener">check price ↗</a>
+      </div>
+      ${g.priceExtra ? `<p class="buy"><b>Also</b>${esc(g.priceExtra)}</p>` : ""}
+      ${g.buy ? `<p class="buy"><b>Buy note</b>${esc(g.buy)}</p>` : ""}
+    </div>
+    <div class="seg" role="radiogroup" aria-label="Status for ${esc(g.title)}">
+      ${STATUSES.map(s => `<button type="button" role="radio" data-v="${s.v}" aria-checked="${s.v === st}" tabindex="${s.v === st ? 0 : -1}">${esc(s.label)}</button>`).join("")}
+    </div>
+  </article>`;
+}
+
+function renderList() {
+  const nums = new Map(GAMES.map((g, i) => [g.id, i + 1]));
+  const shown = GAMES.filter(g => matches(g));
+  showing.textContent = `Showing ${shown.length} of ${GAMES.length}`;
+  resetBtn.disabled = Object.keys(blankFilters).every(k => filters[k] === "all");
+  if (!shown.length) {
+    list.innerHTML = `<div class="empty">No runners match.<small>Loosen a filter or clear them all.</small></div>`;
+    return;
+  }
+  const roundIds = [...ROUNDS.map(r => r.id), ...new Set(GAMES.map(g => g.round).filter(r => !ROUNDS.some(x => x.id === r)))];
+  list.innerHTML = roundIds.map((rid, i) => {
+    const games = shown.filter(g => g.round === rid);
+    if (!games.length) return "";
+    const r = ROUNDS.find(x => x.id === rid) || { name: rid };
+    return `<section class="round">
+      <h2 class="round-head">${esc(r.name)} <small>Round ${i + 1}${r.note ? " · " + esc(r.note) : ""}</small></h2>
+      <div class="grid">${games.map(g => card(g, nums.get(g.id))).join("")}</div>
+    </section>`;
+  }).join("");
+}
+
+function renderFilters() {
+  chipRow($("f-platform"), "platform", PLATFORMS);
+  chipRow($("f-session"), "session", SESSIONS);
+  chipRow($("f-status"), "status", STATUSES);
+  genreSel.value = filters.genre;
+}
+
+function render() {
+  renderBoard();
+  renderFilters();
+  renderList();
+}
+
+// ── Events ──────────────────────────────────────────────────────────────
+document.querySelector(".controls").addEventListener("click", (e) => {
+  const chip = e.target.closest(".chip");
+  if (!chip) return;
+  filters[chip.dataset.key] = chip.dataset.v;
+  save();
+  render();
+});
+genreSel.addEventListener("change", () => {
+  filters.genre = genreSel.value;
+  save();
+  render();
+});
+resetBtn.addEventListener("click", () => {
+  Object.assign(filters, blankFilters);
+  save();
+  render();
+});
+
+function setStatus(id, v, focus) {
+  status[id] = v;
+  save();
+  render();
+  // keep focus on the same card's switch, if the card is still on screen
+  if (focus) list.querySelector(`.card[data-id="${id}"] .seg [data-v="${v}"]`)?.focus();
+}
+list.addEventListener("click", (e) => {
+  const btn = e.target.closest(".seg button");
+  if (!btn) return;
+  setStatus(btn.closest(".card").dataset.id, btn.dataset.v, true);
+});
+// arrow keys move through the radio group, as a radiogroup should
+list.addEventListener("keydown", (e) => {
+  const btn = e.target.closest(".seg button");
+  if (!btn || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) return;
+  e.preventDefault();
+  const i = STATUSES.findIndex(s => s.v === btn.dataset.v);
+  const step = (e.key === "ArrowLeft" || e.key === "ArrowUp") ? -1 : 1;
+  const next = STATUSES[(i + step + STATUSES.length) % STATUSES.length].v;
+  setStatus(btn.closest(".card").dataset.id, next, true);
+});
+
+render();
+</script>
+</body>
+</html>
