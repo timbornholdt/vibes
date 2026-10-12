@@ -517,11 +517,18 @@
 
 <script>
 /* vibes-sync: shared token gate + JSON sync for gated tools.
-   The same block is inlined into each gated tool (files must be self-contained). */
+   The same block is inlined into each gated tool (files must be self-contained).
+   Every storage access is wrapped in try/catch so a blocked
+   localStorage can't stop the page from loading. */
 window.VibesSync = (function () {
   const TOKEN_KEY = 'vibes-token';
   const BASE = '/api/store/';
-  let token = localStorage.getItem(TOKEN_KEY) || '';
+  const ls = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+    del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+  };
+  let token = ls.get(TOKEN_KEY) || '';
   let gateEl, gateInput, gateErr, resolver;
 
   function injectStyle() {
@@ -623,12 +630,12 @@ window.VibesSync = (function () {
       if (!token) token = await showGate();
       try {
         const remote = await remoteGet(key);
-        localStorage.setItem(TOKEN_KEY, token);
+        ls.set(TOKEN_KEY, token);
         hideGate();
         if (remote) { writeCache(key, remote.value, remote.updatedAt); return { value: remote.value, updatedAt: remote.updatedAt, offline: false }; }
         return { value: null, updatedAt: 0, offline: false };
       } catch (e) {
-        if (e.code === 401) { localStorage.removeItem(TOKEN_KEY); token = await showGate('That token did not work.'); continue; }
+        if (e.code === 401) { ls.del(TOKEN_KEY); token = await showGate('That token did not work.'); continue; }
         const cached = readCache(key);
         if (token && cached) { hideGate(); return { value: cached.value, updatedAt: cached.updatedAt, offline: true }; }
         token = await showGate("Can't reach the server. Check your connection and try again.");
