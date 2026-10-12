@@ -14,7 +14,7 @@ Personal project launchpad at `junk.timbornholdt.com/vibes`. A collection of one
 ## Adding a project
 
 1. Drop your `.html` file in the repo root
-2. Add an entry to the `tools` array in `index.html` (`file`, `title`, `cat`, `desc`)
+2. Add an entry to the `tools` array in `index.html` (`file`, `title`, `tags`, `desc`)
 3. Draw an SVG icon for it and add it to the `icons` map in `index.html` — see [Icons](#icons) (required)
 4. Commit and push to `main` — deploys automatically
 
@@ -34,7 +34,7 @@ Every page on the index gets a hand-made SVG icon representing what it does —
 
 For tools that need their data on phone + laptop. Backed by `server/vibes-store.py`
 (single-user `/api/store/<key>` JSON KV, one shared bearer token). See
-`server/README.md` for the backend. Used by `house-gripes.html`.
+`server/README.md` for the backend. Used by `house-gripes.html` and `gb-run.html`.
 
 How to add it to a tool:
 

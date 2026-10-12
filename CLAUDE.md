@@ -1,15 +1,15 @@
-# Project conventions for timbornholdt/junk
+# Project conventions for timbornholdt/vibes
 
 This repo hosts low-stakes, vibe-coded HTML tools deployed to
-https://junk.timbornholdt.com/ via auto-deploy.
+https://junk.timbornholdt.com/vibes/ via auto-deploy.
 
 ## Where new tools go
 
-- Single-file HTML tools live at the repo root and are served at `junk.timbornholdt.com/<filename>.html`.
+- Single-file HTML tools live at the repo root and are served at `junk.timbornholdt.com/vibes/<filename>.html`.
 - Use lowercase, hyphenated names (e.g. `image-cropper.html`, not `ImageCropper.html`).
 - **Tools with more than one file get their own folder**, named like a tool file
   without the extension: `<tool-name>/index.html` is the page (served at
-  `junk.timbornholdt.com/<tool-name>/`), and its supporting files (STLs, data,
+  `junk.timbornholdt.com/vibes/<tool-name>/`), and its supporting files (STLs, data,
   generator scripts, images) sit next to it in that folder. Link to it from the
   root `index.html` as `file: "<tool-name>/"`. Example: `gravestone-base/`.
 - The page itself still follows the single-file rules below (inline CSS/JS, no
@@ -22,7 +22,8 @@ https://junk.timbornholdt.com/ via auto-deploy.
 - **Single self-contained HTML file.** Inline all CSS and JavaScript. No build step, no bundler, no separate `.css` or `.js` files.
 - **No React, no JSX, no frameworks that require a build step.** Plain HTML, vanilla JS, and CSS only.
 - **External libraries via CDN only**, pinned to a specific version (cdnjs or jsDelivr). Prefer no dependencies at all when reasonable.
-- **No backend, no API keys baked in, no server calls that require secrets.** Everything runs in the browser. If a tool needs an API key, prompt the user to paste their own and store it in `localStorage`.
+- **No backend of the tool's own, no API keys baked in.** Everything runs in the browser. If a tool needs an API key, prompt the user to paste their own and store it in `localStorage`.
+- **The one exception is cross-device sync through vibes-store** (`server/vibes-store.py`, served at `/api/store/<key>`). Only use it when a tool's data should follow me between phone and laptop. Gated tools (`house-gripes.html`, `gb-run.html`) inline the shared `VibesSync` block and ask for my token once per device; the steps are in README.md under "Sync across devices". Keep every copy of that block identical. `gb-run.html`'s copy also wraps `localStorage` in try/catch; `house-gripes.html`'s doesn't yet. Local-only conveniences (filters, a collapsed panel) stay in plain `localStorage`.
 - **Must work offline once loaded** when feasible (i.e. don't phone home unnecessarily).
 
 ## Style conventions
@@ -54,26 +55,27 @@ This is the provenance trail — it's how I'll know later what was asked for and
 
 ## Update index page
 
-It's crucial that every new page to this repo is represented with a link on the index.html page. When you make a meaningful update to an existing tool, also bump that tool's `last deployed` date to today.
+It's crucial that every new page in this repo gets a tile on `index.html`. The
+index is rendered from JavaScript, not hand-written HTML. A new tool needs:
 
-Format:
+1. **An entry at the top of the `tools` array:**
+   ```js
+   { file: "my-tool.html", title: "My Tool", tags: ["games"], desc: "Pithy description, two sentences max." },
+   ```
+   For folder tools, `file` is `"<tool-name>/"`.
+2. **A tag from `tagOrder`.** Pick an existing tag if one fits; if you add a new
+   one, add it to `tagOrder` too, or it won't get a filter chip.
+3. **A hand-drawn icon in the `icons` map,** keyed by the same `file` value:
+   line art on a `0 0 96 96` viewBox, built with the `svg()` helper,
+   `stroke="currentColor"`, one clear concept, and a one-line comment saying
+   what it depicts. Every tile needs one.
 
-```html
-    <a class="item" href="patio.html">
-      <div class="item-row">
-        <span class="item-title">[name of project]</span>
-        <span class="item-tag">[appropriate tag(s), make something up that feels right]</span>
-      </div>
-      <div class="item-desc">[pithy description of what this tool does, two sentence max.]</div>
-      <div class="item-date">last deployed [today's date, e.g. last deployed may 10, 2026]</div>
-    </a>
-```
-
-Insert this block at the top of the list when adding a new tool. Use lowercase month names with a numeric day and year (e.g. `last deployed may 10, 2026`). Older entries that pre-date this convention can keep their existing date strings — don't backfill them retroactively.
+When a tool changes meaningfully (what it does, not just a fix), update its
+`desc` so the tile still describes it. The index has no "last deployed" dates.
 
 ## Shipping
 
-This repo auto-deploys to https://junk.timbornholdt.com/ when changes land on
+This repo auto-deploys to https://junk.timbornholdt.com/vibes/ when changes land on
 `main`. **Direct pushes to `main` are blocked by the harness proxy (HTTP
 403)**, so agents must route through a GitHub PR. The flow:
 
@@ -86,6 +88,8 @@ This repo auto-deploys to https://junk.timbornholdt.com/ when changes land on
 5. After merging, resync your local `main`: `git fetch origin main` then
    `git reset --hard origin/main`. The rebase-merge gives commits new
    SHAs on the remote, so local will look "ahead" until reset.
+   If you reset the feature branch the same way, push it with
+   `--force-with-lease` so it matches the merged history.
 
 Only ship once the thing actually works in a browser. Don't merge
 half-finished work.
@@ -123,4 +127,4 @@ in-scope work described above.
 - Not a place for anything I'd be embarrassed to have break.
 - Not a portfolio piece in the traditional sense — these are experiments.
 
-If a request would push beyond these constraints (needs a server, secrets, persistence beyond localStorage, a build step), stop and ask before proceeding.
+If a request would push beyond these constraints (needs a server other than vibes-store, secrets, a build step), stop and ask before proceeding.
