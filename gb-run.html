@@ -713,7 +713,7 @@
 <script>
 /* vibes-sync: shared token gate + JSON sync for gated tools.
    The same block is inlined into each gated tool (files must be self-contained).
-   This copy wraps every storage access in try/catch so a blocked
+   Every storage access is wrapped in try/catch so a blocked
    localStorage can't stop the page from loading. */
 window.VibesSync = (function () {
   const TOKEN_KEY = 'vibes-token';

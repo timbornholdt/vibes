@@ -23,7 +23,7 @@ https://junk.timbornholdt.com/vibes/ via auto-deploy.
 - **No React, no JSX, no frameworks that require a build step.** Plain HTML, vanilla JS, and CSS only.
 - **External libraries via CDN only**, pinned to a specific version (cdnjs or jsDelivr). Prefer no dependencies at all when reasonable.
 - **No backend of the tool's own, no API keys baked in.** Everything runs in the browser. If a tool needs an API key, prompt the user to paste their own and store it in `localStorage`.
-- **The one exception is cross-device sync through vibes-store** (`server/vibes-store.py`, served at `/api/store/<key>`). Only use it when a tool's data should follow me between phone and laptop. Gated tools (`house-gripes.html`, `gb-run.html`) inline the shared `VibesSync` block and ask for my token once per device; the steps are in README.md under "Sync across devices". Keep every copy of that block identical. `gb-run.html`'s copy also wraps `localStorage` in try/catch; `house-gripes.html`'s doesn't yet. Local-only conveniences (filters, a collapsed panel) stay in plain `localStorage`.
+- **The one exception is cross-device sync through vibes-store** (`server/vibes-store.py`, served at `/api/store/<key>`). Only use it when a tool's data should follow me between phone and laptop. Gated tools (`house-gripes.html`, `gb-run.html`) inline the shared `VibesSync` block and ask for my token once per device; the steps are in README.md under "Sync across devices". Keep every copy of that block identical, and copy it from an existing gated tool. Local-only conveniences (filters, a collapsed panel) stay in plain `localStorage`.
 - **Must work offline once loaded** when feasible (i.e. don't phone home unnecessarily).
 
 ## Style conventions
