@@ -329,6 +329,7 @@
 
 <script>
   const tools = [
+    { file: "abc-synth.html", title: "ABC Synth", tags: ["music"], desc: "Type music in ABC notation and watch it draw itself on a staff, then play it through a built-in synth or any Web MIDI device. Tap-to-type keyboard, chord accompaniment, transpose, and .mid export." },
     { file: "art-fair-finds.html", title: "Art Fair Finds", tags: ["art"], desc: "Thirteen makers from the Bde Maka Ska art fair, October 11, 2026, each pinned up with a piece from their own shop. Filter by medium and tap through to their site, Instagram, or email." },
     { file: "gb-run.html", title: "GB Run", tags: ["games"], desc: "A backlog of Game Boy and Game Boy Color games to emulate before buying the carts. Mark each one want, playing, beat or bought, leave notes, drag them into your play order, and it syncs across devices." },
     { file: "gravestone-base/", title: "Gravestone Base", tags: ["home"], desc: "A 3D-printable, staked-down foot that keeps plastic yard gravestones upright in the wind. Inspect the STL in 3D, cut a cross-section, and download it for Bambu Studio." },
@@ -352,6 +353,14 @@
   const svg = (inner) =>
     `<svg viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
   const icons = {
+    // pair of beamed eighth notes on a staff line, sound waves spilling off
+    "abc-synth.html": svg(`
+      <path d="M14 70h48"/>
+      <ellipse cx="26" cy="68" rx="7" ry="5" fill="currentColor" stroke="none"/>
+      <ellipse cx="50" cy="62" rx="7" ry="5" fill="currentColor" stroke="none"/>
+      <path d="M32 67V28l24-6v39"/>
+      <path d="M32 36l24-6"/>
+      <path d="M68 38c4 4 4 12 0 16M76 32c7 7 7 21 0 28"/>`),
     // easel holding a framed canvas with a sun over hills
     "art-fair-finds.html": svg(`
       <path d="M30 86l14-58M66 86L52 28M48 20v8"/>
