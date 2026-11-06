@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where You At? Rosemount</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --paper: #f4eedf;
+    --paper-2: #ebe2cc;
+    --ink: #3b2f20;
+    --muted: #7a6a52;
+    --line: #cdbb94;
+    --contour: #d9c8a2;
+    --olive: #5f6f32;
+    --rust: #a5512b;
+    --water: #3f6d7a;
+    --gold: #b88a1e;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+  html { background: var(--paper); }
+  body {
+    margin: 0;
+    color: var(--ink);
+    font: 16px/1.55 Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+    background-color: var(--paper);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='480' viewBox='0 0 480 480'%3E%3Cg fill='none' stroke='%23dccca6' stroke-width='1.2'%3E%3Cpath d='M240 60c90 0 170 60 170 150s-60 200-170 200S60 330 70 230 150 60 240 60z'/%3E%3Cpath d='M240 100c70 0 130 50 130 115s-50 160-130 160-140-70-130-150 60-125 130-125z'/%3E%3Cpath d='M245 140c50 0 90 35 90 80s-35 115-95 115-95-50-90-105 45-90 95-90z'/%3E%3Cpath d='M248 180c30 0 52 22 52 48s-22 70-58 70-55-30-52-62 28-56 58-56z'/%3E%3Cpath d='M250 215c14 0 24 10 24 22s-10 30-26 30-24-14-22-28 10-24 24-24z'/%3E%3Cpath d='M-20 30c80 20 120-10 200 10M300 470c60-30 120-10 200-40M-20 440c50-20 90 10 140-10'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 480px 480px;
+  }
+  a { color: var(--water); }
+  .num, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 0 16px 64px; }
+
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(244, 238, 223, 0.95);
+    border-bottom: 2px solid var(--ink);
+    backdrop-filter: blur(4px);
+  }
+  header.top .wrap { padding-top: 10px; padding-bottom: 10px; }
+  h1 { margin: 0; font-size: 22px; letter-spacing: -0.3px; }
+  h1 a { color: inherit; text-decoration: none; }
+  .scoreline { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; margin-top: 2px; font-size: 14px; color: var(--muted); }
+  .scoreline .num { color: var(--ink); font-weight: 700; }
+  .tier { font-style: italic; }
+  nav.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  nav.tabs a {
+    font-family: var(--mono); font-size: 13px; text-decoration: none; color: var(--ink);
+    border: 1.5px solid var(--ink); border-radius: 999px; padding: 6px 12px; min-height: 34px;
+    display: inline-flex; align-items: center;
+  }
+  nav.tabs a.on { background: var(--ink); color: var(--paper); }
+  #sync { font-family: var(--mono); font-size: 12px; margin-left: auto; align-self: center; color: var(--muted); }
+  #sync[data-state="off"] { color: var(--rust); }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 18px 0 12px; }
+  .chip {
+    font: 13px var(--mono); border: 1.5px solid var(--line); background: var(--paper);
+    color: var(--ink); border-radius: 999px; padding: 6px 11px; cursor: pointer; min-height: 34px;
+  }
+  .chip.on { background: var(--olive); border-color: var(--olive); color: #fff; }
+  .toggle { display: inline-flex; gap: 6px; align-items: center; font: 13px var(--mono); margin-left: auto; cursor: pointer; }
+  .toggle input { width: 18px; height: 18px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .card {
+    display: flex; flex-direction: column; gap: 8px;
+    background: rgba(255, 252, 244, 0.92); border: 1.5px solid var(--line); border-radius: 10px;
+    padding: 12px 14px; color: inherit; text-decoration: none; position: relative;
+  }
+  .card:hover { border-color: var(--ink); }
+  .card .qn { font: 700 13px var(--mono); color: var(--rust); }
+  .card .qt { font-weight: 700; line-height: 1.3; }
+  .card .ans { font-size: 14px; color: var(--ink); }
+  .card .ans.hidden { color: transparent; background: repeating-linear-gradient(135deg, var(--paper-2) 0 6px, var(--contour) 6px 7px); border-radius: 6px; cursor: pointer; min-height: 44px; position: relative; }
+  .card .ans.hidden::after { content: "tap to reveal"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font: 12px var(--mono); }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px; font: 12px var(--mono); color: var(--muted); }
+  .tag { border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; background: var(--paper); }
+  .tag.know { background: var(--olive); color: #fff; border-color: var(--olive); }
+  .tag.shaky { background: var(--gold); color: #fff; border-color: var(--gold); }
+  .tag.dont { background: var(--rust); color: #fff; border-color: var(--rust); }
+  .tag.live { border-color: var(--water); color: var(--water); }
+
+  .back { display: inline-block; margin: 16px 0 6px; font: 13px var(--mono); }
+  .qhead .qn { font: 700 14px var(--mono); color: var(--rust); }
+  .qhead h2 { margin: 2px 0 8px; font-size: 24px; line-height: 1.25; }
+  section.box {
+    background: rgba(255, 252, 244, 0.94); border: 1.5px solid var(--line); border-radius: 10px;
+    padding: 14px 16px; margin: 14px 0;
+  }
+  section.box > h3 { margin: 0 0 8px; font: 700 13px var(--mono); text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+  section.live { border-color: var(--water); border-width: 2px; }
+  section.live > h3 { color: var(--water); }
+  section.verify { border-color: var(--olive); border-width: 2px; }
+  section.verify > h3 { color: var(--olive); }
+  .md h3, .md h4 { font-size: 17px; margin: 18px 0 6px; }
+  .md table { border-collapse: collapse; font-size: 14px; display: block; overflow-x: auto; }
+  .md th, .md td { border: 1px solid var(--line); padding: 5px 8px; vertical-align: top; text-align: left; }
+  .md th { background: var(--paper-2); }
+  .md code { font-family: var(--mono); font-size: 13px; background: var(--paper-2); padding: 1px 4px; border-radius: 3px; }
+  .md pre { overflow-x: auto; background: var(--paper-2); padding: 10px; border-radius: 6px; }
+  .md li { margin: 4px 0; }
+  .md li.step { list-style: none; position: relative; }
+  .md li.step > .vchk { position: absolute; left: -28px; top: 2px; width: 20px; height: 20px; accent-color: var(--olive); }
+  .md li.step.done { color: var(--muted); }
+  .star { border: none; background: none; font-size: 20px; line-height: 1; cursor: pointer; color: var(--muted); padding: 4px 6px; min-width: 36px; min-height: 36px; vertical-align: middle; }
+  .star.on { color: var(--gold); }
+
+  .rate { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .rate button {
+    font: 14px var(--mono); padding: 8px 14px; min-height: 44px; border-radius: 8px; cursor: pointer;
+    border: 1.5px solid var(--ink); background: var(--paper); color: var(--ink);
+  }
+  .rate button.on[data-r="know"] { background: var(--olive); border-color: var(--olive); color: #fff; }
+  .rate button.on[data-r="shaky"] { background: var(--gold); border-color: var(--gold); color: #fff; }
+  .rate button.on[data-r="dont"] { background: var(--rust); border-color: var(--rust); color: #fff; }
+  textarea, input[type="text"] {
+    width: 100%; font: 16px/1.45 Georgia, serif; color: var(--ink); background: #fffdf7;
+    border: 1.5px solid var(--line); border-radius: 8px; padding: 10px;
+  }
+  textarea { min-height: 96px; resize: vertical; }
+  textarea:focus, input[type="text"]:focus { outline: none; border-color: var(--olive); }
+
+  .bignum { font: 700 34px/1.1 var(--mono); }
+  .live-row { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: baseline; }
+  .live-row > div { min-width: 120px; }
+  .lbl { font: 12px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .note-small { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+  .err { color: var(--rust); font: 13px var(--mono); }
+  .btn {
+    font: 15px var(--mono); padding: 10px 16px; min-height: 44px; border-radius: 8px; cursor: pointer;
+    border: 1.5px solid var(--ink); background: var(--ink); color: var(--paper);
+  }
+  .btn.ghost { background: var(--paper); color: var(--ink); }
+  .compass { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+  .dial { width: 140px; height: 140px; border-radius: 50%; border: 2px solid var(--ink); position: relative; background: #fffdf7; }
+  .dial .needle { position: absolute; inset: 0; transition: transform 0.15s linear; }
+  .dial .n { position: absolute; top: 4px; left: 50%; transform: translateX(-50%); font: 700 13px var(--mono); }
+  .plants { margin: 6px 0 0; padding-left: 20px; }
+  .plants li.now { font-weight: 700; color: var(--olive); }
+
+  .list { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+  .item { background: rgba(255, 252, 244, 0.94); border: 1.5px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .item.done { border-color: var(--olive); }
+  .item label.head { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+  .item label.head input { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--olive); flex: none; }
+  .item .when { font: 700 13px var(--mono); color: var(--rust); display: block; }
+  .item .what { font-weight: 700; }
+  .item .why { font-size: 14px; color: var(--muted); margin: 4px 0 8px 32px; }
+  .item textarea, .item input[type="text"] { margin-left: 0; min-height: 60px; }
+  .item.done .what { text-decoration: line-through; text-decoration-color: var(--olive); }
+  h2.page { font-size: 22px; margin: 20px 0 4px; }
+  p.lede { margin: 0 0 8px; color: var(--muted); }
+  pre.export { white-space: pre-wrap; background: #fffdf7; border: 1.5px solid var(--line); border-radius: 8px; padding: 12px; font: 13px/1.5 var(--mono); max-height: 60vh; overflow: auto; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+  .loading { padding: 40px 0; text-align: center; font-family: var(--mono); color: var(--muted); }
+  @media (max-width: 520px) {
+    h1 { font-size: 19px; }
+    .qhead h2 { font-size: 21px; }
+    .toggle { margin-left: 0; }
+    section.box { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <h1><a href="#/">Where You At? Rosemount</a></h1>
+    <div class="scoreline">
+      <span>Score <span class="num" id="score">0</span><span class="num"> / 20</span></span>
+      <span class="tier" id="tier"></span>
+    </div>
+    <nav class="tabs" id="tabs">
+      <a href="#/" data-r="grid">Questions</a>
+      <a href="#/plan" data-r="plan">Field plan</a>
+      <a href="#/leads" data-r="leads">Open leads</a>
+      <a href="#/export" data-r="export">Export</a>
+      <span id="sync" data-state="idle">…</span>
+    </nav>
+  </div>
+</header>
+<main class="wrap" id="app"><div class="loading">Loading the research…</div></main>
+
+<script>
+/* vibes-sync: shared token gate + JSON sync for gated tools.
+   The same block is inlined into each gated tool (files must be self-contained).
+   This copy wraps every storage access in try/catch so a blocked
+   localStorage can't stop the page from loading. */
+window.VibesSync = (function () {
+  const TOKEN_KEY = 'vibes-token';
+  const BASE = '/api/store/';
+  const ls = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+    del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+  };
+  let token = ls.get(TOKEN_KEY) || '';
+  let gateEl, gateInput, gateErr, resolver;
+
+  function injectStyle() {
+    if (document.getElementById('vibes-gate-style')) return;
+    const s = document.createElement('style');
+    s.id = 'vibes-gate-style';
+    s.textContent =
+      '.vibes-gate{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;' +
+      'justify-content:center;background:#0a0a0a;padding:24px;' +
+      "font-family:'JetBrains Mono','Fira Mono',ui-monospace,monospace;}" +
+      '.vibes-gate-box{width:100%;max-width:340px;display:flex;flex-direction:column;gap:12px;}' +
+      '.vibes-gate-title{color:#FFE600;font-size:28px;font-weight:900;text-transform:uppercase;letter-spacing:-1px;}' +
+      '.vibes-gate-sub{color:#888;font-size:12px;line-height:1.5;}' +
+      '.vibes-gate-input{font-size:16px;padding:12px;background:#161616;border:1px solid #2a2a2a;color:#ececec;border-radius:6px;width:100%;}' +
+      '.vibes-gate-input:focus{outline:none;border-color:#FF2D78;}' +
+      '.vibes-gate-btn{font-size:16px;padding:12px;background:#FF2D78;color:#000;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-family:inherit;text-transform:uppercase;letter-spacing:1px;}' +
+      '.vibes-gate-err{color:#FF2D78;font-size:12px;min-height:16px;}';
+    document.head.appendChild(s);
+  }
+
+  function buildGate() {
+    injectStyle();
+    gateEl = document.createElement('div');
+    gateEl.className = 'vibes-gate';
+    const box = document.createElement('div');
+    box.className = 'vibes-gate-box';
+    box.innerHTML =
+      '<div class="vibes-gate-title">Locked</div>' +
+      '<div class="vibes-gate-sub">This one is private. Paste your access token to continue.</div>' +
+      '<input class="vibes-gate-input" type="password" autocomplete="current-password" placeholder="access token">' +
+      '<button class="vibes-gate-btn" type="button">Unlock</button>' +
+      '<div class="vibes-gate-err"></div>';
+    gateEl.appendChild(box);
+    document.body.appendChild(gateEl);
+    gateInput = box.querySelector('.vibes-gate-input');
+    gateErr = box.querySelector('.vibes-gate-err');
+    const btn = box.querySelector('.vibes-gate-btn');
+    const submit = () => {
+      const v = gateInput.value.trim();
+      if (!v) { gateInput.focus(); return; }
+      const r = resolver; resolver = null;
+      if (r) r(v);
+    };
+    btn.addEventListener('click', submit);
+    gateInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submit(); } });
+  }
+
+  function showGate(msg) {
+    if (!gateEl) buildGate();
+    gateEl.style.display = 'flex';
+    gateErr.textContent = msg || '';
+    gateInput.value = '';
+    setTimeout(() => gateInput.focus(), 50);
+    return new Promise(res => { resolver = res; });
+  }
+  function hideGate() { if (gateEl) gateEl.style.display = 'none'; }
+
+  function headers(extra) {
+    return Object.assign({ 'Authorization': 'Bearer ' + token }, extra || {});
+  }
+
+  async function remoteGet(key) {
+    const res = await fetch(BASE + key, { headers: headers(), cache: 'no-store' });
+    if (res.status === 401) { const e = new Error('unauthorized'); e.code = 401; throw e; }
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error('GET ' + res.status);
+    return res.json();
+  }
+
+  async function remotePut(key, payload) {
+    const res = await fetch(BASE + key, {
+      method: 'PUT',
+      headers: headers({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(payload)
+    });
+    if (res.status === 401) { const e = new Error('unauthorized'); e.code = 401; throw e; }
+    if (!res.ok) throw new Error('PUT ' + res.status);
+    return res.json().catch(() => ({}));
+  }
+
+  function readCache(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw == null) return null;
+      return { value: JSON.parse(raw), updatedAt: Number(localStorage.getItem(key + ':updatedAt')) || 0 };
+    } catch (e) { return null; }
+  }
+  function writeCache(key, value, updatedAt) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      localStorage.setItem(key + ':updatedAt', String(updatedAt));
+    } catch (e) {}
+  }
+
+  // Gate the page on <key>. Resolves to { value, updatedAt, offline }.
+  // value is null when the server has nothing stored yet.
+  async function unlock(key) {
+    for (;;) {
+      if (!token) token = await showGate();
+      try {
+        const remote = await remoteGet(key);
+        ls.set(TOKEN_KEY, token);
+        hideGate();
+        if (remote) { writeCache(key, remote.value, remote.updatedAt); return { value: remote.value, updatedAt: remote.updatedAt, offline: false }; }
+        return { value: null, updatedAt: 0, offline: false };
+      } catch (e) {
+        if (e.code === 401) { ls.del(TOKEN_KEY); token = await showGate('That token did not work.'); continue; }
+        const cached = readCache(key);
+        if (token && cached) { hideGate(); return { value: cached.value, updatedAt: cached.updatedAt, offline: true }; }
+        token = await showGate("Can't reach the server. Check your connection and try again.");
+        continue;
+      }
+    }
+  }
+
+  // Cache locally + push to the server. Last-write-wins.
+  async function save(key, value) {
+    const updatedAt = Date.now();
+    writeCache(key, value, updatedAt);
+    try { await remotePut(key, { value: value, updatedAt: updatedAt }); return { synced: true }; }
+    catch (e) { return { synced: false, error: e }; }
+  }
+
+  return { unlock: unlock, save: save };
+})();
+</script>
+
+<script type="module">
+// ── Constants ───────────────────────────────────────────────────────────
+const LAT = 44.74, LON = -93.12, TZ = "America/Chicago";
+const KEY = "rosemount-bioregion-v1";
+const UI_KEY = "rosemount-bioregion-ui";
+const MARKED_URL = "https://cdn.jsdelivr.net/npm/marked@18.1.3/+esm";
+const ASTRO_URL = "https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/+esm";
+const FILES = [
+  "01-water-source", "02-full-moon", "03-soil-series", "04-rainfall", "05-fire-history",
+  "06-prior-culture-subsistence", "07-native-edible-plants", "08-winter-storm-direction", "09-garbage", "10-growing-season",
+  "11-shortest-shadows", "12-deer-rut-fawning", "13-grasses", "14-birds", "15-land-use-history",
+  "16-landform", "17-extinct-species", "18-plant-associations", "19-point-north", "20-first-spring-wildflower",
+];
+const CATEGORIES = ["water", "sky", "earth", "climate", "fire", "people", "plants", "animals", "waste", "history"];
+// The host's scoring scale, quoted verbatim.
+const TIERS = [
+  [0, 3, "You have your head up your ass."],
+  [4, 7, "It's hard to be in two places at once when you're not anywhere at all."],
+  [8, 12, "A fairly firm grasp of the obvious."],
+  [13, 16, "You're paying attention."],
+  [17, 19, "You know where you're at."],
+  [20, 20, "You not only know where you're at, you know where it's at."],
+];
+const RATINGS = { know: "Know it", shaky: "Shaky", dont: "Don't know" };
+
+const PLAN = [
+  { id: "deer-opener", when: "Nov 7", what: "Firearms deer season opens.", why: "Wear blaze orange on any trail or field edge." },
+  { id: "new-moon", when: "Nov 9", what: "New moon. Find Polaris.", why: "Dark sky. Polaris sits at about 44.7° altitude, due true north (Q19)." },
+  { id: "shadow-stick", when: "Any clear day", what: "Shadow stick at solar noon.", why: "", live: "noon" },
+  { id: "rut-peak", when: "Nov 10–20", what: "Rut peak. Look for rubs and scrapes.", why: "Peak breeding is about Nov 13 (Q12). Drive carefully at dawn and dusk." },
+  { id: "first-quarter", when: "Nov 16–17", what: "First quarter moon.", why: "Half-lit moon in the evening sky; a check on the moon countdown (Q02)." },
+  { id: "full-moon", when: "Nov 23–24", what: "Full moon (8:54 a.m. CST Nov 24).", why: "The Beaver Moon. Watch it rise the evening of Nov 23 (Q02)." },
+  { id: "publish", when: "By Nov 29", what: "Publish the post.", why: "The host is in France. Their \"end of November\" arrives around 5 p.m. CST on Nov 30." },
+  { id: "call-highland", when: "Anytime", what: "Call Highland Sanitation (Q09).", why: "Ask where trash, recycling and organics go." },
+  { id: "water-ccr", when: "Anytime", what: "Check the gross alpha violation (Q01).", why: "Read Rosemount's Consumer Confidence Report and MDH Drinking Water Watch." },
+  { id: "web-soil", when: "Anytime", what: "Run Web Soil Survey (Q03).", why: "Five minutes. Draw a box around your lot and read the map unit." },
+  { id: "burn-dates", when: "Anytime", what: "Ask Dakota County Parks for burn dates (Q05).", why: "Or the Rosemount Fire Department, for the Pine Bend Bluffs burn." },
+  { id: "cocorahs", when: "Anytime", what: "Find a CoCoRaHS station (Q04).", why: "A Rosemount gauge beats the airport number." },
+  { id: "mhapo", when: "Anytime", what: "View MHAPO historical aerials (Q15).", why: "See your neighborhood as farm field." },
+  { id: "marschner", when: "Anytime", what: "Read the Marschner map (Q18).", why: "Find the presettlement vegetation class under your home." },
+  { id: "ebird", when: "Anytime", what: "Check eBird bar charts; watch for juncos and snow buntings (Q14).", why: "Both are arriving winter visitors now." },
+  { id: "pine-bend", when: "Anytime", what: "See dormant prairie grasses at Pine Bend Bluffs SNA (Q13).", why: "Big bluestem and Indiangrass stand out copper-red in November." },
+  { id: "gravel-moraine", when: "Anytime", what: "Visit a gravel pit; drive to the moraine (Q16).", why: "See the outwash sand and gravel, then the hilly St. Croix moraine to the north." },
+];
+
+const LEADS = [
+  { id: "garbage", q: "09", what: "Where Highland Sanitation takes its loads.", why: "No public source says. Call and ask about trash, recycling and organics." },
+  { id: "water", q: "01", what: "The gross alpha violation.", why: "A third-party site lists one starting October 2025. Confirm it in the Consumer Confidence Report or with MDH." },
+  { id: "soil", q: "03", what: "Your soil series.", why: "Wadena loam is an informed guess. Run the Web Soil Survey lookup on your lot." },
+  { id: "fire", q: "05", what: "The date of the last nearby burn.", why: "The Pine Bend Bluffs SNA burn has no confirmed date. Ask Dakota County Parks or the Rosemount Fire Department." },
+  { id: "rain", q: "04", what: "A local rainfall number.", why: "The figure is for MSP airport. Find a CoCoRaHS observer in Rosemount." },
+  { id: "shadows", q: "11", what: "Dec 21 versus the June solstice.", why: "The June solstice has the shortest noon shadows; Dec 21 has the longest. Worth a line in the post." },
+];
+
+// Rough fruiting/harvest windows, day of year (non-leap), from Q07.
+const PLANTS = [
+  ["Maple sap", 55, 95], ["Wild strawberry", 155, 185], ["Juneberry", 175, 205], ["Black raspberry", 182, 205],
+  ["Chokecherry", 205, 245], ["Elderberry", 220, 250], ["American plum", 227, 260], ["American hazelnut", 235, 255],
+  ["Wild grape", 245, 280], ["Bur oak acorns", 245, 290], ["Groundnut tubers", 280, 365], ["Groundnut tubers", 1, 90],
+];
+
+// ── State ───────────────────────────────────────────────────────────────
+const emptyState = () => ({ ratings: {}, notes: {}, verify: {}, stars: {}, plan: {}, leads: {} });
+let state = emptyState();
+const QS = {}; // id -> { meta, sections, steps: [{h, text}], sources: [{h, title, url}] }
+let md = null;
+
+function readUI() {
+  try { return Object.assign({ flash: false, cat: "all" }, JSON.parse(localStorage.getItem(UI_KEY) || "{}")); }
+  catch (e) { return { flash: false, cat: "all" }; }
+}
+function writeUI() { try { localStorage.setItem(UI_KEY, JSON.stringify(ui)); } catch (e) {} }
+let ui = readUI();
+const revealed = new Set();
+
+function normalize(v) {
+  const s = emptyState();
+  if (v && typeof v === "object") for (const k of Object.keys(s)) if (v[k] && typeof v[k] === "object") s[k] = v[k];
+  return s;
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────────
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function hash(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return (h >>> 0).toString(36);
+}
+function chiDate(d = new Date()) {
+  const [y, m, day] = new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" }).format(d).split("-").map(Number);
+  return { y, m, d: day };
+}
+const dayOfYear = (y, m, d) => Math.round((Date.UTC(y, m - 1, d) - Date.UTC(y, 0, 1)) / 864e5) + 1;
+const fmtTime = (d) => new Intl.DateTimeFormat("en-US", { timeZone: TZ, hour: "numeric", minute: "2-digit", timeZoneName: "short" }).format(d);
+const fmtDay = (d) => new Intl.DateTimeFormat("en-US", { timeZone: TZ, weekday: "short", month: "short", day: "numeric" }).format(d);
+function daysUntil(y, m, d) {
+  const t = chiDate();
+  return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(t.y, t.m - 1, t.d)) / 864e5);
+}
+function nextAnnual(m, d) {
+  const t = chiDate();
+  const n = daysUntil(t.y, m, d);
+  return n >= 0 ? n : daysUntil(t.y + 1, m, d);
+}
+
+function score() {
+  let s = 0;
+  for (const r of Object.values(state.ratings)) s += r === "know" ? 1 : r === "shaky" ? 0.5 : 0;
+  return s;
+}
+function tierFor(s) {
+  const f = Math.floor(s);
+  return TIERS.find(([lo, hi]) => f >= lo && f <= hi)[2];
+}
+function renderScore() {
+  const s = score();
+  $("score").textContent = Number.isInteger(s) ? String(s) : s.toFixed(1);
+  $("tier").textContent = "“" + tierFor(s) + "”";
+}
+
+// ── Markdown loading ────────────────────────────────────────────────────
+function parseFront(text) {
+  const m = text.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+  if (!m) throw new Error("no frontmatter");
+  const meta = {};
+  for (const line of m[1].split("\n")) {
+    const kv = line.match(/^([a-z_]+):\s*(.+)$/);
+    if (!kv) continue;
+    meta[kv[1]] = kv[2].startsWith('"') ? JSON.parse(kv[2]) : kv[2];
+  }
+  return { meta, body: m[2] };
+}
+function splitSections(body) {
+  const out = {};
+  for (const part of body.split(/^## /m).slice(1)) {
+    const nl = part.indexOf("\n");
+    out[part.slice(0, nl).trim()] = part.slice(nl + 1).trim();
+  }
+  return out;
+}
+function html(mdText) {
+  const div = document.createElement("div");
+  div.className = "md";
+  div.innerHTML = md.parse(mdText);
+  for (const a of div.querySelectorAll("a[href^='http']")) { a.target = "_blank"; a.rel = "noopener"; }
+  return div;
+}
+// Top-level list items in "How to verify" become checkable steps.
+// Lists under a "Caveats" heading, or right after a "Caveats:" paragraph, are skipped.
+function markSteps(div) {
+  const steps = [];
+  let underCaveat = false, nextIsCaveat = false;
+  for (const el of div.children) {
+    if (/^H[1-6]$/.test(el.tagName)) { underCaveat = /caveat/i.test(el.textContent); nextIsCaveat = false; continue; }
+    if (el.tagName === "P") { nextIsCaveat = /^caveats?\b/i.test(el.textContent.trim()); continue; }
+    if (el.tagName !== "OL" && el.tagName !== "UL") continue;
+    const skip = underCaveat || nextIsCaveat;
+    nextIsCaveat = false;
+    if (skip) continue;
+    for (const li of el.children) {
+      const text = li.textContent.trim();
+      const h = hash(text);
+      li.classList.add("step");
+      li.dataset.h = h;
+      const box = document.createElement("input");
+      box.type = "checkbox";
+      box.className = "vchk";
+      box.dataset.h = h;
+      box.setAttribute("aria-label", "Verified");
+      li.prepend(box);
+      steps.push({ h, text: text.split("\n")[0].slice(0, 140) });
+    }
+  }
+  return steps;
+}
+function markSources(div) {
+  const sources = [];
+  for (const a of div.querySelectorAll("a[href^='http']")) {
+    const h = hash(a.href);
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "star";
+    b.dataset.h = h;
+    b.textContent = "☆";
+    b.setAttribute("aria-label", "Star this source");
+    a.after(b);
+    sources.push({ h, title: a.textContent, url: a.getAttribute("href") });
+  }
+  return sources;
+}
+
+async function loadAll() {
+  const mod = await import(MARKED_URL);
+  md = mod.marked;
+  await Promise.all(FILES.map(async (f) => {
+    const res = await fetch("questions/" + f + ".md");
+    if (!res.ok) throw new Error(f + " " + res.status);
+    const { meta, body } = parseFront(await res.text());
+    const sections = splitSections(body);
+    const steps = markSteps(html(sections["How to find and verify this yourself"] || ""));
+    const sources = markSources(html(sections["Sources"] || ""));
+    QS[meta.id] = { meta, sections, steps, sources };
+  }));
+}
+
+// ── Live widgets ────────────────────────────────────────────────────────
+let astroP = null;
+function astro() {
+  astroP = astroP || import(ASTRO_URL).then((m) => (m.SearchMoonQuarter ? m : m.default));
+  return astroP;
+}
+async function acis(params) {
+  const res = await fetch("https://data.rcc-acis.org/StnData", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: "params=" + encodeURIComponent(JSON.stringify(params)),
+  });
+  if (!res.ok) throw new Error("ACIS " + res.status);
+  const j = await res.json();
+  if (j.error) throw new Error(j.error);
+  return j.data;
+}
+const num = (v) => (v === "T" ? 0 : v === "M" ? null : (Number.isNaN(parseFloat(v)) ? null : parseFloat(v)));
+
+const PHASES = ["New moon", "Waxing crescent", "First quarter", "Waxing gibbous", "Full moon", "Waning gibbous", "Last quarter", "Waning crescent"];
+async function liveMoon() {
+  const A = await astro();
+  const now = new Date();
+  let mq = A.SearchMoonQuarter(now);
+  while (mq.quarter !== 2) mq = A.NextMoonQuarter(mq);
+  const full = mq.time.date;
+  const days = (full - now) / 864e5;
+  const angle = A.MoonPhase(now);
+  const illum = A.Illumination(A.Body.Moon, now).phase_fraction;
+  const obs = new A.Observer(LAT, LON, 290);
+  const rise = A.SearchRiseSet(A.Body.Moon, obs, +1, now, 2);
+  const name = PHASES[Math.round(angle / 45) % 8];
+  return {
+    short: days.toFixed(1) + " days to full",
+    html: `<div class="live-row">
+      <div><div class="lbl">Days till full</div><div class="bignum">${days.toFixed(1)}</div></div>
+      <div><div class="lbl">Full moon</div><div class="mono">${fmtDay(full)}, ${fmtTime(full)}</div></div>
+      <div><div class="lbl">Now</div><div class="mono">${name}, ${Math.round(illum * 100)}% lit</div></div>
+      <div><div class="lbl">Next moonrise</div><div class="mono">${rise ? fmtDay(rise.date) + ", " + fmtTime(rise.date) : "—"}</div></div>
+    </div><p class="note-small">Computed in your browser with astronomy-engine for central Rosemount. The quiz allows two days of slack.</p>`,
+  };
+}
+
+function solarNoonToday() {
+  const t = chiDate();
+  const N = dayOfYear(t.y, t.m, t.d);
+  const B = 2 * Math.PI * (N - 81) / 364;
+  const eot = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
+  const minutesUTC = 720 - 4 * LON - eot;
+  const noon = new Date(Date.UTC(t.y, t.m - 1, t.d) + minutesUTC * 60000);
+  const decl = -23.44 * Math.cos((2 * Math.PI / 365) * (N + 10));
+  const alt = 90 - LAT + decl;
+  const ratio = 1 / Math.tan(alt * Math.PI / 180);
+  return { noon, alt, ratio };
+}
+async function liveShadow() {
+  const { noon, alt, ratio } = solarNoonToday();
+  const toSolstice = nextAnnual(6, 21);
+  return {
+    short: "Noon today " + fmtTime(noon),
+    html: `<div class="live-row">
+      <div><div class="lbl">Solar noon today</div><div class="bignum">${fmtTime(noon)}</div></div>
+      <div><div class="lbl">Sun height at noon</div><div class="mono">${alt.toFixed(1)}°</div></div>
+      <div><div class="lbl">Shadow / height</div><div class="mono">${ratio.toFixed(2)}×</div></div>
+      <div><div class="lbl">6-ft person's shadow</div><div class="mono">${(6 * ratio).toFixed(1)} ft</div></div>
+      <div><div class="lbl">Days to June solstice</div><div class="mono">${toSolstice}</div></div>
+    </div><p class="note-small">Approximate formulas from the research, good to about a minute. Plant a stick at this time; its shadow points true north.</p>`,
+  };
+}
+
+function deerPhase() {
+  const t = chiDate();
+  const mmdd = t.m * 100 + t.d;
+  if (mmdd >= 1015 && mmdd <= 1106) return ["Pre-rut", "Bucks are rubbing and scraping. Peak breeding is about " + nextAnnual(11, 13) + " days out."];
+  if (mmdd >= 1107 && mmdd <= 1124) return ["Rut", "Peak breeding is about Nov 13. Expect bucks moving in daylight."];
+  if (mmdd >= 1125 && mmdd <= 1215) return ["Post-rut", "Most does are bred. Fawns arrive in about " + nextAnnual(5, 25) + " days."];
+  if (mmdd >= 515 && mmdd <= 615) return ["Fawning season", "Peak births run May 25 to June 10. Leave lone fawns alone."];
+  const toRut = nextAnnual(10, 15), toFawn = nextAnnual(5, 15);
+  return ["Off-season", toFawn < toRut ? "Fawning starts in about " + toFawn + " days (May 15)." : "The pre-rut starts in about " + toRut + " days (Oct 15)."];
+}
+async function liveDeer() {
+  const [phase, note] = deerPhase();
+  return { short: phase, html: `<div class="bignum">${phase}</div><p>${note}</p>` };
+}
+
+async function livePlants() {
+  const t = chiDate();
+  const n = Math.min(dayOfYear(t.y, t.m, t.d), 365);
+  const now = new Set(PLANTS.filter(([, a, b]) => n >= a && n <= b).map(([p]) => p));
+  const seen = new Set();
+  const items = PLANTS.filter(([p]) => !seen.has(p) && seen.add(p)).map(([p]) => `<li class="${now.has(p) ? "now" : ""}">${esc(p)}${now.has(p) ? " — in season now" : ""}</li>`).join("");
+  return {
+    short: now.size ? now.size + " in season" : "None in season",
+    html: `<div class="lbl">Today</div><div class="bignum">${now.size ? [...now].join(", ") : "Nothing in season"}</div>
+      <ul class="plants">${items}</ul><p class="note-small">Rough windows from the research. Check iNaturalist for local dates.</p>`,
+  };
+}
+
+async function livePasque() {
+  const t = chiDate();
+  const mmdd = t.m * 100 + t.d;
+  const toAvg = nextAnnual(4, 17);
+  const open = mmdd >= 403 && mmdd <= 501;
+  return {
+    short: open ? "Bloom window open" : toAvg + " days to Apr 17",
+    html: `<div class="live-row">
+      <div><div class="lbl">Days to average first bloom (Apr 17)</div><div class="bignum">${toAvg}</div></div>
+      <div><div class="lbl">Bloom window</div><div class="mono">${open ? "Open now" : "Apr 3 – May 1 (record range)"}</div></div>
+    </div>`,
+  };
+}
+
+function rainWindow() {
+  const t = chiDate();
+  const end = t.m >= 7 ? t.y : t.y - 1;
+  return [end - 1 + "-07-01", end + "-06-30"];
+}
+async function liveRain() {
+  const [s, e] = rainWindow();
+  const data = await acis({ sid: "MSPthr 9", sdate: s, edate: e, elems: [{ name: "pcpn", interval: "mly", duration: "mly", reduce: "sum" }] });
+  let total = 0, missing = 0;
+  for (const [, v] of data) { const x = num(v); if (x == null) missing++; else total += x; }
+  const dep = total - 31.6;
+  return {
+    short: total.toFixed(2) + " in (MSP)",
+    html: `<div class="live-row">
+      <div><div class="lbl">MSP airport, Jul ${s.slice(0, 4)} – Jun ${e.slice(0, 4)}</div><div class="bignum">${total.toFixed(2)} in</div></div>
+      <div><div class="lbl">1991–2020 normal</div><div class="mono">31.6 in</div></div>
+      <div><div class="lbl">Departure</div><div class="mono">${dep >= 0 ? "+" : ""}${dep.toFixed(2)} in</div></div>
+    </div>${missing ? `<p class="note-small">${missing} month(s) missing.</p>` : ""}
+    <p class="note-small">From ACIS (NOAA Regional Climate Centers). The quiz allows 1 in of slack for every 20 in.</p>`,
+  };
+}
+
+function freezeSeason(rows, y) {
+  const yr = rows.filter(([d]) => d.startsWith(y + "-"));
+  const cold = ([d, v]) => { const x = num(v); return x != null && x <= 32; };
+  const spring = yr.filter((r) => r[0] < y + "-07-01" && cold(r)).pop();
+  const fall = yr.find((r) => r[0] >= y + "-07-01" && cold(r));
+  return { spring: spring && spring[0], fall: fall && fall[0] };
+}
+const fmtISO = (iso) => new Date(iso + "T12:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+const diffDays = (a, b) => Math.round((new Date(b) - new Date(a)) / 864e5);
+async function liveFreeze() {
+  const t = chiDate();
+  const today = `${t.y}-${String(t.m).padStart(2, "0")}-${String(t.d).padStart(2, "0")}`;
+  const rows = await acis({ sid: "MSPthr 9", sdate: t.y - 1 + "-01-01", edate: today, elems: [{ name: "mint", interval: "dly" }] });
+  const last = freezeSeason(rows, t.y - 1);
+  const cur = freezeSeason(rows, t.y);
+  const lastLine = last.spring && last.fall ? `${t.y - 1}: ${fmtISO(last.spring)} → ${fmtISO(last.fall)} = ${diffDays(last.spring, last.fall)} days` : `${t.y - 1}: incomplete data`;
+  let big, sub, short;
+  if (t.m <= 4) {
+    big = "Spring freeze not yet passed";
+    sub = "The last spring freeze usually comes in late April or early May.";
+    short = "Spring freeze not yet passed";
+  } else if (cur.spring && cur.fall) {
+    const n = diffDays(cur.spring, cur.fall);
+    big = n + " days";
+    sub = `Last spring freeze ${fmtISO(cur.spring)}, first fall freeze ${fmtISO(cur.fall)}.`;
+    short = n + " frost-free days";
+  } else if (cur.spring) {
+    const n = diffDays(cur.spring, today);
+    big = n + " days and counting";
+    sub = `Last spring freeze ${fmtISO(cur.spring)}. No fall freeze yet.`;
+    short = n + " days, no fall freeze yet";
+  } else {
+    big = "No data";
+    sub = "";
+    short = "—";
+  }
+  return {
+    short,
+    html: `<div class="lbl">MSP airport, ${t.y} (freeze = low of 32°F or below)</div><div class="bignum">${big}</div>
+      <p>${sub}</p><p class="note-small">Last year at MSP: ${lastLine}. From ACIS daily lows.</p>`,
+  };
+}
+
+async function liveCompass() {
+  return {
+    short: "",
+    html: `<p>Hold your phone flat and tap Start. The arrow points to magnetic north.</p>
+      <button class="btn" type="button" id="compass-go">Start compass</button>
+      <div class="compass" id="compass" hidden>
+        <div class="dial"><span class="n">N</span>
+          <svg class="needle" id="needle" viewBox="0 0 140 140"><path d="M70 18l10 52H60z" fill="#a5512b"/><path d="M70 122l10-52H60z" fill="#3b2f20"/></svg>
+        </div>
+        <div><div class="lbl">Heading</div><div class="bignum" id="heading">—</div><div class="mono" id="calib"></div></div>
+      </div>
+      <p class="err" id="compass-msg"></p>
+      <p class="note-small">Magnetic declination here is about 0.25° west (WMM2025). The compass shows magnetic north; true north is a quarter degree east of it. The page does not apply this correction.</p>`,
+  };
+}
+async function startCompass() {
+  const msg = $("compass-msg");
+  const desktop = "No compass found. Open this page on a phone.";
+  if (!window.isSecureContext) { msg.textContent = "The compass needs HTTPS."; return; }
+  if (typeof DeviceOrientationEvent === "undefined") { msg.textContent = desktop; return; }
+  if (typeof DeviceOrientationEvent.requestPermission === "function") {
+    try {
+      if (await DeviceOrientationEvent.requestPermission() !== "granted") { msg.textContent = "Permission denied. Allow motion access in Safari settings."; return; }
+    } catch (e) { msg.textContent = "Permission request failed."; return; }
+  }
+  $("compass").hidden = false;
+  $("compass-go").hidden = true;
+  let got = false;
+  const handler = (e) => {
+    let h = null, acc = null;
+    if (e.webkitCompassHeading != null) { h = e.webkitCompassHeading; acc = e.webkitCompassAccuracy; }
+    else if (e.absolute && e.alpha != null) { h = (360 - e.alpha + (screen.orientation ? screen.orientation.angle : 0)) % 360; }
+    if (h == null || !$("needle")) return;
+    got = true;
+    msg.textContent = "";
+    $("needle").style.transform = `rotate(${-h}deg)`;
+    $("heading").textContent = Math.round(h) + "°";
+    $("calib").textContent = acc != null && (acc < 0 || acc > 20) ? "uncalibrated: wave the phone in a figure-eight" : "";
+  };
+  const evt = "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation";
+  window.addEventListener(evt, handler);
+  setTimeout(() => { if (!got) msg.textContent = desktop; }, 2500);
+}
+
+const LIVE = { "02": liveMoon, "04": liveRain, "07": livePlants, "10": liveFreeze, "11": liveShadow, "12": liveDeer, "19": liveCompass, "20": livePasque };
+const liveCache = {};
+function live(id) {
+  if (!liveCache[id]) {
+    liveCache[id] = LIVE[id]().catch((e) => { delete liveCache[id]; throw e; });
+  }
+  return liveCache[id];
+}
+
+// ── Sync ────────────────────────────────────────────────────────────────
+function setSync(s, text) { $("sync").dataset.state = s; $("sync").textContent = text; }
+let saveSeq = 0;
+async function save() {
+  clearTimeout(noteTimer);
+  noteTimer = 0;
+  const seq = ++saveSeq;
+  setSync("saving", "Saving");
+  const r = await VibesSync.save(KEY, state);
+  if (seq !== saveSeq) return;
+  setSync(r.synced ? "ok" : "off", r.synced ? "Synced" : "Not synced");
+}
+let noteTimer = 0;
+function saveSoon() {
+  clearTimeout(noteTimer);
+  setSync("saving", "Saving");
+  noteTimer = setTimeout(save, 700);
+}
+function setText(bucket, id, field, value) {
+  const obj = bucket === "notes" ? state.notes : (state[bucket][id] = state[bucket][id] || {});
+  if (bucket === "notes") { if (value.trim()) state.notes[id] = value; else delete state.notes[id]; }
+  else if (value.trim()) obj[field] = value; else delete obj[field];
+  saveSoon();
+}
+
+// ── Views ───────────────────────────────────────────────────────────────
+const app = $("app");
+const ids = () => Object.keys(QS).sort();
+const doneCount = (id) => QS[id].steps.filter((s) => state.verify[id] && state.verify[id][s.h]).length;
+
+function viewGrid() {
+  const cats = ["all", ...CATEGORIES.filter((c) => ids().some((id) => QS[id].meta.category === c))];
+  app.innerHTML = `
+    <div class="controls">
+      ${cats.map((c) => `<button class="chip ${ui.cat === c ? "on" : ""}" data-cat="${c}" type="button">${c}</button>`).join("")}
+      <label class="toggle"><input type="checkbox" id="flash" ${ui.flash ? "checked" : ""}> Flashcards</label>
+    </div>
+    <div class="grid" id="grid"></div>`;
+  const grid = $("grid");
+  for (const id of ids()) {
+    const { meta, steps } = QS[id];
+    if (ui.cat !== "all" && meta.category !== ui.cat) continue;
+    const r = state.ratings[id];
+    const hidden = ui.flash && !revealed.has(id);
+    const a = document.createElement("a");
+    a.className = "card";
+    a.href = "#/q/" + id;
+    a.innerHTML = `
+      <div class="qn">Q${id} · ${esc(meta.category)}</div>
+      <div class="qt">${esc(meta.question)}</div>
+      <div class="ans ${hidden ? "hidden" : ""}" data-reveal="${id}">${esc(meta.short_answer)}</div>
+      <div class="meta">
+        <span class="tag">${esc(meta.confidence)} confidence</span>
+        ${r ? `<span class="tag ${r}">${RATINGS[r]}</span>` : ""}
+        <span class="tag num">verified ${doneCount(id)}/${steps.length}</span>
+        ${LIVE[id] && id !== "19" ? `<span class="tag live num" data-live="${id}">live…</span>` : ""}
+      </div>`;
+    grid.appendChild(a);
+    if (LIVE[id] && id !== "19") {
+      live(id).then((v) => { const el = a.querySelector("[data-live]"); if (el) el.textContent = v.short; })
+        .catch(() => { const el = a.querySelector("[data-live]"); if (el) el.remove(); });
+    }
+  }
+}
+
+function section(cls, title, body) {
+  const s = document.createElement("section");
+  s.className = "box " + cls;
+  const h = document.createElement("h3");
+  h.textContent = title;
+  s.appendChild(h);
+  if (typeof body === "string") s.insertAdjacentHTML("beforeend", body);
+  else if (body) s.appendChild(body);
+  return s;
+}
+
+function viewQuestion(id) {
+  const q = QS[id];
+  if (!q) { location.hash = "#/"; return; }
+  const { meta, sections } = q;
+  app.innerHTML = `<a class="back" href="#/">← All questions</a>
+    <div class="qhead"><div class="qn">Q${id} · ${esc(meta.category)} · ${esc(meta.confidence)} confidence</div><h2>${esc(meta.question)}</h2></div>`;
+
+  if (LIVE[id]) {
+    const box = section("live", "Live", `<p class="mono">Loading…</p>`);
+    app.appendChild(box);
+    live(id).then((v) => {
+      box.innerHTML = "<h3>Live</h3>" + v.html;
+      if (id === "19") $("compass-go").addEventListener("click", startCompass);
+    }).catch(() => { box.innerHTML = `<h3>Live</h3><p class="err">Couldn't load live data.</p>`; });
+  }
+
+  app.appendChild(section("", "Short answer", html(sections["Short answer"])));
+
+  const r = state.ratings[id];
+  app.appendChild(section("", "Can you answer it?", `
+    <div class="rate">${Object.entries(RATINGS).map(([k, label]) => `<button type="button" data-r="${k}" class="${r === k ? "on" : ""}">${label}</button>`).join("")}</div>
+    <textarea data-note="${id}" placeholder="Your notes, in your own words">${esc(state.notes[id] || "")}</textarea>`));
+
+  const v = html(sections["How to find and verify this yourself"]);
+  markSteps(v);
+  for (const box of v.querySelectorAll(".vchk")) {
+    const on = !!(state.verify[id] && state.verify[id][box.dataset.h]);
+    box.checked = on;
+    box.closest("li").classList.toggle("done", on);
+  }
+  app.appendChild(section("verify", `How to verify · ${doneCount(id)}/${q.steps.length} done`, v));
+  app.appendChild(section("", "Details", html(sections["The details"])));
+  app.appendChild(section("", "Uncertainties", html(sections["Uncertainties and caveats"])));
+
+  const src = html(sections["Sources"]);
+  markSources(src);
+  for (const b of src.querySelectorAll(".star")) {
+    const on = !!(state.stars[id] && state.stars[id][b.dataset.h]);
+    b.classList.toggle("on", on);
+    b.textContent = on ? "★" : "☆";
+  }
+  app.appendChild(section("", "Sources", src));
+  app.dataset.q = id;
+}
+
+function viewList(kind) {
+  const items = kind === "plan" ? PLAN : LEADS;
+  const store = state[kind];
+  const title = kind === "plan" ? "Field plan for November" : "Open leads";
+  const lede = kind === "plan"
+    ? "Things to go see or do before the post is due. Check them off and jot what you found."
+    : "Dead ends in the research that only you can settle. Each one is good blog material.";
+  const noon = solarNoonToday().noon;
+  app.innerHTML = `<h2 class="page">${title}</h2><p class="lede">${lede}</p><div class="list" id="list"></div>`;
+  const list = $("list");
+  for (const it of items) {
+    const s = store[it.id] || {};
+    const why = it.live === "noon" ? `Today's solar noon is ${fmtTime(noon)}. The shadow points true north (Q11, Q19).` : it.why;
+    const when = kind === "plan" ? it.when : `Q${it.q}`;
+    const field = kind === "plan" ? "note" : "findings";
+    const div = document.createElement("div");
+    div.className = "item" + (s.done ? " done" : "");
+    div.innerHTML = `
+      <label class="head"><input type="checkbox" data-done="${it.id}" ${s.done ? "checked" : ""}>
+        <span><span class="when">${esc(when)}</span><span class="what">${esc(it.what)}</span></span></label>
+      <p class="why">${esc(why)}${kind === "leads" ? ` <a href="#/q/${it.q}">Open Q${it.q} →</a>` : ""}</p>
+      <textarea data-list="${kind}" data-id="${it.id}" data-field="${field}" placeholder="${kind === "plan" ? "Short note" : "What you found"}">${esc(s[field] || "")}</textarea>`;
+    list.appendChild(div);
+  }
+}
+
+function exportText() {
+  const s = score();
+  const lines = [`# Where You At? Rosemount`, ``, `Score: ${s} / 20, "${tierFor(s)}"`, ``];
+  for (const id of ids()) {
+    const q = QS[id];
+    const r = state.ratings[id];
+    const done = q.steps.filter((st) => state.verify[id] && state.verify[id][st.h]);
+    const starred = q.sources.filter((x) => state.stars[id] && state.stars[id][x.h]);
+    lines.push(`## Q${id}. ${q.meta.question}`, ``, `Rating: ${r ? RATINGS[r] : "Not rated"}`, ``);
+    if (state.notes[id]) lines.push(state.notes[id].trim(), ``);
+    if (done.length) { lines.push(`Verified (${done.length}/${q.steps.length}):`); for (const st of done) lines.push(`- ${st.text}`); lines.push(``); }
+    if (starred.length) { lines.push(`Sources:`); for (const x of starred) lines.push(`- [${x.title}](${x.url})`); lines.push(``); }
+  }
+  const leads = LEADS.filter((l) => state.leads[l.id] && (state.leads[l.id].findings || state.leads[l.id].done));
+  if (leads.length) {
+    lines.push(`## Open leads`, ``);
+    for (const l of leads) {
+      const s2 = state.leads[l.id];
+      lines.push(`- ${s2.done ? "[x]" : "[ ]"} Q${l.q}: ${l.what}${s2.findings ? " " + s2.findings.trim() : ""}`);
+    }
+    lines.push(``);
+  }
+  const plan = PLAN.filter((p) => state.plan[p.id] && (state.plan[p.id].note || state.plan[p.id].done));
+  if (plan.length) {
+    lines.push(`## Field plan notes`, ``);
+    for (const p of plan) {
+      const s2 = state.plan[p.id];
+      lines.push(`- ${s2.done ? "[x]" : "[ ]"} ${p.when}: ${p.what}${s2.note ? " " + s2.note.trim() : ""}`);
+    }
+    lines.push(``);
+  }
+  return lines.join("\n");
+}
+function viewExport() {
+  const text = exportText();
+  app.innerHTML = `<h2 class="page">Export</h2>
+    <p class="lede">Your score, ratings, notes, finished verify steps, starred sources, lead findings and field notes, as Markdown for the post draft.</p>
+    <div class="row"><button class="btn" type="button" id="copy">Copy</button><button class="btn ghost" type="button" id="dl">Download .md</button><span class="mono" id="copied"></span></div>
+    <pre class="export" id="out"></pre>`;
+  $("out").textContent = text;
+  $("copy").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(text); $("copied").textContent = "Copied"; }
+    catch (e) { $("copied").textContent = "Copy failed; select the text instead"; }
+  });
+  $("dl").addEventListener("click", () => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], { type: "text/markdown" }));
+    a.download = "where-you-at-rosemount.md";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+}
+
+function route() {
+  const h = location.hash.replace(/^#/, "") || "/";
+  const m = h.match(/^\/q\/(\d\d)$/);
+  const name = m ? "q" : h === "/plan" ? "plan" : h === "/leads" ? "leads" : h === "/export" ? "export" : "grid";
+  for (const a of $("tabs").querySelectorAll("a")) a.classList.toggle("on", a.dataset.r === name || (name === "q" && a.dataset.r === "grid"));
+  delete app.dataset.q;
+  if (name === "q") viewQuestion(m[1]);
+  else if (name === "plan" || name === "leads") viewList(name);
+  else if (name === "export") viewExport();
+  else viewGrid();
+  renderScore();
+}
+
+// ── Events ──────────────────────────────────────────────────────────────
+app.addEventListener("click", (e) => {
+  const chip = e.target.closest("[data-cat]");
+  if (chip) { ui.cat = chip.dataset.cat; writeUI(); viewGrid(); return; }
+  const rev = e.target.closest(".ans.hidden");
+  if (rev) { e.preventDefault(); revealed.add(rev.dataset.reveal); rev.classList.remove("hidden"); return; }
+  const id = app.dataset.q;
+  const rb = e.target.closest(".rate button");
+  if (rb && id) {
+    if (state.ratings[id] === rb.dataset.r) delete state.ratings[id]; else state.ratings[id] = rb.dataset.r;
+    for (const b of rb.parentNode.children) b.classList.toggle("on", b.dataset.r === state.ratings[id]);
+    renderScore();
+    save();
+    return;
+  }
+  const star = e.target.closest(".star");
+  if (star && id) {
+    const bag = state.stars[id] = state.stars[id] || {};
+    if (bag[star.dataset.h]) delete bag[star.dataset.h]; else bag[star.dataset.h] = true;
+    star.classList.toggle("on", !!bag[star.dataset.h]);
+    star.textContent = bag[star.dataset.h] ? "★" : "☆";
+    save();
+  }
+});
+app.addEventListener("change", (e) => {
+  const t = e.target;
+  if (t.id === "flash") { ui.flash = t.checked; revealed.clear(); writeUI(); viewGrid(); return; }
+  const id = app.dataset.q;
+  if (t.classList.contains("vchk") && id) {
+    const bag = state.verify[id] = state.verify[id] || {};
+    if (t.checked) bag[t.dataset.h] = true; else delete bag[t.dataset.h];
+    t.closest("li").classList.toggle("done", t.checked);
+    const h3 = app.querySelector("section.verify > h3");
+    if (h3) h3.textContent = `How to verify · ${doneCount(id)}/${QS[id].steps.length} done`;
+    save();
+    return;
+  }
+  if (t.dataset.done) {
+    const kind = location.hash === "#/plan" ? "plan" : "leads";
+    const s = state[kind][t.dataset.done] = state[kind][t.dataset.done] || {};
+    if (t.checked) s.done = true; else delete s.done;
+    t.closest(".item").classList.toggle("done", t.checked);
+    save();
+  }
+});
+app.addEventListener("input", (e) => {
+  const t = e.target;
+  if (t.dataset.note) setText("notes", t.dataset.note, null, t.value);
+  else if (t.dataset.list) setText(t.dataset.list, t.dataset.id, t.dataset.field, t.value);
+});
+window.addEventListener("hashchange", () => { route(); window.scrollTo(0, 0); });
+
+// Leaving the tab: push any note still waiting on the debounce.
+function flush() { if (noteTimer) save(); }
+window.addEventListener("pagehide", flush);
+document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState === "hidden") { flush(); return; }
+  if (noteTimer) return;
+  const r = await VibesSync.unlock(KEY);
+  if (noteTimer || !r.value) return;
+  state = normalize(r.value);
+  setSync(r.offline ? "off" : "ok", r.offline ? "Offline" : "Synced");
+  const active = document.activeElement;
+  if (active && active.tagName === "TEXTAREA") { renderScore(); return; }
+  route();
+});
+
+// ── Boot ────────────────────────────────────────────────────────────────
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("../sw.js").catch(() => {});
+(async function init() {
+  try { await loadAll(); }
+  catch (e) { app.innerHTML = `<p class="err">Couldn't load the research files (${esc(e.message)}). Reload to try again.</p>`; return; }
+  const r = await VibesSync.unlock(KEY);
+  state = normalize(r.value);
+  setSync(r.offline ? "off" : "ok", r.offline ? "Offline" : "Synced");
+  route();
+})();
+</script>
+</body>
+</html>
